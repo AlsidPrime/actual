@@ -137,6 +137,10 @@ __metadata:
     "@actual-app/components": "workspace:*"
     "@emotion/css": "npm:^11.13.5"
     "@fontsource/redacted-script": "npm:^5.2.5"
+    "@fullcalendar/core": "npm:^6.1.19"
+    "@fullcalendar/daygrid": "npm:^6.1.19"
+    "@fullcalendar/interaction": "npm:^6.1.19"
+    "@fullcalendar/react": "npm:^6.1.19"
     "@juggle/resize-observer": "npm:^3.4.0"
     "@playwright/test": "npm:1.52.0"
     "@rollup/plugin-inject": "npm:^5.0.5"
@@ -2746,6 +2750,44 @@ __metadata:
   dependencies:
     tslib: "npm:^2.4.0"
   checksum: 10/477e18aabaf2e6e90fc12952a3cb6c0ebb40ad99414d6b9d2501c6348fbad58cacb433ec6630955cfd1491ea7630f32a9dc280bb27d0fb8a784251404a54140a
+  languageName: node
+  linkType: hard
+
+"@fullcalendar/core@npm:^6.1.19":
+  version: 6.1.19
+  resolution: "@fullcalendar/core@npm:6.1.19"
+  dependencies:
+    preact: "npm:~10.12.1"
+  checksum: 10/5584da8eb2196085f7bd1a7cf37e2654d8960dd14e0eceddc8a41029b4c19fbcdb993cc517d31587991c095611bddc9d29468be6fb73fd53a92c4e6bfe935bac
+  languageName: node
+  linkType: hard
+
+"@fullcalendar/daygrid@npm:^6.1.19":
+  version: 6.1.19
+  resolution: "@fullcalendar/daygrid@npm:6.1.19"
+  peerDependencies:
+    "@fullcalendar/core": ~6.1.19
+  checksum: 10/1d1f15685e53fe73713ed523a497d9d5c8660d20e08c50a0c4bf040902144c9e571f536932a6b5c9ccc60c00fe2127879963bf05fbda736eaced439ddc06a1b3
+  languageName: node
+  linkType: hard
+
+"@fullcalendar/interaction@npm:^6.1.19":
+  version: 6.1.19
+  resolution: "@fullcalendar/interaction@npm:6.1.19"
+  peerDependencies:
+    "@fullcalendar/core": ~6.1.19
+  checksum: 10/a9df02f92301548036603a291a03fe3383baab4b17eeb4db59f89cb18a605c70fb6710f3fcfb9391e899ca76eea384a6686928bd1d848e503c1dc8558c0b688e
+  languageName: node
+  linkType: hard
+
+"@fullcalendar/react@npm:^6.1.19":
+  version: 6.1.19
+  resolution: "@fullcalendar/react@npm:6.1.19"
+  peerDependencies:
+    "@fullcalendar/core": ~6.1.19
+    react: ^16.7.0 || ^17 || ^18 || ^19
+    react-dom: ^16.7.0 || ^17 || ^18 || ^19
+  checksum: 10/3a1b1dd5d8da032591a170c3488ee4c21d32ca7bdbfd718b1c668edc49f3feb664e7e278350655b2aa2519f2fdd9b6e694e3fbed265ba17d40ef4f3ba517ed81
   languageName: node
   linkType: hard
 
@@ -16773,6 +16815,13 @@ __metadata:
     picocolors: "npm:^1.1.1"
     source-map-js: "npm:^1.2.1"
   checksum: 10/9e4fbe97574091e9736d0e82a591e29aa100a0bf60276a926308f8c57249698935f35c5d2f4e80de778d0cbb8dcffab4f383d85fd50c5649aca421c3df729b86
+  languageName: node
+  linkType: hard
+
+"preact@npm:~10.12.1":
+  version: 10.12.1
+  resolution: "preact@npm:10.12.1"
+  checksum: 10/412bbe8eae0c73e8b30f4992a1bfe965460ea724b5bce1ebfb2dabf2d1a8dee2894b893ecd4e7cb2039f43d8a63d06af4508a606ca3baac17a01ac38e263efd4
   languageName: node
   linkType: hard
 

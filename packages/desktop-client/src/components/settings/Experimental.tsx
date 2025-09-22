@@ -105,6 +105,9 @@ export function ExperimentalFeatures() {
             >
               <Trans>Currency support</Trans>
             </FeatureToggle>
+            <FeatureToggle flag="predictive-calendar">
+              <Trans>Enable predictive cash flow calendar</Trans>
+            </FeatureToggle>
           </View>
         ) : (
           <Link
