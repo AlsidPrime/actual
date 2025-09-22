@@ -1,8 +1,11 @@
+﻿import { type ForecastGroupStrategy } from './forecast';
+
 export type FeatureFlag =
   | 'goalTemplatesEnabled'
   | 'goalTemplatesUIEnabled'
   | 'actionTemplating'
-  | 'currency';
+  | 'currency'
+  | 'predictive-calendar';
 
 /**
  * Cross-device preferences. These sync across devices when they are changed.
@@ -79,6 +82,7 @@ export type LocalPrefs = Partial<{
   reportsViewLabel: boolean;
   sidebarWidth: number;
   'mobile.showSpentColumn': boolean;
+  'predictiveCalendar.groupStrategies': Record<string, ForecastGroupStrategy>;
 }>;
 
 export type Theme = 'light' | 'dark' | 'auto' | 'midnight' | 'development';
@@ -127,3 +131,5 @@ export type GlobalPrefsJson = Partial<{
 }>;
 
 export type AuthMethods = 'password' | 'openid';
+
+

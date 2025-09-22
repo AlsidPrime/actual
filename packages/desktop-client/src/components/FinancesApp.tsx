@@ -37,6 +37,7 @@ import { useGlobalPref } from '@desktop-client/hooks/useGlobalPref';
 import { useLocalPref } from '@desktop-client/hooks/useLocalPref';
 import { useMetaThemeColor } from '@desktop-client/hooks/useMetaThemeColor';
 import { useNavigate } from '@desktop-client/hooks/useNavigate';
+import { useFeatureFlag } from '@desktop-client/hooks/useFeatureFlag';
 import { addNotification } from '@desktop-client/notifications/notificationsSlice';
 import { useSelector, useDispatch } from '@desktop-client/redux';
 
@@ -97,6 +98,7 @@ export function FinancesApp() {
   );
 
   const multiuserEnabled = useMultiuserEnabled();
+  const predictiveCalendarEnabled = useFeatureFlag('predictive-calendar');
 
   useEffect(() => {
     // Wait a little bit to make sure the sync button will get the
@@ -257,6 +259,17 @@ export function FinancesApp() {
                   path="/budget"
                   element={<NarrowAlternate name="Budget" />}
                 />
+
+                {predictiveCalendarEnabled && (
+                  <Route
+                    path="/budget/calendar"
+                    element={
+                      <NarrowNotSupported>
+                        <WideComponent name="Calendar" />
+                      </NarrowNotSupported>
+                    }
+                  />
+                )}
 
                 <Route
                   path="/schedules"

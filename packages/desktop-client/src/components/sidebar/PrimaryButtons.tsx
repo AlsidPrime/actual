@@ -13,13 +13,14 @@ import {
   SvgTuning,
   SvgWallet,
 } from '@actual-app/components/icons/v1';
-import { SvgCalendar3 } from '@actual-app/components/icons/v2';
+import { SvgCalendar, SvgCalendar3 } from '@actual-app/components/icons/v2';
 import { View } from '@actual-app/components/view';
 
 import { Item } from './Item';
 import { SecondaryItem } from './SecondaryItem';
 
 import { useSyncServerStatus } from '@desktop-client/hooks/useSyncServerStatus';
+import { useFeatureFlag } from '@desktop-client/hooks/useFeatureFlag';
 
 export function PrimaryButtons() {
   const { t } = useTranslation();
@@ -29,6 +30,7 @@ export function PrimaryButtons() {
 
   const syncServerStatus = useSyncServerStatus();
   const isUsingServer = syncServerStatus !== 'no-server';
+  const predictiveCalendarEnabled = useFeatureFlag('predictive-calendar');
 
   const isActive = [
     '/payees',
@@ -47,6 +49,9 @@ export function PrimaryButtons() {
   return (
     <View style={{ flexShrink: 0 }}>
       <Item title={t('Budget')} Icon={SvgWallet} to="/budget" />
+      {predictiveCalendarEnabled && (
+        <Item title={t('Calendar')} Icon={SvgCalendar} to="/budget/calendar" />
+      )}
       <Item title={t('Reports')} Icon={SvgReports} to="/reports" />
       <Item title={t('Schedules')} Icon={SvgCalendar3} to="/schedules" />
       <Item
