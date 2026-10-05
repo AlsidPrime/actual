@@ -1,9 +1,12 @@
 // oxlint-disable typescript-paths/absolute-parent-import
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Dialog, DialogTrigger } from 'react-aria-components';
 import { Trans, useTranslation } from 'react-i18next';
 import { useParams } from 'react-router';
 
 import { Button } from '@actual-app/components/button';
+import { SvgExpandArrow } from '@actual-app/components/icons/v0';
+import { Popover } from '@actual-app/components/popover';
 import { Select } from '@actual-app/components/select';
 import { styles } from '@actual-app/components/styles';
 import { theme } from '@actual-app/components/theme';
@@ -30,6 +33,7 @@ import {
 
 import { Page, PageHeader } from '#components/Page';
 import { PrivacyFilter } from '#components/PrivacyFilter';
+import { AccountSelector } from '#components/reports/AccountSelector';
 import { Container } from '#components/reports/Container';
 import { getCustomTick } from '#components/reports/getCustomTick';
 import { computePadding } from '#components/reports/graphs/util/computePadding';
@@ -52,6 +56,7 @@ import {
   getLowestChartDataPoint,
   getZeroCrossingGradientOffset,
 } from './balanceForecastChartData';
+import { CashFlowCalendarView } from './CashFlowCalendarView';
 
 export function BalanceForecast() {
   const params = useParams();
@@ -81,6 +86,7 @@ function BalanceForecastInner({ widget }: BalanceForecastInnerProps) {
   const dispatch = useDispatch();
   const { data: accounts = [] } = useAccounts();
   const [budgetTypePref] = useSyncedPref('budgetType');
+  const [firstDayOfWeekIdxPref] = useSyncedPref('firstDayOfWeekIdx');
   const budgetType = budgetTypePref === 'tracking' ? 'tracking' : 'envelope';
 
   const {
@@ -115,12 +121,20 @@ function BalanceForecastInner({ widget }: BalanceForecastInnerProps) {
   const [granularity, setGranularity] = useState<'Daily' | 'Monthly'>(
     widget?.meta?.granularity ?? 'Monthly',
   );
+  const [visualization, setVisualization] = useState<'chart' | 'calendar'>(
+    'chart',
+  );
   const [source, setSource] = useState<ForecastSource>(
     widget?.meta?.source === 'tracking-budget' && budgetType === 'tracking'
       ? 'tracking-budget'
       : 'schedules',
   );
+  const isCalendarView = visualization === 'calendar';
   const isTrackingBudgetForecast = source === 'tracking-budget';
+
+  const [selectedCalendarAccountIds, setCalendarAccountIds] = useState<
+    string[]
+  >(widget?.meta?.accounts ?? []);
 
   useEffect(() => {
     if (budgetType !== 'tracking' && source === 'tracking-budget') {
@@ -158,10 +172,22 @@ function BalanceForecastInner({ widget }: BalanceForecastInnerProps) {
     source,
     enabled: hasMonthOptions,
   });
+  const calendarForecast = useBalanceForecast({
+    accountIds: selectedCalendarAccountIds,
+    startDate,
+    endDate,
+    includeAccountlessSchedules: false,
+    source: 'schedules',
+    enabled:
+      hasMonthOptions &&
+      isCalendarView &&
+      selectedCalendarAccountIds.length > 0,
+  });
+  const activeError = isCalendarView ? calendarForecast.error : error;
   const errorMessage =
-    error instanceof Error
-      ? error.message
-      : error
+    activeError instanceof Error
+      ? activeError.message
+      : activeError
         ? t('Failed to load forecast')
         : null;
   const normalizedForecastData = forecastData ?? null;
@@ -182,6 +208,7 @@ function BalanceForecastInner({ widget }: BalanceForecastInnerProps) {
         startDate: start,
         endDate: end,
         granularity: isTrackingBudgetForecast ? 'Monthly' : granularity,
+        ...(isCalendarView ? { accounts: selectedCalendarAccountIds } : {}),
         source,
         timeFrame: {
           start,
@@ -319,7 +346,7 @@ function BalanceForecastInner({ widget }: BalanceForecastInnerProps) {
     return <LoadingIndicator />;
   }
 
-  if (isLoading && !normalizedForecastData) {
+  if (!isCalendarView && isLoading && !normalizedForecastData) {
     return <LoadingIndicator />;
   }
 
@@ -336,7 +363,65 @@ function BalanceForecastInner({ widget }: BalanceForecastInnerProps) {
   );
   const headerInlineContent = (
     <>
-      {budgetType === 'tracking' && (
+      <Select
+        value={visualization}
+        onChange={setVisualization}
+        options={[
+          ['chart', t('Chart')],
+          ['calendar', t('Calendar')],
+        ]}
+      />
+      {isCalendarView && (
+        <DialogTrigger>
+          <Button
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+          >
+            <Trans count={selectedCalendarAccountIds.length}>
+              {{ count: selectedCalendarAccountIds.length }} accounts
+            </Trans>
+            <SvgExpandArrow width={8} height={8} />
+          </Button>
+          <Popover
+            placement="bottom start"
+            style={{
+              width: 380,
+              maxWidth: 'calc(100vw - 24px)',
+              maxHeight: 420,
+            }}
+          >
+            <Dialog
+              aria-label={t('Select accounts')}
+              style={{ outline: 'none' }}
+            >
+              <View style={{ padding: 12 }}>
+                <View style={{ marginBottom: 8, fontWeight: 600 }}>
+                  <Trans>Accounts</Trans>
+                </View>
+                <View
+                  style={{
+                    marginBottom: 8,
+                    color: theme.pageTextLight,
+                    fontSize: 12,
+                  }}
+                >
+                  <Trans>
+                    Select the accounts whose available cash you want to
+                    forecast.
+                  </Trans>
+                </View>
+                <View style={{ maxHeight: 320, overflowY: 'auto' }}>
+                  <AccountSelector
+                    accounts={accounts}
+                    selectedAccountIds={selectedCalendarAccountIds}
+                    setSelectedAccountIds={setCalendarAccountIds}
+                  />
+                </View>
+              </View>
+            </Dialog>
+          </Popover>
+        </DialogTrigger>
+      )}
+      {!isCalendarView && budgetType === 'tracking' && (
         <Select
           value={source}
           onChange={onSourceChange}
@@ -346,15 +431,17 @@ function BalanceForecastInner({ widget }: BalanceForecastInnerProps) {
           ]}
         />
       )}
-      <Select
-        value={granularity}
-        onChange={setGranularity}
-        disabled={isTrackingBudgetForecast}
-        options={[
-          ['Monthly', t('Monthly')],
-          ['Daily', t('Daily')],
-        ]}
-      />
+      {!isCalendarView && (
+        <Select
+          value={granularity}
+          onChange={setGranularity}
+          disabled={isTrackingBudgetForecast}
+          options={[
+            ['Monthly', t('Monthly')],
+            ['Daily', t('Daily')],
+          ]}
+        />
+      )}
     </>
   );
   const headerChildren = widget ? (
@@ -368,7 +455,7 @@ function BalanceForecastInner({ widget }: BalanceForecastInnerProps) {
       header={<PageHeader title={<Trans>Balance Forecast</Trans>} />}
       padding={0}
     >
-      {isTrackingBudgetForecast ? (
+      {!isCalendarView && isTrackingBudgetForecast ? (
         <Header
           allMonths={allMonths}
           start={start}
@@ -401,12 +488,23 @@ function BalanceForecastInner({ widget }: BalanceForecastInnerProps) {
           granularities={['month', 'day']}
           mode={mode}
           onChangeDates={onChangeDates}
-          filters={conditions}
-          onApply={onApplyFilter}
-          onUpdateFilter={onUpdateFilter}
-          onDeleteFilter={onDeleteFilter}
-          conditionsOp={conditionsOp}
-          onConditionsOpChange={onConditionsOpChange}
+          {...(isCalendarView
+            ? {
+                filters: undefined,
+                onApply: undefined,
+                onUpdateFilter: undefined,
+                onDeleteFilter: undefined,
+                conditionsOp: undefined,
+                onConditionsOpChange: undefined,
+              }
+            : {
+                filters: conditions,
+                onApply: onApplyFilter,
+                onUpdateFilter,
+                onDeleteFilter,
+                conditionsOp,
+                onConditionsOpChange,
+              })}
           showFutureRange
           hideModeToggle
           inlineContent={headerInlineContent}
@@ -428,7 +526,7 @@ function BalanceForecastInner({ widget }: BalanceForecastInnerProps) {
           <div style={{ color: theme.errorText, marginBottom: 20 }}>
             {errorMessage}
           </div>
-        ) : endingPoint ? (
+        ) : !isCalendarView && endingPoint ? (
           <View
             style={{
               textAlign: 'right',
@@ -471,7 +569,40 @@ function BalanceForecastInner({ widget }: BalanceForecastInnerProps) {
         ) : null}
 
         <div style={{ flex: 1, minHeight: 300 }}>
-          {errorMessage ? null : chartData.length > 0 ? (
+          {errorMessage ? null : isCalendarView ? (
+            <View style={{ gap: 20, paddingTop: 20 }}>
+              {selectedCalendarAccountIds.length > 0 ? (
+                <>
+                  {(calendarForecast.isPending ||
+                    calendarForecast.isPlaceholderData) && <LoadingIndicator />}
+                  <CashFlowCalendarView
+                    forecastData={
+                      calendarForecast.isPlaceholderData
+                        ? null
+                        : (calendarForecast.data ?? null)
+                    }
+                    start={start}
+                    end={end}
+                    firstDayOfWeekIdx={firstDayOfWeekIdxPref}
+                  />
+                </>
+              ) : (
+                <View
+                  style={{
+                    minHeight: 200,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: theme.pageTextLight,
+                  }}
+                >
+                  <Trans>
+                    Select the accounts whose available cash you want to
+                    forecast.
+                  </Trans>
+                </View>
+              )}
+            </View>
+          ) : chartData.length > 0 ? (
             <>
               <Container>
                 {(width, height) => (
@@ -657,7 +788,7 @@ function BalanceForecastInner({ widget }: BalanceForecastInnerProps) {
           )}
         </div>
 
-        {!errorMessage && !isTrackingBudgetForecast && (
+        {!errorMessage && !isTrackingBudgetForecast && !isCalendarView && (
           <div
             style={{ marginTop: 20, fontSize: 12, color: theme.pageTextLight }}
           >
