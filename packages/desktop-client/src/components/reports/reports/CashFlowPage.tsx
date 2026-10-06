@@ -64,7 +64,11 @@ function SweepCallout({
         ) : advisor.status === 'hold' ? (
           <Trans>Hold cash for now</Trans>
         ) : advisor.status === 'funded' ? (
-          <Trans>Protected savings are fully funded</Trans>
+          advisor.reserveFundingGap > 0 ? (
+            <Trans>Protected savings are covered by scheduled funding</Trans>
+          ) : (
+            <Trans>Protected savings are fully funded</Trans>
+          )
         ) : (
           <Trans>
             Configure Reserve accounts and categories to see savings advice.
@@ -81,17 +85,10 @@ function SweepCallout({
       )}
       {advisor.status === 'safe' && advisor.minimumOperatingCash != null && (
         <Text>
-          {advisor.nextInflowDate ? (
-            <Trans>
-              After moving it, the lowest projected operating cash before the
-              next forecasted inflow is
-            </Trans>
-          ) : (
-            <Trans>
-              After moving it, the lowest projected operating cash over the
-              remaining forecast horizon is
-            </Trans>
-          )}{' '}
+          <Trans>
+            After moving it, the lowest projected Operating cash over the
+            forecast horizon is
+          </Trans>{' '}
           <PrivacyFilter>
             <FinancialText>
               {format(
@@ -107,19 +104,20 @@ function SweepCallout({
           .
         </Text>
       )}
-      {advisor.status === 'hold' && advisor.reserveFundingGap === 0 && (
-        <Text>
-          <Trans>
-            Protected savings may be fully funded, but projected Operating cash
-            falls below your safety buffer.
-          </Trans>
-        </Text>
-      )}
-      {advisor.status === 'hold' && advisor.reserveFundingGap > 0 && (
+      {advisor.status === 'hold' &&
+        advisor.effectiveReserveFundingGap === 0 && (
+          <Text>
+            <Trans>
+              Protected savings may be fully funded, but projected Operating
+              cash falls below your safety buffer.
+            </Trans>
+          </Text>
+        )}
+      {advisor.status === 'hold' && advisor.effectiveReserveFundingGap > 0 && (
         <Text>
           <PrivacyFilter>
             <FinancialText>
-              {format(advisor.reserveFundingGap, 'financial')}
+              {format(advisor.effectiveReserveFundingGap, 'financial')}
             </FinancialText>
           </PrivacyFilter>{' '}
           <Trans>
@@ -136,17 +134,13 @@ function SweepCallout({
               {format(-advisor.minimumOperatingCash, 'financial')}
             </FinancialText>
           </PrivacyFilter>{' '}
-          {advisor.nextInflowDate ? (
-            <Trans>below zero before the next forecasted inflow.</Trans>
-          ) : (
-            <Trans>below zero over the remaining forecast horizon.</Trans>
-          )}
+          <Trans>below zero over the forecast horizon.</Trans>
         </Text>
       )}
       {advisor.nextInflowDate &&
         (advisor.status === 'hold' || advisor.status === 'danger') && (
           <Text>
-            <Trans>Recheck after the forecasted inflow on</Trans>{' '}
+            <Trans>Next forecasted inflow</Trans>:{' '}
             {monthUtils.format(advisor.nextInflowDate, 'PP', locale)}.
           </Text>
         )}
@@ -159,6 +153,26 @@ function SweepCallout({
             </FinancialText>
           </PrivacyFilter>
         </Text>
+      )}
+      {advisor.status !== 'setup' && advisor.scheduledReserveFunding > 0 && (
+        <>
+          <Text>
+            <Trans>Already scheduled to savings</Trans>:{' '}
+            <PrivacyFilter>
+              <FinancialText>
+                {format(advisor.scheduledReserveFunding, 'financial')}
+              </FinancialText>
+            </PrivacyFilter>
+          </Text>
+          <Text>
+            <Trans>Remaining funding need</Trans>:{' '}
+            <PrivacyFilter>
+              <FinancialText>
+                {format(advisor.effectiveReserveFundingGap, 'financial')}
+              </FinancialText>
+            </PrivacyFilter>
+          </Text>
+        </>
       )}
       {advisor.status !== 'setup' && (
         <Text style={{ fontSize: 12, color: theme.pageTextLight }}>
@@ -405,7 +419,8 @@ export function CashFlowPage() {
             {needsBurn && (
               <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
                 <Trans>
-                  Future unbudgeted months repeat the current monthly plan.
+                  Future months without a positive budget repeat the current
+                  monthly plan.
                 </Trans>
               </Text>
             )}

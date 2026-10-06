@@ -19,6 +19,7 @@ const fixture = vi.hoisted(() => ({
   withReserve: false,
   withBurn: false,
   operatingBalance: 1000,
+  scheduledFunding: 0,
 }));
 
 vi.mock('@actual-app/core/platform/client/connection', () => ({
@@ -139,6 +140,40 @@ vi.mock('#hooks/useBalanceForecast', () => ({
               },
             ]
           : []),
+        ...(fixture.withReserve && fixture.scheduledFunding > 0
+          ? [
+              {
+                date: monthUtils.addDays(monthUtils.currentDay(), 1),
+                accountId: 'checking',
+                accountName: 'Checking',
+                balance: fixture.operatingBalance - fixture.scheduledFunding,
+                transactions: [
+                  {
+                    amount: -fixture.scheduledFunding,
+                    isTransfer: true,
+                    payee: 'Scheduled transfer',
+                    scheduleId: 'move-to-savings',
+                    scheduleName: 'Move to savings',
+                  },
+                ],
+              },
+              {
+                date: monthUtils.addDays(monthUtils.currentDay(), 1),
+                accountId: 'savings',
+                accountName: 'Savings',
+                balance: 100 + fixture.scheduledFunding,
+                transactions: [
+                  {
+                    amount: fixture.scheduledFunding,
+                    isTransfer: true,
+                    payee: 'Scheduled transfer',
+                    scheduleId: 'move-to-savings',
+                    scheduleName: 'Move to savings',
+                  },
+                ],
+              },
+            ]
+          : []),
       ],
       lowestBalance: {
         date: monthUtils.currentDay(),
@@ -163,7 +198,17 @@ beforeEach(() => {
   fixture.withReserve = false;
   fixture.withBurn = false;
   fixture.operatingBalance = 1000;
-  vi.mocked(send).mockClear();
+  fixture.scheduledFunding = 0;
+  vi.mocked(send).mockReset();
+  vi.mocked(send).mockImplementation(async (name: string) =>
+    name === 'envelope-budget-month'
+      ? [
+          { name: 'leftover-emergency', value: 600 },
+          { name: 'leftover-groceries', value: 100 },
+          { name: 'budget-groceries', value: 100 },
+        ]
+      : [],
+  );
 });
 
 function renderRoute() {
@@ -200,6 +245,7 @@ describe('Cash Flow page', () => {
   it('redacts every advisor amount in privacy mode', async () => {
     fixture.privacyMode = true;
     fixture.withReserve = true;
+    fixture.scheduledFunding = 200;
     fixture.withBurn = true;
     fixture.rawConfig = JSON.stringify({
       ...DEFAULT_CASH_FLOW_CONFIG,
@@ -222,7 +268,17 @@ describe('Cash Flow page', () => {
     expect(callout).toBeDefined();
     expect(
       callout?.querySelectorAll('[aria-hidden="true"]').length,
-    ).toBeGreaterThanOrEqual(4);
+    ).toBeGreaterThanOrEqual(6);
+    expect(
+      screen
+        .getByText(/Already scheduled to savings/)
+        .querySelector('[aria-hidden="true"]'),
+    ).toBeInTheDocument();
+    expect(
+      screen
+        .getByText(/Remaining funding need/)
+        .querySelector('[aria-hidden="true"]'),
+    ).toBeInTheDocument();
     for (const element of callout?.querySelectorAll('[aria-label]') ?? []) {
       expect(element.getAttribute('aria-label')).not.toMatch(/\d/);
     }
@@ -252,7 +308,7 @@ describe('Cash Flow page', () => {
     },
   );
 
-  it('uses horizon wording when there is no next Operating inflow', async () => {
+  it('uses full-horizon wording when there is no next Operating inflow', async () => {
     fixture.withReserve = true;
     fixture.withBurn = true;
     fixture.rawConfig = JSON.stringify({
@@ -265,8 +321,33 @@ describe('Cash Flow page', () => {
     });
     renderRoute();
     expect(
-      await screen.findByText(/over the remaining forecast horizon is/),
+      await screen.findByText(/over the forecast horizon is/),
     ).toBeInTheDocument();
+  });
+
+  it('explains when scheduled funding covers the remaining Reserve gap', async () => {
+    fixture.withReserve = true;
+    fixture.withBurn = true;
+    fixture.scheduledFunding = 500;
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+      reserveAccountIds: ['savings'],
+      reserveCategoryIds: ['emergency'],
+      burnCategoryIds: ['groceries'],
+      budgetBurnEnabled: true,
+    });
+    renderRoute();
+    expect(
+      await screen.findByText(
+        'Protected savings are covered by scheduled funding',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Already scheduled to savings/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Remaining funding need/)).toBeInTheDocument();
+    expect(screen.queryByText(/Safe to move/)).not.toBeInTheDocument();
   });
 
   it('shows funded Reserve savings with Operating cash below the buffer as a hold', async () => {

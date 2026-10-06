@@ -7,11 +7,63 @@ export type SweepAdvisorResult = {
   protectedTarget: number;
   reserveAccountBalance: number;
   reserveFundingGap: number;
+  scheduledReserveFunding: number;
+  effectiveReserveFundingGap: number;
   minimumOperatingCash: number | null;
   availableOperatingHeadroom: number;
   safeToMove: number;
   nextInflowDate?: string;
 };
+
+function getScheduledReserveFunding(
+  forecastData: ForecastResult | null,
+  operatingIds: Set<string>,
+  reserveIds: Set<string>,
+  today: string,
+  endDate: string,
+): number {
+  const occurrences = new Map<
+    string,
+    { operatingOutflows: number[]; reserveInflows: number[] }
+  >();
+  for (const point of forecastData?.dataPoints ?? []) {
+    // Today's Reserve forecast balance already includes today's schedules.
+    if (point.date <= today || point.date > endDate) {
+      continue;
+    }
+    for (const transaction of point.transactions) {
+      if (!transaction.isTransfer || !transaction.scheduleId) {
+        continue;
+      }
+      const key = `${point.date}:${transaction.scheduleId}`;
+      const occurrence = occurrences.get(key) ?? {
+        operatingOutflows: [],
+        reserveInflows: [],
+      };
+      if (operatingIds.has(point.accountId) && transaction.amount < 0) {
+        occurrence.operatingOutflows.push(-transaction.amount);
+      }
+      if (reserveIds.has(point.accountId) && transaction.amount > 0) {
+        occurrence.reserveInflows.push(transaction.amount);
+      }
+      occurrences.set(key, occurrence);
+    }
+  }
+  let scheduledReserveFunding = 0;
+  for (const occurrence of occurrences.values()) {
+    const [outflow] = occurrence.operatingOutflows;
+    const [inflow] = occurrence.reserveInflows;
+    // Only a unique, equal pair establishes the direction and amount.
+    if (
+      occurrence.operatingOutflows.length === 1 &&
+      occurrence.reserveInflows.length === 1 &&
+      outflow === inflow
+    ) {
+      scheduledReserveFunding += inflow;
+    }
+  }
+  return scheduledReserveFunding;
+}
 
 export function calculateSweepAdvisor({
   forecastData,
@@ -47,10 +99,23 @@ export function calculateSweepAdvisor({
     0,
     protectedTarget - reserveAccountBalance,
   );
+  const scheduledReserveFunding = getScheduledReserveFunding(
+    forecastData,
+    operatingIds,
+    reserveIds,
+    today,
+    endDate,
+  );
+  const effectiveReserveFundingGap = Math.max(
+    0,
+    reserveFundingGap - scheduledReserveFunding,
+  );
   const base = {
     protectedTarget,
     reserveAccountBalance,
     reserveFundingGap,
+    scheduledReserveFunding,
+    effectiveReserveFundingGap,
     minimumOperatingCash: null,
     availableOperatingHeadroom: 0,
     safeToMove: 0,
@@ -88,9 +153,9 @@ export function calculateSweepAdvisor({
   const cumulativeBurnByDate = new Map(
     budgetBurn?.days.map(day => [day.date, day.cumulativeBurn]) ?? [],
   );
-  const operatingCashWindow = [...operatingByDate.entries()]
-    .filter(([date]) => !nextInflowDate || date < nextInflowDate)
-    .map(([date, balance]) => balance - (cumulativeBurnByDate.get(date) ?? 0));
+  const operatingCashWindow = [...operatingByDate.entries()].map(
+    ([date, balance]) => balance - (cumulativeBurnByDate.get(date) ?? 0),
+  );
   if (operatingCashWindow.length === 0) {
     return { ...base, status: 'setup', nextInflowDate };
   }
@@ -99,7 +164,10 @@ export function calculateSweepAdvisor({
     0,
     minimumOperatingCash - safetyBuffer,
   );
-  const safeToMove = Math.min(reserveFundingGap, availableOperatingHeadroom);
+  const safeToMove = Math.min(
+    effectiveReserveFundingGap,
+    availableOperatingHeadroom,
+  );
   const result = {
     ...base,
     minimumOperatingCash,
@@ -116,7 +184,7 @@ export function calculateSweepAdvisor({
   if (!isBudgetBurnComplete) {
     return { ...result, status: 'incomplete' };
   }
-  if (reserveFundingGap === 0) {
+  if (effectiveReserveFundingGap === 0) {
     return { ...result, status: 'funded' };
   }
   if (safeToMove > 0) {
