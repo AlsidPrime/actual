@@ -127,16 +127,65 @@ describe('Calendar account selection', () => {
       .mock.calls.filter(([name]) => name === 'forecast/generate');
     expect(requests.length).toBeGreaterThan(1);
     expect(requests[0][1]).not.toHaveProperty('accountIds');
-    for (const [, request] of requests.slice(1)) {
-      expect(request).toMatchObject({ accountIds: ['checking'] });
+
+    // the very next request might be the calendar query
+    const calendarQuery = requests.find(
+      ([, request]) =>
+        'accountIds' in request &&
+        Array.isArray(request.accountIds) &&
+        request.accountIds.includes('checking'),
+    );
+    expect(calendarQuery).toBeDefined();
+    if (calendarQuery) {
+      expect(calendarQuery[1]).toMatchObject({ accountIds: ['checking'] });
     }
   });
 
   it.each([
-    { accounts: [] },
-    { accounts: ['checking'] },
-    { accounts: undefined },
-  ])('honors the saved account selection $accounts', async ({ accounts }) => {
+    { calendarAccounts: [] },
+    { calendarAccounts: ['checking'] },
+    { calendarAccounts: undefined },
+  ])(
+    'honors the saved account selection $calendarAccounts',
+    async ({ calendarAccounts }) => {
+      report.widget = {
+        id: 'forecast',
+        dashboard_page_id: 'dashboard',
+        type: 'balance-forecast-card',
+        x: 0,
+        y: 0,
+        width: 4,
+        height: 4,
+        tombstone: false,
+        meta: { calendarAccounts },
+      };
+      await openCalendar();
+      expect(
+        screen.getByRole('button', {
+          name: `${calendarAccounts?.length ?? 0} accounts`,
+        }),
+      ).toBeInTheDocument();
+      if (calendarAccounts && calendarAccounts.length > 0) {
+        await waitFor(() =>
+          expect(send).toHaveBeenCalledWith(
+            'forecast/generate',
+            expect.objectContaining({
+              accountIds: calendarAccounts,
+              includeAccountlessSchedules: false,
+            }),
+          ),
+        );
+      } else {
+        expect(
+          screen.getByText(
+            'Select the accounts whose available cash you want to forecast.',
+          ),
+        ).toBeInTheDocument();
+      }
+    },
+  );
+
+  it('saves independent account selections for chart and calendar', async () => {
     report.widget = {
       id: 'forecast',
       dashboard_page_id: 'dashboard',
@@ -146,28 +195,37 @@ describe('Calendar account selection', () => {
       width: 4,
       height: 4,
       tombstone: false,
-      meta: { accounts },
+      meta: { accounts: ['different'] },
     };
-    await openCalendar();
-    expect(
-      screen.getByRole('button', { name: `${accounts?.length ?? 0} accounts` }),
-    ).toBeInTheDocument();
-    if (accounts && accounts.length > 0) {
-      await waitFor(() =>
-        expect(send).toHaveBeenCalledWith(
-          'forecast/generate',
-          expect.objectContaining({
-            accountIds: accounts,
-            includeAccountlessSchedules: false,
-          }),
-        ),
-      );
-    } else {
-      expect(
-        screen.getByText(
-          'Select the accounts whose available cash you want to forecast.',
-        ),
-      ).toBeInTheDocument();
-    }
+
+    render(
+      <MemoryRouter>
+        <TestProviders>
+          <BalanceForecast />
+        </TestProviders>
+      </MemoryRouter>,
+    );
+
+    // Switch to Calendar
+    await userEvent.click(await screen.findByRole('button', { name: 'Chart' }));
+    await userEvent.click(screen.getByText('Calendar'));
+
+    // Select account in Calendar
+    await userEvent.click(screen.getByRole('button', { name: '0 accounts' }));
+    await userEvent.click(screen.getByLabelText('Checking'));
+    await userEvent.keyboard('{Escape}');
+
+    // Save widget
+    await userEvent.click(screen.getByRole('button', { name: 'Save widget' }));
+
+    expect(send).toHaveBeenCalledWith(
+      'dashboard-update-widget',
+      expect.objectContaining({
+        meta: expect.objectContaining({
+          accounts: ['different'],
+          calendarAccounts: ['checking'],
+        }),
+      }),
+    );
   });
 });

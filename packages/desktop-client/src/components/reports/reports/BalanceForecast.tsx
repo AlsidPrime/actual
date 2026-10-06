@@ -134,7 +134,13 @@ function BalanceForecastInner({ widget }: BalanceForecastInnerProps) {
 
   const [selectedCalendarAccountIds, setCalendarAccountIds] = useState<
     string[]
-  >(widget?.meta?.accounts ?? []);
+  >(widget?.meta?.calendarAccounts ?? []);
+
+  useEffect(() => {
+    if (widget?.meta?.calendarAccounts) {
+      setCalendarAccountIds(widget.meta.calendarAccounts);
+    }
+  }, [widget?.meta?.calendarAccounts]);
 
   useEffect(() => {
     if (budgetType !== 'tracking' && source === 'tracking-budget') {
@@ -170,7 +176,7 @@ function BalanceForecastInner({ widget }: BalanceForecastInnerProps) {
       ? undefined
       : widget?.meta?.accounts === undefined,
     source,
-    enabled: hasMonthOptions,
+    enabled: hasMonthOptions && !isCalendarView,
   });
   const calendarForecast = useBalanceForecast({
     accountIds: selectedCalendarAccountIds,
@@ -208,7 +214,7 @@ function BalanceForecastInner({ widget }: BalanceForecastInnerProps) {
         startDate: start,
         endDate: end,
         granularity: isTrackingBudgetForecast ? 'Monthly' : granularity,
-        ...(isCalendarView ? { accounts: selectedCalendarAccountIds } : {}),
+        calendarAccounts: selectedCalendarAccountIds,
         source,
         timeFrame: {
           start,
