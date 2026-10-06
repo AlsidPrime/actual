@@ -34,6 +34,7 @@ import { TransactionEdit } from './mobile/transactions/TransactionEdit';
 import { Notifications } from './Notifications';
 import { MobilePageHeaderProvider, MobilePageHeaderSlot } from './Page';
 import { Reports } from './reports';
+import { CashFlowPage } from './reports/reports/CashFlowPage';
 import { NarrowAlternate, WideComponent } from './responsive';
 import { useMultiuserEnabled } from './ServerContext';
 import { Settings } from './settings';
@@ -254,6 +255,7 @@ export function FinancesApp() {
                     />
 
                     <Route path="/reports/*" element={<Reports />} />
+                    <Route path="/cash-flow" element={<CashFlowPage />} />
 
                     <Route
                       path="/budget"
@@ -464,6 +466,7 @@ export function FinancesApp() {
                   <Route path="/accounts" element={<MobileNavTabs />} />
                   <Route path="/settings" element={<MobileNavTabs />} />
                   <Route path="/reports" element={<MobileNavTabs />} />
+                  <Route path="/cash-flow" element={<MobileNavTabs />} />
                   <Route
                     path="/reports/:dashboardId"
                     element={<MobileNavTabs />}

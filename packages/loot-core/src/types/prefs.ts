@@ -19,6 +19,7 @@ export type FeatureFlag =
 export type SyncedPrefs = Partial<
   Record<
     | 'budgetType'
+    | 'cash-flow-calendar-config'
     | 'upcomingScheduledTransactionLength'
     | 'firstDayOfWeekIdx'
     | 'dateFormat'

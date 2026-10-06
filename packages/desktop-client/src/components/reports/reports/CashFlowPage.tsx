@@ -1,0 +1,393 @@
+import { useEffect, useState } from 'react';
+import { Trans } from 'react-i18next';
+
+import { Text } from '@actual-app/components/text';
+import { theme } from '@actual-app/components/theme';
+import { View } from '@actual-app/components/view';
+import { listen, send } from '@actual-app/core/platform/client/connection';
+import * as monthUtils from '@actual-app/core/shared/months';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+
+import { FinancialText } from '#components/FinancialText';
+import { Page, PageHeader } from '#components/Page';
+import { PrivacyFilter } from '#components/PrivacyFilter';
+import { LoadingIndicator } from '#components/reports/LoadingIndicator';
+import { useAccounts } from '#hooks/useAccounts';
+import { useBalanceForecast } from '#hooks/useBalanceForecast';
+import { useCategories } from '#hooks/useCategories';
+import { useFormat } from '#hooks/useFormat';
+import { useLocale } from '#hooks/useLocale';
+import { useSyncedPref } from '#hooks/useSyncedPref';
+
+import { buildBudgetBurnProjection } from './budgetBurn';
+import { CashFlowCalendarView } from './CashFlowCalendarView';
+import { parseCashFlowConfig } from './cashFlowConfig';
+import type { CashFlowCalendarConfig } from './cashFlowConfig';
+import { calculateSweepAdvisor } from './cashFlowReserve';
+import type { SweepAdvisorResult } from './cashFlowReserve';
+import { CashFlowSetup } from './CashFlowSetup';
+
+function SweepCallout({
+  advisor,
+  safetyBuffer,
+}: {
+  advisor: SweepAdvisorResult;
+  safetyBuffer: number;
+}) {
+  const format = useFormat();
+  const locale = useLocale();
+  const color =
+    advisor.status === 'danger'
+      ? theme.errorText
+      : advisor.status === 'hold' || advisor.status === 'setup'
+        ? theme.warningText
+        : theme.reportsNumberPositive;
+  return (
+    <View style={{ border: `1px solid ${color}`, padding: 14, gap: 6 }}>
+      <Text style={{ color, fontWeight: 600, fontSize: 16 }}>
+        {advisor.status === 'safe' ? (
+          <>
+            <Trans>Safe to move</Trans>{' '}
+            <PrivacyFilter>
+              <FinancialText>
+                {format(advisor.safeToMove, 'financial')}
+              </FinancialText>
+            </PrivacyFilter>{' '}
+            <Trans>to savings today</Trans>
+          </>
+        ) : advisor.status === 'danger' ? (
+          <Trans>Do not transfer to savings</Trans>
+        ) : advisor.status === 'hold' ? (
+          <Trans>Hold cash for now</Trans>
+        ) : advisor.status === 'funded' ? (
+          <Trans>Protected savings are fully funded</Trans>
+        ) : (
+          <Trans>
+            Configure Reserve accounts and categories to see savings advice.
+          </Trans>
+        )}
+      </Text>
+      {advisor.status === 'safe' && advisor.minimumOperatingCash != null && (
+        <Text>
+          <Trans>
+            After moving it, the lowest projected operating cash before the next
+            forecasted inflow is
+          </Trans>{' '}
+          <PrivacyFilter>
+            <FinancialText>
+              {format(
+                advisor.minimumOperatingCash - advisor.safeToMove,
+                'financial',
+              )}
+            </FinancialText>
+          </PrivacyFilter>
+          . <Trans>Safety buffer</Trans>:{' '}
+          <PrivacyFilter>
+            <FinancialText>{format(safetyBuffer, 'financial')}</FinancialText>
+          </PrivacyFilter>
+          .
+        </Text>
+      )}
+      {advisor.status === 'hold' && (
+        <Text>
+          <PrivacyFilter>
+            <FinancialText>
+              {format(advisor.reserveFundingGap, 'financial')}
+            </FinancialText>
+          </PrivacyFilter>{' '}
+          <Trans>
+            remains earmarked for savings, but moving it now would breach your
+            safety buffer.
+          </Trans>
+        </Text>
+      )}
+      {advisor.status === 'danger' && advisor.minimumOperatingCash != null && (
+        <Text>
+          <Trans>Operating cash is projected to fall</Trans>{' '}
+          <PrivacyFilter>
+            <FinancialText>
+              {format(-advisor.minimumOperatingCash, 'financial')}
+            </FinancialText>
+          </PrivacyFilter>{' '}
+          <Trans>below zero before the next forecasted inflow.</Trans>
+        </Text>
+      )}
+      {advisor.nextInflowDate &&
+        (advisor.status === 'hold' || advisor.status === 'danger') && (
+          <Text>
+            <Trans>Recheck after the forecasted inflow on</Trans>{' '}
+            {monthUtils.format(advisor.nextInflowDate, 'PP', locale)}.
+          </Text>
+        )}
+      {advisor.status !== 'setup' && (
+        <Text>
+          <Trans>Protected savings funding gap</Trans>:{' '}
+          <PrivacyFilter>
+            <FinancialText>
+              {format(advisor.reserveFundingGap, 'financial')}
+            </FinancialText>
+          </PrivacyFilter>
+        </Text>
+      )}
+      {advisor.status !== 'setup' && (
+        <Text style={{ fontSize: 12, color: theme.pageTextLight }}>
+          <Trans>
+            Advice uses end-of-day projections and does not move money.
+          </Trans>
+        </Text>
+      )}
+    </View>
+  );
+}
+
+export function CashFlowPage() {
+  const queryClient = useQueryClient();
+  useEffect(
+    () =>
+      listen('sync-event', event => {
+        if (
+          (event.type === 'success' || event.type === 'applied') &&
+          event.tables.some(table =>
+            [
+              'transactions',
+              'schedules',
+              'accounts',
+              'categories',
+              'category_mapping',
+              'zero_budgets',
+              'zero_budget_months',
+              'reflect_budgets',
+            ].includes(table),
+          )
+        ) {
+          void queryClient.invalidateQueries({
+            queryKey: ['balance-forecast'],
+          });
+          void queryClient.invalidateQueries({
+            queryKey: ['cash-flow-calendar-budget'],
+          });
+        }
+      }),
+    [queryClient],
+  );
+  const [rawConfig, saveRawConfig] = useSyncedPref('cash-flow-calendar-config');
+  const [config, setConfig] = useState(() => parseCashFlowConfig(rawConfig));
+  useEffect(() => setConfig(parseCashFlowConfig(rawConfig)), [rawConfig]);
+  function updateConfig(next: CashFlowCalendarConfig) {
+    setConfig(next);
+    saveRawConfig(JSON.stringify(next));
+  }
+
+  const [budgetType] = useSyncedPref('budgetType');
+  const [firstDayOfWeekIdx] = useSyncedPref('firstDayOfWeekIdx');
+  const isEnvelope = budgetType !== 'tracking';
+  const { data: accounts = [] } = useAccounts();
+  const availableAccounts = accounts.filter(
+    account => !account.closed && !account.tombstone,
+  );
+  const availableAccountIds = new Set(
+    availableAccounts.map(account => account.id),
+  );
+  const operatingAccountIds = config.operatingAccountIds.filter(id =>
+    availableAccountIds.has(id),
+  );
+  const reserveAccountIds = config.reserveAccountIds.filter(id =>
+    availableAccountIds.has(id),
+  );
+  const { data: categoryData } = useCategories(isEnvelope);
+  const expenseGroups =
+    categoryData?.grouped.filter(group => !group.is_income) ?? [];
+  const expenseCategories =
+    categoryData?.list.filter(category => !category.is_income) ?? [];
+  const selectedBurnCategories = expenseCategories.filter(category =>
+    config.burnCategoryIds.includes(category.id),
+  );
+  const selectedReserveCategories = expenseCategories.filter(category =>
+    config.reserveCategoryIds.includes(category.id),
+  );
+  const forecastAccountIds = [
+    ...new Set([...operatingAccountIds, ...reserveAccountIds]),
+  ];
+  const today = monthUtils.currentDay();
+  const currentMonth = monthUtils.currentMonth();
+  const endMonth = monthUtils.addMonths(
+    currentMonth,
+    config.forecastMonths - 1,
+  );
+  const endDate = monthUtils.lastDayOfMonth(endMonth);
+  const forecast = useBalanceForecast({
+    accountIds: forecastAccountIds,
+    startDate: today,
+    endDate,
+    includeAccountlessSchedules: false,
+    source: 'schedules',
+    enabled: operatingAccountIds.length > 0,
+  });
+  const forecastData = forecast.isPlaceholderData
+    ? null
+    : (forecast.data ?? null);
+  const needsBurn =
+    isEnvelope && config.budgetBurnEnabled && selectedBurnCategories.length > 0;
+  const needsReserve = isEnvelope && selectedReserveCategories.length > 0;
+  const monthsToLoad = needsBurn
+    ? monthUtils.rangeInclusive(currentMonth, endMonth)
+    : [currentMonth];
+  const { data: budgetData, error: budgetError } = useQuery({
+    queryKey: ['cash-flow-calendar-budget', currentMonth, endMonth, needsBurn],
+    queryFn: () =>
+      Promise.all(
+        monthsToLoad.map(async month => ({
+          month,
+          cells: await send('envelope-budget-month', { month }),
+        })),
+      ),
+    enabled: operatingAccountIds.length > 0 && (needsBurn || needsReserve),
+  });
+  const currentCells = budgetData?.find(
+    item => item.month === currentMonth,
+  )?.cells;
+  const leftoverFor = (categoryId: string) =>
+    Number(
+      currentCells?.find(cell => cell.name.endsWith(`leftover-${categoryId}`))
+        ?.value ?? 0,
+    );
+  const monthBudgets: Record<string, Record<string, number>> = {};
+  for (const item of budgetData ?? []) {
+    monthBudgets[item.month] = {};
+    for (const category of selectedBurnCategories) {
+      monthBudgets[item.month][category.id] = Number(
+        item.cells.find(cell => cell.name.endsWith(`budget-${category.id}`))
+          ?.value ?? 0,
+      );
+    }
+  }
+  const budgetBurn =
+    needsBurn && budgetData && forecastData
+      ? buildBudgetBurnProjection({
+          enabled: true,
+          categories: selectedBurnCategories.map(category => ({
+            categoryId: category.id,
+            categoryName: category.name,
+            leftover: leftoverFor(category.id),
+          })),
+          forecastData,
+          today,
+          endDate,
+          monthBudgets,
+        })
+      : null;
+  const advisor =
+    isEnvelope && forecastData && (budgetData || !needsReserve)
+      ? calculateSweepAdvisor({
+          forecastData,
+          budgetBurn,
+          operatingAccountIds,
+          reserveAccountIds,
+          reserveCategoryLeftovers: selectedReserveCategories.map(category =>
+            leftoverFor(category.id),
+          ),
+          safetyBuffer: config.safetyBuffer,
+          today,
+          endDate,
+        })
+      : null;
+
+  return (
+    <Page
+      header={<PageHeader title={<Trans>Cash Flow Calendar</Trans>} />}
+      padding={0}
+    >
+      <View
+        style={{
+          backgroundColor: theme.tableBackground,
+          padding: 20,
+          gap: 18,
+          flex: '1 0 auto',
+          overflowY: 'auto',
+        }}
+      >
+        <View
+          style={{
+            flexDirection: 'row',
+            gap: 14,
+            alignItems: 'center',
+            flexWrap: 'wrap',
+          }}
+        >
+          <CashFlowSetup
+            config={config}
+            accounts={availableAccounts}
+            expenseGroups={expenseGroups}
+            expenseCategories={expenseCategories}
+            onChange={updateConfig}
+          />
+          <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
+            <Trans>Operating accounts</Trans>: {operatingAccountIds.length} ·{' '}
+            <Trans>Reserve accounts</Trans>: {reserveAccountIds.length} ·{' '}
+            <Trans>Budget Burn</Trans>:{' '}
+            {config.budgetBurnEnabled ? <Trans>On</Trans> : <Trans>Off</Trans>}{' '}
+            · <Trans>Burn categories</Trans>: {selectedBurnCategories.length} ·{' '}
+            <Trans>Reserve categories</Trans>:{' '}
+            {selectedReserveCategories.length}
+          </Text>
+        </View>
+        {!isEnvelope && (
+          <Text style={{ color: theme.warningText }}>
+            <Trans>
+              Budget Burn and protected savings advice require Envelope
+              budgeting. Native scheduled cash forecasting remains available.
+            </Trans>
+          </Text>
+        )}
+        {operatingAccountIds.length === 0 ? (
+          <View style={{ padding: 20, color: theme.pageTextLight }}>
+            <Trans>
+              Select at least one Operating account in Cash Flow Setup to start
+              forecasting.
+            </Trans>
+          </View>
+        ) : (
+          <>
+            {forecast.isPending && <LoadingIndicator />}
+            {forecast.error && (
+              <Text style={{ color: theme.errorText }}>
+                <Trans>Failed to load cash forecast.</Trans>
+              </Text>
+            )}
+            {budgetError && (
+              <Text style={{ color: theme.errorText }}>
+                <Trans>Failed to load budget data.</Trans>
+              </Text>
+            )}
+            {isEnvelope && advisor && (
+              <SweepCallout
+                advisor={advisor}
+                safetyBuffer={config.safetyBuffer}
+              />
+            )}
+            {isEnvelope &&
+              !advisor &&
+              !forecast.isPending &&
+              needsReserve &&
+              !budgetError && <LoadingIndicator />}
+            {needsBurn && (
+              <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
+                <Trans>
+                  Future unbudgeted months repeat the current monthly plan.
+                </Trans>
+              </Text>
+            )}
+            <CashFlowCalendarView
+              forecastData={forecastData}
+              start={currentMonth}
+              end={endMonth}
+              firstDayOfWeekIdx={firstDayOfWeekIdx}
+              budgetBurn={budgetBurn ?? undefined}
+              selectedBurnCategoryCount={selectedBurnCategories.length}
+            />
+          </>
+        )}
+      </View>
+    </Page>
+  );
+}

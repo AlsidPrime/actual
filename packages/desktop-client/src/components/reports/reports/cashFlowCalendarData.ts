@@ -50,6 +50,7 @@ export type CashFlowCalendarMonth = {
 
 type MutableScheduledEvent = CashFlowCalendarScheduledEvent & {
   amounts: number[];
+  hasTransferFlag: boolean;
 };
 
 export function getWeekStartsOn(firstDayOfWeekIdx: string | undefined) {
@@ -99,6 +100,7 @@ function buildScheduledEvents(
       if (existingEvent) {
         existingEvent.amount += transaction.amount;
         existingEvent.amounts.push(transaction.amount);
+        existingEvent.hasTransferFlag ||= transaction.isTransfer === true;
         if (!existingEvent.accountNames.includes(dataPoint.accountName)) {
           existingEvent.accountNames.push(dataPoint.accountName);
         }
@@ -107,7 +109,14 @@ function buildScheduledEvents(
           id,
           amount: transaction.amount,
           amounts: [transaction.amount],
-          label: transaction.scheduleName,
+          hasTransferFlag: transaction.isTransfer === true,
+          label:
+            (transaction.scheduleName.trim() === '' ||
+              transaction.scheduleName.toLowerCase() === 'unknown') &&
+            transaction.payee &&
+            transaction.payee.toLowerCase() !== 'unknown'
+              ? transaction.payee
+              : transaction.scheduleName,
           accountNames: [dataPoint.accountName],
           isTransfer: false,
         });
@@ -115,11 +124,15 @@ function buildScheduledEvents(
     }
   }
 
-  return [...eventsById.values()].map(({ amounts, ...event }) => ({
-    ...event,
-    isTransfer:
-      amounts.some(amount => amount < 0) && amounts.some(amount => amount > 0),
-  }));
+  return [...eventsById.values()].map(
+    ({ amounts, hasTransferFlag, ...event }) => ({
+      ...event,
+      isTransfer:
+        hasTransferFlag ||
+        (amounts.some(amount => amount < 0) &&
+          amounts.some(amount => amount > 0)),
+    }),
+  );
 }
 
 function buildDay({

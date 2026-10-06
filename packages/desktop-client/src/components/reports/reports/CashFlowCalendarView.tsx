@@ -139,8 +139,14 @@ function CalendarDay({ day }: { day: CashFlowCalendarDay }) {
 
       {day.isInMonth && day.budgetBurn && day.combinedBalance != null && (
         <DialogTrigger>
-          <Button variant="bare" style={{ fontSize: 11, padding: 0 }}>
-            <Trans>Cash flow details</Trans>
+          <Button
+            variant="bare"
+            aria-label={t('Cash flow details for {{date}}', {
+              date: monthUtils.format(day.date, 'PP', locale),
+            })}
+            style={{ fontSize: 11, padding: 0 }}
+          >
+            <Trans>Details</Trans>
           </Button>
           <Popover>
             <Dialog
@@ -368,6 +374,17 @@ export function CashFlowCalendarView({
                   aria-label={t('Budget Burn categories')}
                   style={{ padding: 12, minWidth: 360 }}
                 >
+                  {budgetBurn.months.length > 1 && (
+                    <Text
+                      style={{
+                        marginBottom: 8,
+                        color: theme.pageTextLight,
+                        fontSize: 12,
+                      }}
+                    >
+                      <Trans>Totals across the forecast horizon</Trans>
+                    </Text>
+                  )}
                   {budgetBurn.categories.map(category => (
                     <View key={category.categoryId} style={{ marginBottom: 8 }}>
                       <Text style={{ fontWeight: 600 }}>

@@ -81,6 +81,7 @@ describe('buildCashFlowCalendarData', () => {
       end: '2024-03',
       budgetBurn: {
         totalBurn: 700,
+        months: [],
         categories: [],
         days: [
           {
@@ -100,6 +101,100 @@ describe('buildCashFlowCalendarData', () => {
       status: 'negative',
     });
     expect(day?.accountBalances[0]?.balance).toBe(500);
+  });
+
+  it('carries adjusted negative cash across a month boundary', () => {
+    const months = buildCashFlowCalendarData({
+      forecastData: makeForecast([
+        {
+          date: '2024-10-31',
+          balance: 0,
+          accountId: 'checking',
+          accountName: 'Checking',
+          transactions: [],
+        },
+        {
+          date: '2024-11-01',
+          balance: 0,
+          accountId: 'checking',
+          accountName: 'Checking',
+          transactions: [],
+        },
+      ]),
+      start: '2024-10',
+      end: '2024-11',
+      budgetBurn: {
+        totalBurn: 220,
+        categories: [],
+        months: [],
+        days: [
+          {
+            date: '2024-10-31',
+            dailyBurn: 200,
+            cumulativeBurn: 200,
+            remainingBurn: 0,
+            categories: [],
+          },
+          {
+            date: '2024-11-01',
+            dailyBurn: 20,
+            cumulativeBurn: 220,
+            remainingBurn: 0,
+            categories: [],
+          },
+        ],
+      },
+    });
+    expect(months[0].days.find(day => day.date === '2024-10-31')).toMatchObject(
+      { adjustedCombinedBalance: -200, status: 'negative' },
+    );
+    expect(months[1].days.find(day => day.date === '2024-11-01')).toMatchObject(
+      { adjustedCombinedBalance: -220, status: 'negative' },
+    );
+  });
+
+  it('labels a one-sided transfer and uses payee for an unknown schedule', () => {
+    const [month] = buildCashFlowCalendarData({
+      forecastData: makeForecast([
+        {
+          date: '2024-03-20',
+          balance: 5000,
+          accountId: 'checking',
+          accountName: 'Checking',
+          transactions: [
+            {
+              amount: -500,
+              payee: 'Move to savings',
+              scheduleId: 'transfer',
+              scheduleName: 'Unknown',
+              isTransfer: true,
+            },
+            {
+              amount: -200,
+              payee: 'Electric Company',
+              scheduleId: 'bill',
+              scheduleName: 'Unknown',
+            },
+            {
+              amount: -100,
+              payee: 'Other',
+              scheduleId: 'named',
+              scheduleName: 'Explicit name',
+            },
+          ],
+        },
+      ]),
+      start: '2024-03',
+      end: '2024-03',
+    });
+    const events = month.days.find(
+      day => day.date === '2024-03-20',
+    )?.scheduledEvents;
+    expect(events).toMatchObject([
+      { label: 'Move to savings', isTransfer: true },
+      { label: 'Electric Company', isTransfer: false },
+      { label: 'Explicit name', isTransfer: false },
+    ]);
   });
 
   it('groups both selected legs of a scheduled transfer into one event', () => {
