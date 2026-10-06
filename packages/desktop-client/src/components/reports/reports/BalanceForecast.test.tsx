@@ -215,6 +215,10 @@ describe('Calendar account selection', () => {
     await userEvent.click(screen.getByLabelText('Checking'));
     await userEvent.keyboard('{Escape}');
 
+    // Switch back to Chart before saving
+    await userEvent.click(screen.getByRole('button', { name: 'Calendar' }));
+    await userEvent.click(screen.getByText('Chart'));
+
     // Save widget
     await userEvent.click(screen.getByRole('button', { name: 'Save widget' }));
 
