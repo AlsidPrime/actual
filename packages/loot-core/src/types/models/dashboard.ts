@@ -407,6 +407,10 @@ export type BalanceForecastWidget = AbstractWidget<
     endDate?: string;
     accounts?: string[];
     calendarAccounts?: string[];
+    budgetBurn?: {
+      enabled: boolean;
+      categoryIds: string[];
+    };
     conditions?: RuleConditionEntity[];
     conditionsOp?: 'and' | 'or';
     timeFrame?: TimeFrame;

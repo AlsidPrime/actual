@@ -40,6 +40,7 @@ describe('forecast projection', () => {
           account: 'acct-1',
           amount: 10,
           date: '2024-03-02',
+          category: 'income-category',
         },
         filterObject: {
           id: 'occurrence-1',
@@ -86,7 +87,7 @@ describe('forecast projection', () => {
       110, 70, 70,
     ]);
     expect(result.dataPoints[0].transactions).toMatchObject([
-      { amount: 10, scheduleId: 'sched-1' },
+      { amount: 10, scheduleId: 'sched-1', categoryId: 'income-category' },
     ]);
     expect(result.lowestBalance).toEqual({
       date: '2024-03-03',

@@ -3,8 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 
 import { categoryQueries } from '#budget';
 
-export function useCategories() {
-  return useQuery(categoryQueries.list());
+export function useCategories(enabled = true) {
+  return useQuery({ ...categoryQueries.list(), enabled });
 }
 
 export function useCategoriesById() {

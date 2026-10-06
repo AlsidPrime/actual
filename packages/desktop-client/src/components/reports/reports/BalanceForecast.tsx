@@ -19,6 +19,7 @@ import type {
   TimeFrame,
 } from '@actual-app/core/types/models';
 import type { ForecastSource } from '@actual-app/core/types/models/forecast';
+import { useQuery } from '@tanstack/react-query';
 import * as d from 'date-fns';
 import {
   CartesianGrid,
@@ -34,6 +35,7 @@ import {
 import { Page, PageHeader } from '#components/Page';
 import { PrivacyFilter } from '#components/PrivacyFilter';
 import { AccountSelector } from '#components/reports/AccountSelector';
+import { CategorySelector } from '#components/reports/CategorySelector';
 import { Container } from '#components/reports/Container';
 import { getCustomTick } from '#components/reports/getCustomTick';
 import { computePadding } from '#components/reports/graphs/util/computePadding';
@@ -41,6 +43,7 @@ import { Header } from '#components/reports/Header';
 import { LoadingIndicator } from '#components/reports/LoadingIndicator';
 import { useAccounts } from '#hooks/useAccounts';
 import { useBalanceForecast } from '#hooks/useBalanceForecast';
+import { useCategories } from '#hooks/useCategories';
 import { useDashboardWidget } from '#hooks/useDashboardWidget';
 import { useFormat } from '#hooks/useFormat';
 import { useLocale } from '#hooks/useLocale';
@@ -56,6 +59,7 @@ import {
   getLowestChartDataPoint,
   getZeroCrossingGradientOffset,
 } from './balanceForecastChartData';
+import { buildBudgetBurnProjection } from './budgetBurn';
 import { CashFlowCalendarView } from './CashFlowCalendarView';
 
 export function BalanceForecast() {
@@ -130,8 +134,21 @@ function BalanceForecastInner({ widget }: BalanceForecastInnerProps) {
       : 'schedules',
   );
   const isCalendarView = visualization === 'calendar';
+  const { data: categoryData } = useCategories(
+    isCalendarView && budgetType === 'envelope',
+  );
+  const expenseGroups =
+    categoryData?.grouped.filter(group => !group.is_income) ?? [];
+  const expenseCategories =
+    categoryData?.list.filter(category => !category.is_income) ?? [];
   const isTrackingBudgetForecast = source === 'tracking-budget';
 
+  const [budgetBurn, setBudgetBurn] = useState(
+    widget?.meta?.budgetBurn ?? { enabled: false, categoryIds: [] },
+  );
+  const selectedBurnCategories = expenseCategories.filter(category =>
+    budgetBurn.categoryIds.includes(category.id),
+  );
   const [selectedCalendarAccountIds, setCalendarAccountIds] = useState<
     string[]
   >(widget?.meta?.calendarAccounts ?? []);
@@ -187,6 +204,39 @@ function BalanceForecastInner({ widget }: BalanceForecastInnerProps) {
       isCalendarView &&
       selectedCalendarAccountIds.length > 0,
   });
+  const burnIsActive =
+    isCalendarView &&
+    budgetType === 'envelope' &&
+    budgetBurn.enabled &&
+    budgetBurn.categoryIds.length > 0 &&
+    selectedCalendarAccountIds.length > 0;
+  const { data: burnLeftovers, error: burnError } = useQuery({
+    queryKey: ['balance-forecast-budget-burn', currentMonth],
+    queryFn: () => send('envelope-budget-month', { month: currentMonth }),
+    enabled: burnIsActive,
+  });
+  const today = monthUtils.currentDay();
+  const burnProjection = isCalendarView
+    ? buildBudgetBurnProjection({
+        enabled:
+          burnIsActive &&
+          burnLeftovers != null &&
+          calendarForecast.data != null &&
+          !calendarForecast.isPlaceholderData,
+        categories: selectedBurnCategories.map(category => ({
+          categoryId: category.id,
+          categoryName: category.name,
+          leftover: Number(
+            burnLeftovers?.find(cell =>
+              cell.name.endsWith(`leftover-${category.id}`),
+            )?.value ?? 0,
+          ),
+        })),
+        forecastData: calendarForecast.data ?? null,
+        today,
+        endDate: endDate < today ? today : endDate,
+      })
+    : null;
   const activeError = isCalendarView ? calendarForecast.error : error;
   const errorMessage =
     activeError instanceof Error
@@ -213,6 +263,7 @@ function BalanceForecastInner({ widget }: BalanceForecastInnerProps) {
         endDate: end,
         granularity: isTrackingBudgetForecast ? 'Monthly' : granularity,
         calendarAccounts: selectedCalendarAccountIds,
+        budgetBurn,
         source,
         timeFrame: {
           start,
@@ -425,6 +476,54 @@ function BalanceForecastInner({ widget }: BalanceForecastInnerProps) {
           </Popover>
         </DialogTrigger>
       )}
+      {isCalendarView && budgetType === 'envelope' && (
+        <DialogTrigger>
+          <Button>
+            <Trans>Budget Burn</Trans>:{' '}
+            {budgetBurn.enabled ? t('On') : t('Off')}
+            {' · '}
+            {selectedBurnCategories.length}
+          </Button>
+          <Popover
+            placement="bottom start"
+            style={{ width: 380, maxHeight: 440 }}
+          >
+            <Dialog
+              aria-label={t('Budget Burn settings')}
+              style={{ padding: 12 }}
+            >
+              <Button
+                onPress={() =>
+                  setBudgetBurn(current => ({
+                    ...current,
+                    enabled: !current.enabled,
+                  }))
+                }
+              >
+                {budgetBurn.enabled ? (
+                  <Trans>Disable Budget Burn</Trans>
+                ) : (
+                  <Trans>Enable Budget Burn</Trans>
+                )}
+              </Button>
+              <View
+                style={{ marginTop: 12, maxHeight: 320, overflowY: 'auto' }}
+              >
+                <CategorySelector
+                  categoryGroups={expenseGroups}
+                  selectedCategories={selectedBurnCategories}
+                  setSelectedCategories={selected =>
+                    setBudgetBurn(current => ({
+                      ...current,
+                      categoryIds: selected.map(category => category.id),
+                    }))
+                  }
+                />
+              </View>
+            </Dialog>
+          </Popover>
+        </DialogTrigger>
+      )}
       {!isCalendarView && budgetType === 'tracking' && (
         <Select
           value={source}
@@ -575,6 +674,11 @@ function BalanceForecastInner({ widget }: BalanceForecastInnerProps) {
         <div style={{ flex: 1, minHeight: 300 }}>
           {errorMessage ? null : isCalendarView ? (
             <View style={{ gap: 20, paddingTop: 20 }}>
+              {burnIsActive && burnError && (
+                <View style={{ color: theme.errorText }}>
+                  <Trans>Failed to load Budget Burn data.</Trans>
+                </View>
+              )}
               {selectedCalendarAccountIds.length > 0 ? (
                 <>
                   {(calendarForecast.isPending ||
@@ -588,6 +692,12 @@ function BalanceForecastInner({ widget }: BalanceForecastInnerProps) {
                     start={start}
                     end={end}
                     firstDayOfWeekIdx={firstDayOfWeekIdxPref}
+                    budgetBurn={
+                      burnProjection && burnProjection.days.length > 0
+                        ? burnProjection
+                        : undefined
+                    }
+                    selectedBurnCategoryCount={selectedBurnCategories.length}
                   />
                 </>
               ) : (

@@ -32,6 +32,35 @@ vi.mock('@actual-app/core/platform/client/connection', () => ({
     return null;
   }),
 }));
+vi.mock('#hooks/useCategories', () => ({
+  useCategories: () => ({
+    data: {
+      grouped: [
+        {
+          id: 'expenses',
+          name: 'Expenses',
+          is_income: false,
+          categories: [
+            {
+              id: 'groceries',
+              name: 'Groceries',
+              group: 'expenses',
+              is_income: false,
+            },
+          ],
+        },
+      ],
+      list: [
+        {
+          id: 'groceries',
+          name: 'Groceries',
+          group: 'expenses',
+          is_income: false,
+        },
+      ],
+    },
+  }),
+}));
 vi.mock('#hooks/useAccounts', () => ({
   useAccounts: () => ({
     data: [
@@ -228,6 +257,94 @@ describe('Calendar account selection', () => {
         meta: expect.objectContaining({
           accounts: ['different'],
           calendarAccounts: ['checking'],
+        }),
+      }),
+    );
+  });
+  it('enables Budget Burn with an explicitly selected expense category', async () => {
+    report.widget = {
+      id: 'forecast',
+      dashboard_page_id: 'dashboard',
+      type: 'balance-forecast-card',
+      x: 0,
+      y: 0,
+      width: 4,
+      height: 4,
+      tombstone: false,
+      meta: {},
+    };
+    await openCalendar();
+    expect(
+      vi
+        .mocked(send)
+        .mock.calls.filter(([name]) => name === 'envelope-budget-month'),
+    ).toHaveLength(0);
+    await userEvent.click(
+      screen.getByRole('button', { name: /Budget Burn: Off/ }),
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Enable Budget Burn' }),
+    );
+    await userEvent.click(screen.getByLabelText('Groceries'));
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(screen.getByRole('button', { name: 'Save widget' }));
+    expect(send).toHaveBeenCalledWith(
+      'dashboard-update-widget',
+      expect.objectContaining({
+        meta: expect.objectContaining({
+          budgetBurn: { enabled: true, categoryIds: ['groceries'] },
+        }),
+      }),
+    );
+  });
+
+  it('retains Budget Burn through Calendar to Chart saving without querying budget data in Chart', async () => {
+    report.widget = {
+      id: 'forecast',
+      dashboard_page_id: 'dashboard',
+      type: 'balance-forecast-card',
+      x: 0,
+      y: 0,
+      width: 4,
+      height: 4,
+      tombstone: false,
+      meta: {
+        calendarAccounts: ['checking'],
+        budgetBurn: { enabled: true, categoryIds: ['groceries'] },
+      },
+    };
+    render(
+      <MemoryRouter>
+        <TestProviders>
+          <BalanceForecast />
+        </TestProviders>
+      </MemoryRouter>,
+    );
+    await screen.findByRole('button', { name: 'Chart' });
+    expect(
+      vi
+        .mocked(send)
+        .mock.calls.filter(([name]) => name === 'envelope-budget-month'),
+    ).toHaveLength(0);
+    await userEvent.click(screen.getByRole('button', { name: 'Chart' }));
+    await userEvent.click(screen.getByText('Calendar'));
+    await waitFor(() =>
+      expect(send).toHaveBeenCalledWith(
+        'envelope-budget-month',
+        expect.anything(),
+      ),
+    );
+    expect(
+      screen.getByRole('button', { name: /Budget Burn: On/ }),
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Calendar' }));
+    await userEvent.click(screen.getByText('Chart'));
+    await userEvent.click(screen.getByRole('button', { name: 'Save widget' }));
+    expect(send).toHaveBeenCalledWith(
+      'dashboard-update-widget',
+      expect.objectContaining({
+        meta: expect.objectContaining({
+          budgetBurn: { enabled: true, categoryIds: ['groceries'] },
         }),
       }),
     );

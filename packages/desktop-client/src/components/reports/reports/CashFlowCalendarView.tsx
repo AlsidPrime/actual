@@ -20,6 +20,7 @@ import { PrivacyFilter } from '#components/PrivacyFilter';
 import { useFormat } from '#hooks/useFormat';
 import { useLocale } from '#hooks/useLocale';
 
+import type { BudgetBurnProjection } from './budgetBurn';
 import {
   buildCashFlowCalendarData,
   clampCashFlowCalendarMonth,
@@ -35,6 +36,8 @@ type CashFlowCalendarViewProps = {
   end: string;
   firstDayOfWeekIdx?: string;
   lowThreshold?: number;
+  budgetBurn?: BudgetBurnProjection;
+  selectedBurnCategoryCount?: number;
 };
 
 function CalendarDay({ day }: { day: CashFlowCalendarDay }) {
@@ -108,7 +111,7 @@ function CalendarDay({ day }: { day: CashFlowCalendarDay }) {
             </Text>
           )}
         </View>
-        {day.isInMonth && day.combinedBalance != null && (
+        {day.isInMonth && day.adjustedCombinedBalance != null && (
           <PrivacyFilter>
             <FinancialText
               style={{
@@ -118,7 +121,7 @@ function CalendarDay({ day }: { day: CashFlowCalendarDay }) {
                 textAlign: 'right',
               }}
             >
-              {format(day.combinedBalance, 'financial')}
+              {format(day.adjustedCombinedBalance, 'financial')}
             </FinancialText>
           </PrivacyFilter>
         )}
@@ -132,6 +135,69 @@ function CalendarDay({ day }: { day: CashFlowCalendarDay }) {
             <Trans>Low</Trans>
           )}
         </Text>
+      )}
+
+      {day.isInMonth && day.budgetBurn && day.combinedBalance != null && (
+        <DialogTrigger>
+          <Button variant="bare" style={{ fontSize: 11, padding: 0 }}>
+            <Trans>Cash flow details</Trans>
+          </Button>
+          <Popover>
+            <Dialog
+              aria-label={t('Cash flow details')}
+              style={{ padding: 12, minWidth: 260 }}
+            >
+              <Text style={{ fontWeight: 600, marginBottom: 8 }}>
+                {monthUtils.format(day.date, 'PPPP', locale)}
+              </Text>
+              {[
+                [t('Native projected cash'), day.combinedBalance],
+                [t('Budget Burn today'), -day.budgetBurn.dailyBurn],
+                [t('Cumulative Budget Burn'), -day.budgetBurn.cumulativeBurn],
+                [t('After Budget Burn'), day.adjustedCombinedBalance],
+                [t('Remaining monthly burn'), day.budgetBurn.remainingBurn],
+              ].map(([label, amount]) => (
+                <View
+                  key={label}
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                  }}
+                >
+                  <Text>{label}</Text>
+                  <PrivacyFilter>
+                    <FinancialText>{format(amount, 'financial')}</FinancialText>
+                  </PrivacyFilter>
+                </View>
+              ))}
+              {day.budgetBurn.categories.length > 0 && (
+                <View style={{ marginTop: 10, gap: 3 }}>
+                  <Text style={{ fontWeight: 600 }}>
+                    <Trans>Today's burn</Trans>
+                  </Text>
+                  {day.budgetBurn.categories.map(category => (
+                    <View
+                      key={category.categoryId}
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        gap: 12,
+                      }}
+                    >
+                      <Text>{category.categoryName}</Text>
+                      <PrivacyFilter>
+                        <FinancialText>
+                          {format(category.amount, 'financial')}
+                        </FinancialText>
+                      </PrivacyFilter>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </Dialog>
+          </Popover>
+        </DialogTrigger>
       )}
 
       {day.isInMonth && negativeAccounts.length > 0 && (
@@ -233,9 +299,12 @@ export function CashFlowCalendarView({
   end,
   firstDayOfWeekIdx,
   lowThreshold,
+  budgetBurn,
+  selectedBurnCategoryCount = 0,
 }: CashFlowCalendarViewProps) {
   const { t } = useTranslation();
   const locale = useLocale();
+  const formatAmount = useFormat();
   const [visibleMonth, setVisibleMonth] = useState(() =>
     getInitialCashFlowCalendarMonth({ start, end }),
   );
@@ -255,6 +324,7 @@ export function CashFlowCalendarView({
     end: visibleMonth,
     firstDayOfWeekIdx,
     lowThreshold,
+    budgetBurn,
   });
   const startMonth = monthUtils.getMonth(start);
   const endMonth = monthUtils.getMonth(end);
@@ -267,6 +337,85 @@ export function CashFlowCalendarView({
           day are not ordered.
         </Trans>
       </Text>
+      {budgetBurn && (
+        <View
+          style={{
+            flexDirection: 'row',
+            gap: 6,
+            alignItems: 'center',
+            flexWrap: 'wrap',
+          }}
+        >
+          <Text>
+            <Trans>Budget Burn on</Trans> ·{' '}
+            <Trans count={selectedBurnCategoryCount}>
+              {{ count: selectedBurnCategoryCount }} categories
+            </Trans>{' '}
+            · <Trans>Remaining projected burn</Trans>:
+          </Text>
+          <PrivacyFilter>
+            <FinancialText>
+              {formatAmount(budgetBurn.totalBurn, 'financial')}
+            </FinancialText>
+          </PrivacyFilter>
+          {budgetBurn.categories.length > 0 && (
+            <DialogTrigger>
+              <Button variant="bare">
+                <Trans>Category details</Trans>
+              </Button>
+              <Popover>
+                <Dialog
+                  aria-label={t('Budget Burn categories')}
+                  style={{ padding: 12, minWidth: 360 }}
+                >
+                  {budgetBurn.categories.map(category => (
+                    <View key={category.categoryId} style={{ marginBottom: 8 }}>
+                      <Text style={{ fontWeight: 600 }}>
+                        {category.categoryName}
+                      </Text>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          gap: 8,
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        <Text>
+                          <Trans>Available</Trans>:
+                        </Text>
+                        <PrivacyFilter>
+                          <FinancialText>
+                            {formatAmount(category.available, 'financial')}
+                          </FinancialText>
+                        </PrivacyFilter>
+                        <Text>
+                          <Trans>Scheduled</Trans>:
+                        </Text>
+                        <PrivacyFilter>
+                          <FinancialText>
+                            {formatAmount(
+                              category.scheduledExpense,
+                              'financial',
+                            )}
+                          </FinancialText>
+                        </PrivacyFilter>
+                        <Text>
+                          <Trans>Remaining</Trans>:
+                        </Text>
+                        <PrivacyFilter>
+                          <FinancialText>
+                            {formatAmount(category.remainingBurn, 'financial')}
+                          </FinancialText>
+                        </PrivacyFilter>
+                      </View>
+                    </View>
+                  ))}
+                </Dialog>
+              </Popover>
+            </DialogTrigger>
+          )}
+        </View>
+      )}
       <View style={{ gap: 8 }}>
         <View
           style={{

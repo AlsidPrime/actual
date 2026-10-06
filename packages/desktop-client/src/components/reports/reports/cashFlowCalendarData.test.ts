@@ -66,6 +66,42 @@ describe('buildCashFlowCalendarData', () => {
     ]);
   });
 
+  it('uses adjusted combined cash for warnings while keeping native accounts intact', () => {
+    const [month] = buildCashFlowCalendarData({
+      forecastData: makeForecast([
+        {
+          date: '2024-03-12',
+          balance: 500,
+          accountId: 'checking',
+          accountName: 'Checking',
+          transactions: [],
+        },
+      ]),
+      start: '2024-03',
+      end: '2024-03',
+      budgetBurn: {
+        totalBurn: 700,
+        categories: [],
+        days: [
+          {
+            date: '2024-03-12',
+            dailyBurn: 100,
+            cumulativeBurn: 700,
+            remainingBurn: 0,
+            categories: [],
+          },
+        ],
+      },
+    });
+    const day = month.days.find(day => day.date === '2024-03-12');
+    expect(day).toMatchObject({
+      combinedBalance: 500,
+      adjustedCombinedBalance: -200,
+      status: 'negative',
+    });
+    expect(day?.accountBalances[0]?.balance).toBe(500);
+  });
+
   it('groups both selected legs of a scheduled transfer into one event', () => {
     const scheduledTransfer = {
       payee: 'Transfer',

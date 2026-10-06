@@ -13,6 +13,8 @@ import {
   startOfWeek,
 } from 'date-fns';
 
+import type { BudgetBurnDay, BudgetBurnProjection } from './budgetBurn';
+
 export type CashFlowCalendarStatus = 'normal' | 'low' | 'negative';
 
 export type CashFlowCalendarScheduledEvent = {
@@ -34,6 +36,8 @@ export type CashFlowCalendarDay = {
   dayOfMonth: number;
   isInMonth: boolean;
   combinedBalance: number | null;
+  adjustedCombinedBalance: number | null;
+  budgetBurn?: BudgetBurnDay;
   accountBalances: CashFlowCalendarAccountBalance[];
   scheduledEvents: CashFlowCalendarScheduledEvent[];
   status: CashFlowCalendarStatus;
@@ -123,11 +127,13 @@ function buildDay({
   month,
   dataPoints,
   lowThreshold,
+  budgetBurn,
 }: {
   date: Date;
   month: string;
   dataPoints: ForecastDataPoint[];
   lowThreshold: number | undefined;
+  budgetBurn: BudgetBurnDay | undefined;
 }): CashFlowCalendarDay {
   const dateString = format(date, 'yyyy-MM-dd');
   const accountBalances = dataPoints.map(dataPoint => ({
@@ -140,14 +146,21 @@ function buildDay({
       ? null
       : accountBalances.reduce((sum, account) => sum + account.balance, 0);
 
+  const adjustedCombinedBalance =
+    combinedBalance == null
+      ? null
+      : combinedBalance - (budgetBurn?.cumulativeBurn ?? 0);
+
   return {
     date: dateString,
     dayOfMonth: getDate(date),
     isInMonth: monthUtils.getMonth(dateString) === month,
     combinedBalance,
+    adjustedCombinedBalance,
+    budgetBurn,
     accountBalances,
     scheduledEvents: buildScheduledEvents(dateString, dataPoints),
-    status: getStatus(combinedBalance, lowThreshold),
+    status: getStatus(adjustedCombinedBalance, lowThreshold),
   };
 }
 
@@ -210,18 +223,21 @@ export function buildCashFlowCalendarData({
   end,
   firstDayOfWeekIdx,
   lowThreshold,
+  budgetBurn,
 }: {
   forecastData: ForecastResult | null;
   start: string;
   end: string;
   firstDayOfWeekIdx?: string;
   lowThreshold?: number;
+  budgetBurn?: BudgetBurnProjection;
 }): CashFlowCalendarMonth[] {
   const startMonth = monthUtils.getMonth(start);
   const endMonth = monthUtils.getMonth(end);
   const months = monthUtils.rangeInclusive(startMonth, endMonth);
   const dataPointsByDate = indexDataPoints(forecastData?.dataPoints ?? []);
   const weekStartsOn = getWeekStartsOn(firstDayOfWeekIdx);
+  const burnByDate = new Map(budgetBurn?.days.map(day => [day.date, day]));
 
   return months.map(month => {
     const monthDate = monthUtils.parseDate(month);
@@ -237,6 +253,7 @@ export function buildCashFlowCalendarData({
           month,
           dataPoints: dataPointsByDate.get(dateString) ?? [],
           lowThreshold,
+          budgetBurn: burnByDate.get(dateString),
         }),
       );
     }

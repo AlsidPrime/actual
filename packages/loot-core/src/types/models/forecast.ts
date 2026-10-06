@@ -10,6 +10,8 @@ export type ForecastDataPoint = {
 
 export type ForecastTransaction = {
   amount: number;
+  categoryId?: string;
+  isTransfer?: boolean;
   payee: string | null;
   scheduleId: string;
   scheduleName: string;
