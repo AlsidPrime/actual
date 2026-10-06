@@ -406,6 +406,7 @@ export type BalanceForecastWidget = AbstractWidget<
     startDate?: string;
     endDate?: string;
     accounts?: string[];
+    calendarAccounts?: string[];
     conditions?: RuleConditionEntity[];
     conditionsOp?: 'and' | 'or';
     timeFrame?: TimeFrame;
