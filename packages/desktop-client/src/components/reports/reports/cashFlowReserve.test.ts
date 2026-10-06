@@ -57,6 +57,7 @@ function advisor(
   return calculateSweepAdvisor({
     forecastData: forecast(),
     budgetBurn: null,
+    isBudgetBurnComplete: true,
     operatingAccountIds: ['checking'],
     reserveAccountIds: ['savings'],
     reserveCategoryLeftovers: [600, -200],
@@ -87,6 +88,29 @@ describe('Savings Sweep Advisor', () => {
     expect(advisor({ reserveCategoryLeftovers: [1000] })).toMatchObject({
       reserveFundingGap: 900,
       safeToMove: 600,
+    });
+  });
+
+  it('withholds green advice when Budget Burn coverage is incomplete', () => {
+    expect(advisor({ isBudgetBurnComplete: false })).toMatchObject({
+      status: 'incomplete',
+      safeToMove: 500,
+    });
+    expect(advisor({ isBudgetBurnComplete: true }).status).toBe('safe');
+  });
+
+  it('prioritizes Operating buffer risk over fully funded Reserve savings', () => {
+    expect(
+      advisor({
+        reserveCategoryLeftovers: [100],
+        forecastData: forecast([300, 300, 300, 800, 800]),
+        safetyBuffer: 500,
+      }),
+    ).toMatchObject({
+      status: 'hold',
+      reserveFundingGap: 0,
+      minimumOperatingCash: 300,
+      safeToMove: 0,
     });
   });
 

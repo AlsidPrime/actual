@@ -3,7 +3,7 @@ import type { ForecastResult } from '@actual-app/core/types/models/forecast';
 import type { BudgetBurnProjection } from './budgetBurn';
 
 export type SweepAdvisorResult = {
-  status: 'setup' | 'funded' | 'safe' | 'hold' | 'danger';
+  status: 'setup' | 'incomplete' | 'funded' | 'safe' | 'hold' | 'danger';
   protectedTarget: number;
   reserveAccountBalance: number;
   reserveFundingGap: number;
@@ -16,6 +16,7 @@ export type SweepAdvisorResult = {
 export function calculateSweepAdvisor({
   forecastData,
   budgetBurn,
+  isBudgetBurnComplete,
   operatingAccountIds,
   reserveAccountIds,
   reserveCategoryLeftovers,
@@ -25,6 +26,7 @@ export function calculateSweepAdvisor({
 }: {
   forecastData: ForecastResult | null;
   budgetBurn: BudgetBurnProjection | null;
+  isBudgetBurnComplete: boolean;
   operatingAccountIds: string[];
   reserveAccountIds: string[];
   reserveCategoryLeftovers: number[];
@@ -107,6 +109,12 @@ export function calculateSweepAdvisor({
   };
   if (minimumOperatingCash < 0) {
     return { ...result, status: 'danger' };
+  }
+  if (minimumOperatingCash < safetyBuffer) {
+    return { ...result, status: 'hold' };
+  }
+  if (!isBudgetBurnComplete) {
+    return { ...result, status: 'incomplete' };
   }
   if (reserveFundingGap === 0) {
     return { ...result, status: 'funded' };

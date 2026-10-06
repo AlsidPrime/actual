@@ -255,7 +255,17 @@ export function FinancesApp() {
                     />
 
                     <Route path="/reports/*" element={<Reports />} />
-                    <Route path="/cash-flow" element={<CashFlowPage />} />
+                    <Route
+                      path="/cash-flow"
+                      element={
+                        <ErrorBoundary
+                          FallbackComponent={FeatureErrorFallback}
+                          resetKeys={[location.pathname]}
+                        >
+                          <CashFlowPage />
+                        </ErrorBoundary>
+                      }
+                    />
 
                     <Route
                       path="/budget"

@@ -17,12 +17,18 @@ const fixture = vi.hoisted(() => ({
   savedConfig: undefined as string | undefined,
   privacyMode: false,
   withReserve: false,
+  withBurn: false,
+  operatingBalance: 1000,
 }));
 
 vi.mock('@actual-app/core/platform/client/connection', () => ({
   send: vi.fn(async (name: string) =>
     name === 'envelope-budget-month'
-      ? [{ name: 'leftover-emergency', value: 600 }]
+      ? [
+          { name: 'leftover-emergency', value: 600 },
+          { name: 'leftover-groceries', value: 100 },
+          { name: 'budget-groceries', value: 100 },
+        ]
       : [],
   ),
   listen: vi.fn(() => vi.fn()),
@@ -76,6 +82,16 @@ vi.mock('#hooks/useCategories', () => ({
                   group: 'savings',
                   is_income: false,
                 },
+                ...(fixture.withBurn
+                  ? [
+                      {
+                        id: 'groceries',
+                        name: 'Groceries',
+                        group: 'savings',
+                        is_income: false,
+                      },
+                    ]
+                  : []),
               ],
             },
           ],
@@ -86,6 +102,16 @@ vi.mock('#hooks/useCategories', () => ({
               group: 'savings',
               is_income: false,
             },
+            ...(fixture.withBurn
+              ? [
+                  {
+                    id: 'groceries',
+                    name: 'Groceries',
+                    group: 'savings',
+                    is_income: false,
+                  },
+                ]
+              : []),
           ],
         }
       : { grouped: [], list: [] },
@@ -99,7 +125,7 @@ vi.mock('#hooks/useBalanceForecast', () => ({
           date: monthUtils.currentDay(),
           accountId: 'checking',
           accountName: 'Checking',
-          balance: 1000,
+          balance: fixture.operatingBalance,
           transactions: [],
         },
         ...(fixture.withReserve
@@ -135,6 +161,8 @@ beforeEach(() => {
   fixture.savedConfig = undefined;
   fixture.privacyMode = false;
   fixture.withReserve = false;
+  fixture.withBurn = false;
+  fixture.operatingBalance = 1000;
   vi.mocked(send).mockClear();
 });
 
@@ -172,11 +200,14 @@ describe('Cash Flow page', () => {
   it('redacts every advisor amount in privacy mode', async () => {
     fixture.privacyMode = true;
     fixture.withReserve = true;
+    fixture.withBurn = true;
     fixture.rawConfig = JSON.stringify({
       ...DEFAULT_CASH_FLOW_CONFIG,
       operatingAccountIds: ['checking'],
       reserveAccountIds: ['savings'],
       reserveCategoryIds: ['emergency'],
+      burnCategoryIds: ['groceries'],
+      budgetBurnEnabled: true,
     });
     renderRoute();
     await waitFor(() =>
@@ -195,6 +226,76 @@ describe('Cash Flow page', () => {
     for (const element of callout?.querySelectorAll('[aria-label]') ?? []) {
       expect(element.getAttribute('aria-label')).not.toMatch(/\d/);
     }
+  });
+
+  it.each([
+    ['disabled', false, ['groceries']],
+    ['no categories', true, []],
+  ])(
+    'warns that savings advice is incomplete when Burn is %s',
+    async (_, enabled, ids) => {
+      fixture.withReserve = true;
+      fixture.withBurn = true;
+      fixture.rawConfig = JSON.stringify({
+        ...DEFAULT_CASH_FLOW_CONFIG,
+        operatingAccountIds: ['checking'],
+        reserveAccountIds: ['savings'],
+        reserveCategoryIds: ['emergency'],
+        burnCategoryIds: ids,
+        budgetBurnEnabled: enabled,
+      });
+      renderRoute();
+      expect(
+        await screen.findByText('Savings advice is incomplete'),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/Safe to move/)).not.toBeInTheDocument();
+    },
+  );
+
+  it('uses horizon wording when there is no next Operating inflow', async () => {
+    fixture.withReserve = true;
+    fixture.withBurn = true;
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+      reserveAccountIds: ['savings'],
+      reserveCategoryIds: ['emergency'],
+      burnCategoryIds: ['groceries'],
+      budgetBurnEnabled: true,
+    });
+    renderRoute();
+    expect(
+      await screen.findByText(/over the remaining forecast horizon is/),
+    ).toBeInTheDocument();
+  });
+
+  it('shows funded Reserve savings with Operating cash below the buffer as a hold', async () => {
+    fixture.withReserve = true;
+    fixture.withBurn = true;
+    fixture.operatingBalance = 300;
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+      reserveAccountIds: ['savings'],
+      reserveCategoryIds: ['emergency'],
+      burnCategoryIds: ['groceries'],
+      budgetBurnEnabled: true,
+      safetyBuffer: 500,
+    });
+    vi.mocked(send).mockImplementation(async (name: string) =>
+      name === 'envelope-budget-month'
+        ? [
+            { name: 'leftover-emergency', value: 100 },
+            { name: 'leftover-groceries', value: 100 },
+            { name: 'budget-groceries', value: 100 },
+          ]
+        : [],
+    );
+    renderRoute();
+    expect(await screen.findByText('Hold cash for now')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Protected savings may be fully funded/),
+    ).toBeInTheDocument();
   });
 
   it('keeps native forecasting but skips envelope intelligence in Tracking mode', () => {

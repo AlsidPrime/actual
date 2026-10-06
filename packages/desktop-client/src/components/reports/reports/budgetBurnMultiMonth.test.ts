@@ -72,6 +72,8 @@ describe('multi-month Budget Burn', () => {
       50, 200, 100, 300,
     ]);
     expect(result.totalBurn).toBe(650);
+    expect(result.months[0]?.categories[0]?.remainingBurn).toBe(50);
+    expect(result.months[1]?.categories[0]?.remainingBurn).toBe(200);
     expect(
       result.days
         .filter(day => day.date.startsWith('2024-10'))
@@ -129,6 +131,10 @@ describe('multi-month Budget Burn', () => {
     const day = (date: string) => result.days.find(item => item.date === date);
     expect(day('2024-10-31')?.cumulativeBurn).toBe(50);
     expect(day('2024-11-01')?.cumulativeBurn).toBe(57);
+    expect(day('2024-10-31')?.monthlyCumulativeBurn).toBe(50);
+    expect(day('2024-11-01')?.monthlyCumulativeBurn).toBe(7);
+    expect(day('2024-11-01')?.remainingBurn).toBe(193);
+    expect(day('2024-11-30')?.remainingBurn).toBe(0);
     expect(day('2024-11-30')?.cumulativeBurn).toBe(250);
     expect(day('2024-12-31')?.cumulativeBurn).toBe(350);
     expect(day('2025-01-01')?.cumulativeBurn).toBe(360);

@@ -19,6 +19,7 @@ export type BudgetBurnDay = {
   date: string;
   dailyBurn: number;
   cumulativeBurn: number;
+  monthlyCumulativeBurn: number;
   remainingBurn: number;
   categories: { categoryId: string; categoryName: string; amount: number }[];
 };
@@ -172,6 +173,7 @@ export function buildBudgetBurnProjection({
       date,
       dailyBurn,
       cumulativeBurn,
+      monthlyCumulativeBurn: cumulativeInMonth,
       remainingBurn: (totalsByMonth.get(month) ?? 0) - cumulativeInMonth,
       categories: contributions,
     };

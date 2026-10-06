@@ -158,10 +158,13 @@ function CalendarDay({ day }: { day: CashFlowCalendarDay }) {
               </Text>
               {[
                 [t('Native projected cash'), day.combinedBalance],
-                [t('Budget Burn today'), -day.budgetBurn.dailyBurn],
-                [t('Cumulative Budget Burn'), -day.budgetBurn.cumulativeBurn],
-                [t('After Budget Burn'), day.adjustedCombinedBalance],
-                [t('Remaining monthly burn'), day.budgetBurn.remainingBurn],
+                [t('Projected spending today'), -day.budgetBurn.dailyBurn],
+                [
+                  t('Projected spending this month'),
+                  -day.budgetBurn.monthlyCumulativeBurn,
+                ],
+                [t('After projected spending'), day.adjustedCombinedBalance],
+                [t('Remaining this month'), day.budgetBurn.remainingBurn],
               ].map(([label, amount]) => (
                 <View
                   key={label}
@@ -332,6 +335,9 @@ export function CashFlowCalendarView({
     lowThreshold,
     budgetBurn,
   });
+  const visibleBurnMonth = budgetBurn?.months.find(
+    burnMonth => burnMonth.month === visibleMonth,
+  );
   const startMonth = monthUtils.getMonth(start);
   const endMonth = monthUtils.getMonth(end);
 
@@ -357,14 +363,15 @@ export function CashFlowCalendarView({
             <Trans count={selectedBurnCategoryCount}>
               {{ count: selectedBurnCategoryCount }} categories
             </Trans>{' '}
-            · <Trans>Remaining projected burn</Trans>:
+            · {monthUtils.format(visibleMonth, 'MMMM', locale)}{' '}
+            <Trans>remaining burn</Trans>:
           </Text>
           <PrivacyFilter>
             <FinancialText>
-              {formatAmount(budgetBurn.totalBurn, 'financial')}
+              {formatAmount(visibleBurnMonth?.totalBurn ?? 0, 'financial')}
             </FinancialText>
           </PrivacyFilter>
-          {budgetBurn.categories.length > 0 && (
+          {visibleBurnMonth && visibleBurnMonth.categories.length > 0 && (
             <DialogTrigger>
               <Button variant="bare">
                 <Trans>Category details</Trans>
@@ -374,18 +381,16 @@ export function CashFlowCalendarView({
                   aria-label={t('Budget Burn categories')}
                   style={{ padding: 12, minWidth: 360 }}
                 >
-                  {budgetBurn.months.length > 1 && (
-                    <Text
-                      style={{
-                        marginBottom: 8,
-                        color: theme.pageTextLight,
-                        fontSize: 12,
-                      }}
-                    >
-                      <Trans>Totals across the forecast horizon</Trans>
-                    </Text>
-                  )}
-                  {budgetBurn.categories.map(category => (
+                  <Text
+                    style={{
+                      marginBottom: 8,
+                      color: theme.pageTextLight,
+                      fontSize: 12,
+                    }}
+                  >
+                    {monthUtils.format(visibleMonth, 'MMMM yyyy', locale)}
+                  </Text>
+                  {visibleBurnMonth.categories.map(category => (
                     <View key={category.categoryId} style={{ marginBottom: 8 }}>
                       <Text style={{ fontWeight: 600 }}>
                         {category.categoryName}

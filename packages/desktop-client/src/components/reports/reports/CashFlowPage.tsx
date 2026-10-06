@@ -39,7 +39,9 @@ function SweepCallout({
   const color =
     advisor.status === 'danger'
       ? theme.errorText
-      : advisor.status === 'hold' || advisor.status === 'setup'
+      : advisor.status === 'hold' ||
+          advisor.status === 'setup' ||
+          advisor.status === 'incomplete'
         ? theme.warningText
         : theme.reportsNumberPositive;
   return (
@@ -55,6 +57,8 @@ function SweepCallout({
             </PrivacyFilter>{' '}
             <Trans>to savings today</Trans>
           </>
+        ) : advisor.status === 'incomplete' ? (
+          <Trans>Savings advice is incomplete</Trans>
         ) : advisor.status === 'danger' ? (
           <Trans>Do not transfer to savings</Trans>
         ) : advisor.status === 'hold' ? (
@@ -67,12 +71,27 @@ function SweepCallout({
           </Trans>
         )}
       </Text>
-      {advisor.status === 'safe' && advisor.minimumOperatingCash != null && (
+      {advisor.status === 'incomplete' && (
         <Text>
           <Trans>
-            After moving it, the lowest projected operating cash before the next
-            forecasted inflow is
-          </Trans>{' '}
+            Enable Budget Burn and select variable spending categories before
+            relying on a savings transfer recommendation.
+          </Trans>
+        </Text>
+      )}
+      {advisor.status === 'safe' && advisor.minimumOperatingCash != null && (
+        <Text>
+          {advisor.nextInflowDate ? (
+            <Trans>
+              After moving it, the lowest projected operating cash before the
+              next forecasted inflow is
+            </Trans>
+          ) : (
+            <Trans>
+              After moving it, the lowest projected operating cash over the
+              remaining forecast horizon is
+            </Trans>
+          )}{' '}
           <PrivacyFilter>
             <FinancialText>
               {format(
@@ -88,7 +107,15 @@ function SweepCallout({
           .
         </Text>
       )}
-      {advisor.status === 'hold' && (
+      {advisor.status === 'hold' && advisor.reserveFundingGap === 0 && (
+        <Text>
+          <Trans>
+            Protected savings may be fully funded, but projected Operating cash
+            falls below your safety buffer.
+          </Trans>
+        </Text>
+      )}
+      {advisor.status === 'hold' && advisor.reserveFundingGap > 0 && (
         <Text>
           <PrivacyFilter>
             <FinancialText>
@@ -109,7 +136,11 @@ function SweepCallout({
               {format(-advisor.minimumOperatingCash, 'financial')}
             </FinancialText>
           </PrivacyFilter>{' '}
-          <Trans>below zero before the next forecasted inflow.</Trans>
+          {advisor.nextInflowDate ? (
+            <Trans>below zero before the next forecasted inflow.</Trans>
+          ) : (
+            <Trans>below zero over the remaining forecast horizon.</Trans>
+          )}
         </Text>
       )}
       {advisor.nextInflowDate &&
@@ -281,6 +312,7 @@ export function CashFlowPage() {
       ? calculateSweepAdvisor({
           forecastData,
           budgetBurn,
+          isBudgetBurnComplete: budgetBurn != null,
           operatingAccountIds,
           reserveAccountIds,
           reserveCategoryLeftovers: selectedReserveCategories.map(category =>
