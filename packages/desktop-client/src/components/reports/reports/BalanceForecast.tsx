@@ -137,9 +137,7 @@ function BalanceForecastInner({ widget }: BalanceForecastInnerProps) {
   >(widget?.meta?.calendarAccounts ?? []);
 
   useEffect(() => {
-    if (widget?.meta?.calendarAccounts) {
-      setCalendarAccountIds(widget.meta.calendarAccounts);
-    }
+    setCalendarAccountIds(widget?.meta?.calendarAccounts ?? []);
   }, [widget?.meta?.calendarAccounts]);
 
   useEffect(() => {
