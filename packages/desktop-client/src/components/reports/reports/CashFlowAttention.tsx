@@ -65,34 +65,43 @@ export function CashFlowAttention({
           <Trans>No manual schedules need attention.</Trans>
         </Text>
       )}
-      {attention.map(schedule => (
-        <View key={schedule.id} style={{ gap: 2 }}>
-          <Text style={{ fontWeight: 600 }}>
-            {getName(schedule) || <Trans>Unnamed schedule</Trans>}
-          </Text>
-          <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
-            {schedule.status === 'due' ? (
-              <Trans>Due today</Trans>
-            ) : (
-              <>
-                <Trans>Missed</Trans>{' '}
-                {monthUtils.format(schedule.next_date, 'MMMM d', locale)}
-              </>
-            )}
-          </Text>
-          <Text>
-            <PrivacyFilter>
-              <FinancialText>
-                {format(
-                  Math.abs(getScheduledAmount(schedule._amount)),
-                  'financial',
-                )}
-              </FinancialText>
-            </PrivacyFilter>{' '}
-            · {accountNames[schedule._account]}
-          </Text>
-        </View>
-      ))}
+      {attention.map(schedule => {
+        const scheduledAmount = getScheduledAmount(schedule._amount);
+        const formattedAmount = format(Math.abs(scheduledAmount), 'financial');
+
+        return (
+          <View key={schedule.id} style={{ gap: 2 }}>
+            <Text style={{ fontWeight: 600 }}>
+              {getName(schedule) || <Trans>Unnamed schedule</Trans>}
+            </Text>
+            <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
+              {schedule.status === 'due' ? (
+                <Trans>Due today</Trans>
+              ) : (
+                <>
+                  <Trans>Missed</Trans>{' '}
+                  {monthUtils.format(schedule.next_date, 'MMMM d', locale)}
+                </>
+              )}
+            </Text>
+            <Text>
+              <PrivacyFilter>
+                <FinancialText
+                  style={{
+                    color:
+                      scheduledAmount > 0 ? theme.noticeTextLight : undefined,
+                  }}
+                >
+                  {scheduledAmount > 0
+                    ? `+${formattedAmount}`
+                    : formattedAmount}
+                </FinancialText>
+              </PrivacyFilter>{' '}
+              · {accountNames[schedule._account]}
+            </Text>
+          </View>
+        );
+      })}
       <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
         {upcomingCount === 1 ? (
           <Trans>1 upcoming manual schedule</Trans>

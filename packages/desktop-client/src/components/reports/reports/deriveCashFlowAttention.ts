@@ -61,6 +61,6 @@ export function deriveCashFlowAttention(
   return {
     attention,
     upcomingCount: upcoming.length,
-    nextUpcoming: upcoming[0],
+    nextUpcoming: upcoming.length > 0 ? upcoming[0] : undefined,
   };
 }
