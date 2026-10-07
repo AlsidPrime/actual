@@ -83,6 +83,49 @@ describe('Cash Flow Calendar visible month', () => {
     expect(indicator.parentElement).toHaveTextContent('-3.00');
   });
 
+  it('shows Operating EOD cash without adding Sinking Savings to the primary amount', () => {
+    const scopedForecast: ForecastResult = {
+      ...forecastData,
+      dataPoints: [
+        {
+          date: '2024-10-31',
+          accountId: 'checking',
+          accountName: 'Checking',
+          balance: 50000,
+          transactions: [],
+        },
+        {
+          date: '2024-10-31',
+          accountId: 'savings',
+          accountName: 'Sinking Savings',
+          balance: 800000,
+          transactions: [],
+        },
+      ],
+    };
+    render(
+      <TestProviders>
+        <CashFlowCalendarView
+          forecastData={scopedForecast}
+          start="2024-10-31"
+          end="2024-10-31"
+          operatingAccountIds={['checking']}
+        />
+      </TestProviders>,
+    );
+    const day = screen.getByRole('article', { name: /October 31/ });
+    expect(
+      screen.getByText(/Projected Operating cash is shown/),
+    ).toBeInTheDocument();
+    expect(day).toHaveTextContent('500.00');
+    expect(day).not.toHaveTextContent('8,500.00');
+    for (const element of day.querySelectorAll('[aria-label],[title]')) {
+      expect(
+        `${element.getAttribute('aria-label') ?? ''} ${element.getAttribute('title') ?? ''}`,
+      ).not.toMatch(/500\.00|8,500\.00/);
+    }
+  });
+
   it('updates the burn summary and category details when navigating months', async () => {
     render(
       <TestProviders>

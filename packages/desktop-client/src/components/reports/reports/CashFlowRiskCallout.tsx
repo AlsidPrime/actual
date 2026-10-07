@@ -42,22 +42,22 @@ export function CashFlowRiskCallout({
       </Text>
       <Text style={{ fontWeight: 600 }}>
         {risk.status === 'danger' ? (
-          <Trans>Cash is projected below zero today.</Trans>
+          <Trans>Operating cash is projected below zero today.</Trans>
         ) : risk.status === 'warning' && risk.firstNegativeDate ? (
           <>
-            <Trans>Cash shortfall projected</Trans>{' '}
+            <Trans>Operating cash shortfall projected</Trans>{' '}
             {monthUtils.format(risk.firstNegativeDate, 'PP', locale)}.
           </>
         ) : (
           <>
-            <Trans>No cash shortfall projected through</Trans>{' '}
+            <Trans>No Operating cash shortfall projected through</Trans>{' '}
             {monthUtils.format(endDate, 'PP', locale)}.
           </>
         )}
       </Text>
       {risk.status === 'warning' && risk.firstNegativeBalance !== null && (
         <Text>
-          <Trans>Projected cash on that date</Trans>:{' '}
+          <Trans>Projected Operating cash on that date</Trans>:{' '}
           <PrivacyFilter>
             <FinancialText>
               {format(risk.firstNegativeBalance, 'financial')}
@@ -66,7 +66,7 @@ export function CashFlowRiskCallout({
         </Text>
       )}
       <Text>
-        <Trans>Lowest projected cash</Trans>:{' '}
+        <Trans>Lowest projected Operating cash</Trans>:{' '}
         <PrivacyFilter>
           <FinancialText>
             {format(risk.lowestBalance, 'financial')}

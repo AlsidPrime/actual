@@ -1,4 +1,7 @@
-import type { ForecastResult } from '@actual-app/core/types/models/forecast';
+import type {
+  ForecastResult,
+  ForecastTransaction,
+} from '@actual-app/core/types/models/forecast';
 import { describe, expect, it } from 'vitest';
 
 import { buildBudgetBurnProjection } from './budgetBurn';
@@ -23,6 +26,43 @@ function makeForecast(
     forecastStartDate: '2024-03-01',
     forecastEndDate: '2024-03-31',
   };
+}
+
+function cashPoint(
+  accountId: string,
+  balance: number,
+  transactions: ForecastTransaction[] = [],
+) {
+  return {
+    date: '2024-03-20',
+    balance,
+    accountId,
+    accountName: accountId[0].toUpperCase() + accountId.slice(1),
+    transactions,
+  };
+}
+
+function transfer(amount: number): ForecastTransaction {
+  return {
+    amount,
+    payee: 'Transfer',
+    scheduleId: 'transfer',
+    scheduleName: 'Move cash',
+    isTransfer: true,
+  };
+}
+
+function operatingDay(
+  dataPoints: ForecastResult['dataPoints'],
+  operatingAccountIds: string[] = ['checking'],
+) {
+  const [month] = buildCashFlowCalendarData({
+    forecastData: makeForecast(dataPoints),
+    start: '2024-03',
+    end: '2024-03',
+    operatingAccountIds,
+  });
+  return month.days.find(day => day.date === '2024-03-20');
 }
 
 describe('buildCashFlowCalendarData', () => {
@@ -123,9 +163,24 @@ describe('buildCashFlowCalendarData', () => {
           accountName: 'Checking',
           transactions: [],
         },
+        {
+          date: '2024-10-31',
+          balance: 8000,
+          accountId: 'savings',
+          accountName: 'Savings',
+          transactions: [],
+        },
+        {
+          date: '2024-11-01',
+          balance: 8000,
+          accountId: 'savings',
+          accountName: 'Savings',
+          transactions: [],
+        },
       ]),
       start: '2024-10',
       end: '2024-11',
+      operatingAccountIds: ['checking'],
       budgetBurn: {
         totalBurn: 220,
         categories: [],
@@ -344,7 +399,6 @@ describe('buildCashFlowCalendarData', () => {
       calculateCashFlowRisk({
         forecastData,
         budgetBurn,
-        accountIds: ['checking'],
         operatingAccountIds: ['checking'],
         today: '2024-03-20',
         endDate: '2024-03-20',
@@ -436,6 +490,105 @@ describe('buildCashFlowCalendarData', () => {
     expect(month.days.find(day => day.date === '2024-03-20')).toMatchObject({
       combinedBalance: 7_500,
       scheduledEvents: [{ amount: -2_500, isTransfer: false }],
+    });
+  });
+
+  it('uses only Operating balances for primary cash and preserves native Reserve points', () => {
+    const forecastData = makeForecast([
+      cashPoint('checking', 500),
+      cashPoint('savings', 8000),
+    ]);
+    const [month] = buildCashFlowCalendarData({
+      forecastData,
+      start: '2024-03',
+      end: '2024-03',
+      operatingAccountIds: ['checking'],
+    });
+    const day = month.days.find(day => day.date === '2024-03-20');
+    expect(day).toMatchObject({
+      combinedBalance: 500,
+      adjustedCombinedBalance: 500,
+      accountBalances: [{ accountId: 'checking', balance: 500 }],
+      status: 'normal',
+    });
+    expect(forecastData.dataPoints[1].balance).toBe(8000);
+  });
+
+  it('groups Operating-to-Operating transfer legs as a net-zero event', () => {
+    const day = operatingDay(
+      [
+        cashPoint('checking', 700, [transfer(-300)]),
+        cashPoint('cash', 300, [transfer(300)]),
+        cashPoint('savings', 8000),
+      ],
+      ['checking', 'cash'],
+    );
+    expect(day).toMatchObject({
+      combinedBalance: 1000,
+      scheduledEvents: [
+        {
+          amount: 0,
+          isTransfer: true,
+          accountNames: ['Checking', 'Cash'],
+        },
+      ],
+    });
+  });
+
+  it('shows the Operating outflow for Operating-to-Sinking Savings transfers', () => {
+    const day = operatingDay([
+      cashPoint('checking', 700, [transfer(-300)]),
+      cashPoint('savings', 8300, [transfer(300)]),
+    ]);
+    expect(day).toMatchObject({
+      combinedBalance: 700,
+      scheduledEvents: [
+        { amount: -300, isTransfer: true, accountNames: ['Checking'] },
+      ],
+    });
+  });
+
+  it('shows the Operating inflow for Sinking Savings-to-Operating transfers', () => {
+    const day = operatingDay([
+      cashPoint('savings', 7700, [transfer(-300)]),
+      cashPoint('checking', 800, [transfer(300)]),
+    ]);
+    expect(day).toMatchObject({
+      combinedBalance: 800,
+      scheduledEvents: [
+        { amount: 300, isTransfer: true, accountNames: ['Checking'] },
+      ],
+    });
+  });
+
+  it('omits Sinking Savings-to-Sinking Savings transfers from the Operating calendar', () => {
+    const day = operatingDay([
+      cashPoint('checking', 500),
+      cashPoint('savings', 7700, [transfer(-300)]),
+      cashPoint('sinking', 300, [transfer(300)]),
+    ]);
+    expect(day).toMatchObject({
+      combinedBalance: 500,
+      scheduledEvents: [],
+      accountBalances: [{ accountId: 'checking' }],
+    });
+  });
+
+  it('keeps a one-sided Operating transfer and omits Reserve-only bills', () => {
+    const day = operatingDay([
+      cashPoint('checking', 700, [transfer(-300)]),
+      cashPoint('savings', 7900, [
+        {
+          amount: -100,
+          payee: 'Reserve bill',
+          scheduleId: 'reserve-bill',
+          scheduleName: 'Reserve bill',
+        },
+      ]),
+    ]);
+    expect(day).toMatchObject({
+      combinedBalance: 700,
+      scheduledEvents: [{ amount: -300, isTransfer: true }],
     });
   });
 

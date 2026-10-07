@@ -14,23 +14,20 @@ export type CashFlowRiskResult = {
 export function calculateCashFlowRisk({
   forecastData,
   budgetBurn,
-  accountIds,
   operatingAccountIds,
   today,
   endDate,
 }: {
   forecastData: ForecastResult | null;
   budgetBurn: BudgetBurnProjection | null;
-  accountIds: string[];
   operatingAccountIds: string[];
   today: string;
   endDate: string;
 }): CashFlowRiskResult | null {
-  if (!forecastData || accountIds.length === 0) {
+  if (!forecastData || operatingAccountIds.length === 0) {
     return null;
   }
 
-  const selectedIds = new Set(accountIds);
   const operatingIds = new Set(operatingAccountIds);
   const combinedByDate = new Map<string, number>();
   const operatingInflowByDate = new Map<string, number>();
@@ -38,7 +35,7 @@ export function calculateCashFlowRisk({
     if (
       point.date < today ||
       point.date > endDate ||
-      !selectedIds.has(point.accountId)
+      !operatingIds.has(point.accountId)
     ) {
       continue;
     }
@@ -46,7 +43,7 @@ export function calculateCashFlowRisk({
       point.date,
       (combinedByDate.get(point.date) ?? 0) + point.balance,
     );
-    if (point.date > today && operatingIds.has(point.accountId)) {
+    if (point.date > today) {
       const income = point.transactions
         .filter(
           transaction => transaction.amount > 0 && !transaction.isTransfer,
@@ -75,7 +72,7 @@ export function calculateCashFlowRisk({
   let lowestBalance = Infinity;
   let lowestBalanceDate = today;
   for (const [date, combinedBalance] of orderedBalances) {
-    // This matches the Calendar's adjustedCombinedBalance for the same date.
+    // This matches the Operating-only Calendar balance after cumulative Burn.
     const adjustedBalance =
       combinedBalance - (cumulativeBurnByDate.get(date) ?? 0);
     if (adjustedBalance < 0 && firstNegativeDate === null) {

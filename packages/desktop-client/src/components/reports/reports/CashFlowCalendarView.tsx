@@ -39,9 +39,16 @@ type CashFlowCalendarViewProps = {
   budgetBurn?: BudgetBurnProjection;
   selectedBurnCategoryCount?: number;
   manualScheduleIds?: ReadonlySet<string>;
+  operatingAccountIds?: readonly string[];
 };
 
-function CalendarDay({ day }: { day: CashFlowCalendarDay }) {
+function CalendarDay({
+  day,
+  isOperatingOnly,
+}: {
+  day: CashFlowCalendarDay;
+  isOperatingOnly: boolean;
+}) {
   const { t } = useTranslation();
   const format = useFormat();
   const locale = useLocale();
@@ -158,7 +165,12 @@ function CalendarDay({ day }: { day: CashFlowCalendarDay }) {
                 {monthUtils.format(day.date, 'PPPP', locale)}
               </Text>
               {[
-                [t('Native projected cash'), day.combinedBalance],
+                [
+                  isOperatingOnly
+                    ? t('Native projected Operating cash')
+                    : t('Native projected cash'),
+                  day.combinedBalance,
+                ],
                 [t('Projected spending today'), -day.budgetBurn.dailyBurn],
                 [
                   t('Projected spending this month'),
@@ -330,6 +342,7 @@ export function CashFlowCalendarView({
   budgetBurn,
   selectedBurnCategoryCount = 0,
   manualScheduleIds,
+  operatingAccountIds,
 }: CashFlowCalendarViewProps) {
   const { t } = useTranslation();
   const locale = useLocale();
@@ -355,6 +368,7 @@ export function CashFlowCalendarView({
     lowThreshold,
     budgetBurn,
     manualScheduleIds,
+    operatingAccountIds,
   });
   const visibleBurnMonth = budgetBurn?.months.find(
     burnMonth => burnMonth.month === visibleMonth,
@@ -365,10 +379,18 @@ export function CashFlowCalendarView({
   return (
     <View style={{ gap: 20 }}>
       <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
-        <Trans>
-          Balances are projected at the end of each day. Transactions within a
-          day are not ordered.
-        </Trans>
+        {operatingAccountIds ? (
+          <Trans>
+            Projected Operating cash is shown at the end of each day, after
+            Budget Burn when enabled. Sinking Savings is excluded. Transactions
+            within a day are not ordered.
+          </Trans>
+        ) : (
+          <Trans>
+            Balances are projected at the end of each day. Transactions within a
+            day are not ordered.
+          </Trans>
+        )}
       </Text>
       {budgetBurn && (
         <View
@@ -553,7 +575,11 @@ export function CashFlowCalendarView({
               }}
             >
               {month.days.map(day => (
-                <CalendarDay key={day.date} day={day} />
+                <CalendarDay
+                  key={day.date}
+                  day={day}
+                  isOperatingOnly={operatingAccountIds != null}
+                />
               ))}
             </View>
           </section>

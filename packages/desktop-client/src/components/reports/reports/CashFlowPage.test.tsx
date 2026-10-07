@@ -20,6 +20,7 @@ const fixture = vi.hoisted(() => ({
   withReserve: false,
   withBurn: false,
   operatingBalance: 1000,
+  reserveBalance: 100,
   scheduledFunding: 0,
   manualScheduleIds: [] as string[],
   autoScheduleIds: [] as string[],
@@ -174,7 +175,7 @@ vi.mock('#hooks/useBalanceForecast', () => ({
                 date: monthUtils.currentDay(),
                 accountId: 'savings',
                 accountName: 'Savings',
-                balance: 100,
+                balance: fixture.reserveBalance,
                 transactions: [],
               },
             ]
@@ -201,6 +202,19 @@ vi.mock('#hooks/useBalanceForecast', () => ({
               },
             ]
           : []),
+        ...(fixture.withReserve &&
+        fixture.futureOperatingBalance !== null &&
+        fixture.scheduledFunding === 0
+          ? [
+              {
+                date: monthUtils.addDays(monthUtils.currentDay(), 1),
+                accountId: 'savings',
+                accountName: 'Savings',
+                balance: fixture.reserveBalance,
+                transactions: [],
+              },
+            ]
+          : []),
         ...(fixture.withReserve && fixture.scheduledFunding > 0
           ? [
               {
@@ -222,7 +236,7 @@ vi.mock('#hooks/useBalanceForecast', () => ({
                 date: monthUtils.addDays(monthUtils.currentDay(), 1),
                 accountId: 'savings',
                 accountName: 'Savings',
-                balance: 100 + fixture.scheduledFunding,
+                balance: fixture.reserveBalance + fixture.scheduledFunding,
                 transactions: [
                   {
                     amount: fixture.scheduledFunding,
@@ -259,6 +273,7 @@ beforeEach(() => {
   fixture.withReserve = false;
   fixture.withBurn = false;
   fixture.operatingBalance = 1000;
+  fixture.reserveBalance = 100;
   fixture.scheduledFunding = 0;
   fixture.manualScheduleIds = [];
   fixture.autoScheduleIds = [];
@@ -303,6 +318,9 @@ describe('Cash Flow page', () => {
     await userEvent.click(
       screen.getByRole('button', { name: 'Cash Flow Setup' }),
     );
+    expect(
+      screen.getByText(/Sinking Savings accounts back sinking categories/),
+    ).toBeInTheDocument();
     await userEvent.click(screen.getByLabelText('Checking'));
     expect(JSON.parse(fixture.savedConfig ?? '{}')).toMatchObject({
       operatingAccountIds: ['checking'],
@@ -318,9 +336,11 @@ describe('Cash Flow page', () => {
     renderRoute();
     expect(screen.getByText('Cash Flow Risk')).toBeInTheDocument();
     expect(
-      screen.getByText(/No cash shortfall projected through/),
+      screen.getByText(/No Operating cash shortfall projected through/),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Lowest projected cash/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Lowest projected Operating cash/),
+    ).toBeInTheDocument();
     expect(
       screen.getByText(
         'No future Operating inflow is scheduled within the forecast horizon.',
@@ -335,12 +355,14 @@ describe('Cash Flow page', () => {
       operatingAccountIds: ['checking'],
     });
     renderRoute();
-    expect(screen.getByText(/Cash shortfall projected/)).toBeInTheDocument();
-    expect(screen.getByText(/Projected cash on that date/)).toHaveTextContent(
-      '-0.50',
-    );
     expect(
-      screen.queryByText('Cash is projected below zero today.'),
+      screen.getByText(/Operating cash shortfall projected/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Projected Operating cash on that date/),
+    ).toHaveTextContent('-0.50');
+    expect(
+      screen.queryByText('Operating cash is projected below zero today.'),
     ).not.toBeInTheDocument();
   });
 
@@ -352,8 +374,91 @@ describe('Cash Flow page', () => {
     });
     renderRoute();
     expect(
-      screen.getByText('Cash is projected below zero today.'),
+      screen.getByText('Operating cash is projected below zero today.'),
     ).toBeInTheDocument();
+  });
+
+  it('shows Tracking danger and Operating EOD cash despite a large Sinking Savings balance', () => {
+    fixture.budgetType = 'tracking';
+    fixture.withReserve = true;
+    fixture.operatingBalance = -20000;
+    fixture.reserveBalance = 800000;
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+      reserveAccountIds: ['savings'],
+    });
+    renderRoute();
+    expect(
+      screen.getByText('Operating cash is projected below zero today.'),
+    ).toBeInTheDocument();
+    const todayCell = document.querySelector('article[aria-current="date"]');
+    expect(todayCell).toHaveTextContent('-200.00');
+    expect(todayCell).not.toHaveTextContent('7,800.00');
+    expect(
+      screen.getByText(/Projected Operating cash is shown/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Safe to move/)).not.toBeInTheDocument();
+    expect(
+      vi
+        .mocked(send)
+        .mock.calls.filter(([name]) => name === 'envelope-budget-month'),
+    ).toHaveLength(0);
+    expect(
+      vi
+        .mocked(send)
+        .mock.calls.filter(([name]) =>
+          ['schedule/', 'transaction/', 'account/', 'budget/'].some(prefix =>
+            name.startsWith(prefix),
+          ),
+        ),
+    ).toHaveLength(0);
+  });
+
+  it('redacts the Operating calendar balance without putting it in labels or tooltips', () => {
+    fixture.budgetType = 'tracking';
+    fixture.privacyMode = true;
+    fixture.withReserve = true;
+    fixture.operatingBalance = 12345;
+    fixture.reserveBalance = 800000;
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+      reserveAccountIds: ['savings'],
+    });
+    renderRoute();
+    const todayCell = document.querySelector('article[aria-current="date"]');
+    expect(
+      todayCell?.querySelector('[aria-hidden="true"]'),
+    ).toBeInTheDocument();
+    for (const element of todayCell?.querySelectorAll('[aria-label],[title]') ??
+      []) {
+      expect(
+        `${element.getAttribute('aria-label') ?? ''} ${element.getAttribute('title') ?? ''}`,
+      ).not.toMatch(/123\.45|8,123\.45/);
+    }
+  });
+
+  it('warns on a future Operating shortfall despite Sinking Savings staying positive', () => {
+    fixture.withReserve = true;
+    fixture.operatingBalance = 50000;
+    fixture.futureOperatingBalance = -5000;
+    fixture.reserveBalance = 800000;
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+      reserveAccountIds: ['savings'],
+    });
+    renderRoute();
+    expect(
+      screen.getByText(/Operating cash shortfall projected/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Projected Operating cash on that date/),
+    ).toHaveTextContent('-50.00');
+    expect(
+      screen.queryByText(/No Operating cash shortfall projected through/),
+    ).not.toBeInTheDocument();
   });
 
   it('redacts Risk Summary amounts and shows the next Operating inflow', () => {
@@ -400,7 +505,7 @@ describe('Cash Flow page', () => {
     const heading = [...document.querySelectorAll('span')].find(
       element =>
         element.textContent?.includes('Safe to move') &&
-        element.textContent?.includes('to savings today'),
+        element.textContent?.includes('to Sinking Savings today'),
     );
     const callout = heading?.parentElement;
     expect(callout).toBeDefined();
@@ -409,7 +514,7 @@ describe('Cash Flow page', () => {
     ).toBeGreaterThanOrEqual(6);
     expect(
       screen
-        .getByText(/Already scheduled to savings/)
+        .getByText(/Already scheduled to Sinking Savings/)
         .querySelector('[aria-hidden="true"]'),
     ).toBeInTheDocument();
     expect(
@@ -440,7 +545,7 @@ describe('Cash Flow page', () => {
       });
       renderRoute();
       expect(
-        await screen.findByText('Savings advice is incomplete'),
+        await screen.findByText('Sinking Savings advice is incomplete'),
       ).toBeInTheDocument();
       expect(screen.queryByText(/Safe to move/)).not.toBeInTheDocument();
     },
@@ -478,11 +583,11 @@ describe('Cash Flow page', () => {
     renderRoute();
     expect(
       await screen.findByText(
-        'Protected savings are covered by scheduled funding',
+        'Sinking Savings is covered by scheduled funding',
       ),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Already scheduled to savings/),
+      screen.getByText(/Already scheduled to Sinking Savings/),
     ).toBeInTheDocument();
     expect(screen.getByText(/Remaining funding need/)).toBeInTheDocument();
     expect(screen.queryByText(/Safe to move/)).not.toBeInTheDocument();
@@ -513,7 +618,7 @@ describe('Cash Flow page', () => {
     renderRoute();
     expect(await screen.findByText('Hold cash for now')).toBeInTheDocument();
     expect(
-      screen.getByText(/Protected savings may be fully funded/),
+      screen.getByText(/Sinking Savings may be fully funded/),
     ).toBeInTheDocument();
   });
 
@@ -593,7 +698,7 @@ describe('Cash Flow page', () => {
     renderRoute();
     expect(
       screen.getByText(
-        /Budget Burn and protected savings advice require Envelope budgeting/,
+        /Budget Burn and Sinking Savings advice require Envelope budgeting/,
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText(/Safe to move/)).not.toBeInTheDocument();

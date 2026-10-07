@@ -250,6 +250,7 @@ export function buildCashFlowCalendarData({
   lowThreshold,
   budgetBurn,
   manualScheduleIds = new Set<string>(),
+  operatingAccountIds,
 }: {
   forecastData: ForecastResult | null;
   start: string;
@@ -258,11 +259,21 @@ export function buildCashFlowCalendarData({
   lowThreshold?: number;
   budgetBurn?: BudgetBurnProjection;
   manualScheduleIds?: ReadonlySet<string>;
+  operatingAccountIds?: readonly string[];
 }): CashFlowCalendarMonth[] {
   const startMonth = monthUtils.getMonth(start);
   const endMonth = monthUtils.getMonth(end);
   const months = monthUtils.rangeInclusive(startMonth, endMonth);
-  const dataPointsByDate = indexDataPoints(forecastData?.dataPoints ?? []);
+  // The Cash Flow page shows spendable Operating cash; Balance Forecast can
+  // continue to show its selected account universe when no scope is supplied.
+  const operatingIds = operatingAccountIds
+    ? new Set(operatingAccountIds)
+    : null;
+  const dataPointsByDate = indexDataPoints(
+    (forecastData?.dataPoints ?? []).filter(
+      point => operatingIds === null || operatingIds.has(point.accountId),
+    ),
+  );
   const weekStartsOn = getWeekStartsOn(firstDayOfWeekIdx);
   const burnByDate = new Map(budgetBurn?.days.map(day => [day.date, day]));
 

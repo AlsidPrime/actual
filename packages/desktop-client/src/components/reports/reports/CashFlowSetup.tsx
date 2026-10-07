@@ -79,9 +79,10 @@ export function CashFlowSetup({
             </Text>
             <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
               <Trans>
-                Select the liquid accounts you use for daily spending and
-                protected savings. The full balance of selected Reserve accounts
-                counts toward protected savings.
+                Select Operating accounts for day-to-day spending. Sinking
+                Savings accounts back sinking categories and do not count as
+                ordinary spending cash. Leave long-term or emergency savings,
+                debt, and credit accounts unselected.
               </Trans>
             </Text>
             <Select
@@ -89,9 +90,9 @@ export function CashFlowSetup({
               onChange={setSection}
               options={[
                 ['operating', t('Operating accounts')],
-                ['reserve-accounts', t('Reserve accounts')],
+                ['reserve-accounts', t('Sinking Savings accounts')],
                 ['burn', t('Burn categories')],
-                ['reserve-categories', t('Reserve categories')],
+                ['reserve-categories', t('Sinking categories')],
               ]}
             />
             <View style={{ maxHeight: 260, overflowY: 'auto' }}>

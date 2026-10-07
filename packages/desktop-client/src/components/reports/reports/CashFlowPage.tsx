@@ -61,23 +61,24 @@ function SweepCallout({
                 {format(advisor.safeToMove, 'financial')}
               </FinancialText>
             </PrivacyFilter>{' '}
-            <Trans>to savings today</Trans>
+            <Trans>to Sinking Savings today</Trans>
           </>
         ) : advisor.status === 'incomplete' ? (
-          <Trans>Savings advice is incomplete</Trans>
+          <Trans>Sinking Savings advice is incomplete</Trans>
         ) : advisor.status === 'danger' ? (
-          <Trans>Do not transfer to savings</Trans>
+          <Trans>Do not transfer to Sinking Savings</Trans>
         ) : advisor.status === 'hold' ? (
           <Trans>Hold cash for now</Trans>
         ) : advisor.status === 'funded' ? (
           advisor.reserveFundingGap > 0 ? (
-            <Trans>Protected savings are covered by scheduled funding</Trans>
+            <Trans>Sinking Savings is covered by scheduled funding</Trans>
           ) : (
-            <Trans>Protected savings are fully funded</Trans>
+            <Trans>Sinking Savings is fully funded</Trans>
           )
         ) : (
           <Trans>
-            Configure Reserve accounts and categories to see savings advice.
+            Configure Sinking Savings accounts and sinking categories to see
+            savings advice.
           </Trans>
         )}
       </Text>
@@ -114,8 +115,8 @@ function SweepCallout({
         advisor.effectiveReserveFundingGap === 0 && (
           <Text>
             <Trans>
-              Protected savings may be fully funded, but projected Operating
-              cash falls below your safety buffer.
+              Sinking Savings may be fully funded, but projected Operating cash
+              falls below your safety buffer.
             </Trans>
           </Text>
         )}
@@ -127,8 +128,8 @@ function SweepCallout({
             </FinancialText>
           </PrivacyFilter>{' '}
           <Trans>
-            remains earmarked for savings, but moving it now would breach your
-            safety buffer.
+            remains earmarked for Sinking Savings, but moving it now would
+            breach your safety buffer.
           </Trans>
         </Text>
       )}
@@ -152,7 +153,7 @@ function SweepCallout({
         )}
       {advisor.status !== 'setup' && (
         <Text>
-          <Trans>Protected savings funding gap</Trans>:{' '}
+          <Trans>Sinking savings funding gap</Trans>:{' '}
           <PrivacyFilter>
             <FinancialText>
               {format(advisor.reserveFundingGap, 'financial')}
@@ -163,7 +164,7 @@ function SweepCallout({
       {advisor.status !== 'setup' && advisor.scheduledReserveFunding > 0 && (
         <>
           <Text>
-            <Trans>Already scheduled to savings</Trans>:{' '}
+            <Trans>Already scheduled to Sinking Savings</Trans>:{' '}
             <PrivacyFilter>
               <FinancialText>
                 {format(advisor.scheduledReserveFunding, 'financial')}
@@ -358,7 +359,6 @@ export function CashFlowPage() {
       ? calculateCashFlowRisk({
           forecastData,
           budgetBurn,
-          accountIds: forecastAccountIds,
           operatingAccountIds,
           today,
           endDate,
@@ -412,19 +412,19 @@ export function CashFlowPage() {
           />
           <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
             <Trans>Operating accounts</Trans>: {operatingAccountIds.length} ·{' '}
-            <Trans>Reserve accounts</Trans>: {reserveAccountIds.length} ·{' '}
-            <Trans>Budget Burn</Trans>:{' '}
+            <Trans>Sinking Savings accounts</Trans>: {reserveAccountIds.length}{' '}
+            · <Trans>Budget Burn</Trans>:{' '}
             {config.budgetBurnEnabled ? <Trans>On</Trans> : <Trans>Off</Trans>}{' '}
             · <Trans>Burn categories</Trans>: {selectedBurnCategories.length} ·{' '}
-            <Trans>Reserve categories</Trans>:{' '}
+            <Trans>Sinking categories</Trans>:{' '}
             {selectedReserveCategories.length}
           </Text>
         </View>
         {!isEnvelope && (
           <Text style={{ color: theme.warningText }}>
             <Trans>
-              Budget Burn and protected savings advice require Envelope
-              budgeting. Native scheduled cash forecasting remains available.
+              Budget Burn and Sinking Savings advice require Envelope budgeting.
+              Native scheduled cash forecasting remains available.
             </Trans>
           </Text>
         )}
@@ -484,7 +484,7 @@ export function CashFlowPage() {
               <Trans>
                 Manual: Actual will not automatically add this transaction.
               </Trans>{' '}
-              · <Trans>Negative: projected selected cash is below zero.</Trans>
+              · <Trans>Negative: projected Operating cash is below zero.</Trans>
               {budgetBurn && (
                 <>
                   {' · '}
@@ -503,6 +503,7 @@ export function CashFlowPage() {
               budgetBurn={budgetBurn ?? undefined}
               selectedBurnCategoryCount={selectedBurnCategories.length}
               manualScheduleIds={manualScheduleIds}
+              operatingAccountIds={operatingAccountIds}
             />
           </>
         )}

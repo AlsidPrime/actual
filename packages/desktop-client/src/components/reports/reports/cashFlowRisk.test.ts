@@ -72,7 +72,6 @@ function risk(
   return calculateCashFlowRisk({
     forecastData,
     budgetBurn: null,
-    accountIds: ['checking', 'savings'],
     operatingAccountIds: ['checking'],
     today,
     endDate,
@@ -86,16 +85,16 @@ describe('Cash Flow risk', () => {
       risk(
         forecast([
           point(today, 'checking', 500),
-          point(today, 'savings', 100),
+          point(today, 'savings', 8000),
           point('2024-10-31', 'checking', 400),
-          point('2024-10-31', 'savings', 100),
+          point('2024-10-31', 'savings', 9000),
         ]),
       ),
     ).toMatchObject({
       status: 'safe',
       firstNegativeDate: null,
       firstNegativeBalance: null,
-      lowestBalance: 500,
+      lowestBalance: 400,
       lowestBalanceDate: '2024-10-31',
     });
   });
@@ -105,7 +104,9 @@ describe('Cash Flow risk', () => {
       risk(
         forecast([
           point(today, 'checking', -10),
+          point(today, 'savings', 8000),
           point('2024-10-31', 'checking', -50),
+          point('2024-10-31', 'savings', 9000),
         ]),
       ),
     ).toMatchObject({
@@ -122,8 +123,11 @@ describe('Cash Flow risk', () => {
       risk(
         forecast([
           point(today, 'checking', 100),
+          point(today, 'savings', 8000),
           point('2024-10-31', 'checking', -20),
+          point('2024-10-31', 'savings', 8000),
           point('2024-11-01', 'checking', -40),
+          point('2024-11-01', 'savings', 8000),
           point('2024-11-02', 'checking', -5),
         ]),
       ),
@@ -139,8 +143,11 @@ describe('Cash Flow risk', () => {
   it('uses continuous Budget Burn across October and November, matching the Calendar', () => {
     const forecastData = forecast([
       point(today, 'checking', 150),
+      point(today, 'savings', 8000),
       point('2024-10-31', 'checking', 150),
+      point('2024-10-31', 'savings', 8000),
       point('2024-11-01', 'checking', 150),
+      point('2024-11-01', 'savings', 8000),
     ]);
     const budgetBurn = burn([
       { date: today, dailyBurn: 40, cumulativeBurn: 40 },
@@ -153,6 +160,7 @@ describe('Cash Flow risk', () => {
       budgetBurn,
       start: '2024-10',
       end: '2024-11',
+      operatingAccountIds: ['checking'],
     });
     expect(summary).toMatchObject({
       status: 'warning',
@@ -184,19 +192,58 @@ describe('Cash Flow risk', () => {
     });
   });
 
-  it('does not mistake a transfer between selected accounts for household risk or income', () => {
+  it('treats Operating-to-Sinking Savings funding as an Operating outflow', () => {
     expect(
       risk(
         forecast([
           point(today, 'checking', 500),
-          point(today, 'savings', 500),
+          point(today, 'savings', 8000),
           point('2024-10-31', 'checking', -100, [
             transaction(-600, 'transfer', true),
           ]),
-          point('2024-10-31', 'savings', 1100, [
+          point('2024-10-31', 'savings', 8600, [
             transaction(600, 'transfer', true),
           ]),
         ]),
+      ),
+    ).toMatchObject({
+      status: 'warning',
+      firstNegativeBalance: -100,
+      lowestBalance: -100,
+      nextOperatingInflow: null,
+    });
+  });
+
+  it('does not let Reserve-only changes alter primary Risk', () => {
+    const operating = [
+      point(today, 'checking', 500),
+      point('2024-10-31', 'checking', 200),
+    ];
+    const original = risk(forecast(operating));
+    const withReserveChanges = risk(
+      forecast([
+        ...operating,
+        point(today, 'savings', 8000),
+        point('2024-10-31', 'savings', -4000),
+      ]),
+    );
+    expect(withReserveChanges).toEqual(original);
+  });
+
+  it('nets transfers within selected Operating accounts', () => {
+    expect(
+      risk(
+        forecast([
+          point(today, 'checking', 500),
+          point(today, 'cash', 500),
+          point('2024-10-31', 'checking', 200, [
+            transaction(-300, 'internal', true),
+          ]),
+          point('2024-10-31', 'cash', 800, [
+            transaction(300, 'internal', true),
+          ]),
+        ]),
+        { operatingAccountIds: ['checking', 'cash'] },
       ),
     ).toMatchObject({
       status: 'safe',
@@ -247,7 +294,7 @@ describe('Cash Flow risk', () => {
     ).toMatchObject({ nextOperatingInflow: null });
   });
 
-  it('uses native combined cash in Tracking mode without Budget Burn', () => {
+  it('uses native Operating cash in Tracking mode without Budget Burn', () => {
     expect(
       risk(
         forecast([
