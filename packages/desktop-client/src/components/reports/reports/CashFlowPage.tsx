@@ -25,6 +25,8 @@ import { parseCashFlowConfig } from './cashFlowConfig';
 import type { CashFlowCalendarConfig } from './cashFlowConfig';
 import { calculateSweepAdvisor } from './cashFlowReserve';
 import type { SweepAdvisorResult } from './cashFlowReserve';
+import { calculateCashFlowRisk } from './cashFlowRisk';
+import { CashFlowRiskCallout } from './CashFlowRiskCallout';
 import { CashFlowSetup } from './CashFlowSetup';
 
 function SweepCallout({
@@ -321,6 +323,17 @@ export function CashFlowPage() {
           monthBudgets,
         })
       : null;
+  const risk =
+    forecastData && (!needsBurn || budgetBurn)
+      ? calculateCashFlowRisk({
+          forecastData,
+          budgetBurn,
+          accountIds: forecastAccountIds,
+          operatingAccountIds,
+          today,
+          endDate,
+        })
+      : null;
   const advisor =
     isEnvelope && forecastData && (budgetData || !needsReserve)
       ? calculateSweepAdvisor({
@@ -405,6 +418,7 @@ export function CashFlowPage() {
                 <Trans>Failed to load budget data.</Trans>
               </Text>
             )}
+            {risk && <CashFlowRiskCallout risk={risk} endDate={endDate} />}
             {isEnvelope && advisor && (
               <SweepCallout
                 advisor={advisor}

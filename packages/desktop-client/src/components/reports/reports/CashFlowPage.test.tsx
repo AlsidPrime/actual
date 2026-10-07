@@ -20,6 +20,8 @@ const fixture = vi.hoisted(() => ({
   withBurn: false,
   operatingBalance: 1000,
   scheduledFunding: 0,
+  futureOperatingBalance: null as number | null,
+  futureOperatingIncome: 0,
 }));
 
 vi.mock('@actual-app/core/platform/client/connection', () => ({
@@ -140,6 +142,28 @@ vi.mock('#hooks/useBalanceForecast', () => ({
               },
             ]
           : []),
+        ...(fixture.futureOperatingBalance !== null
+          ? [
+              {
+                date: monthUtils.addDays(monthUtils.currentDay(), 1),
+                accountId: 'checking',
+                accountName: 'Checking',
+                balance: fixture.futureOperatingBalance,
+                transactions:
+                  fixture.futureOperatingIncome > 0
+                    ? [
+                        {
+                          amount: fixture.futureOperatingIncome,
+                          isTransfer: false,
+                          payee: 'Payday',
+                          scheduleId: 'payday',
+                          scheduleName: 'Payday',
+                        },
+                      ]
+                    : [],
+              },
+            ]
+          : []),
         ...(fixture.withReserve && fixture.scheduledFunding > 0
           ? [
               {
@@ -199,6 +223,8 @@ beforeEach(() => {
   fixture.withBurn = false;
   fixture.operatingBalance = 1000;
   fixture.scheduledFunding = 0;
+  fixture.futureOperatingBalance = null;
+  fixture.futureOperatingIncome = 0;
   vi.mocked(send).mockReset();
   vi.mocked(send).mockImplementation(async (name: string) =>
     name === 'envelope-budget-month'
@@ -240,6 +266,76 @@ describe('Cash Flow page', () => {
       operatingAccountIds: ['checking'],
       burnCategoryIds: [],
     });
+  });
+
+  it('shows a safe Cash Flow Risk summary and no scheduled inflow', () => {
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+    });
+    renderRoute();
+    expect(screen.getByText('Cash Flow Risk')).toBeInTheDocument();
+    expect(
+      screen.getByText(/No cash shortfall projected through/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Lowest projected cash/)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'No future Operating inflow is scheduled within the forecast horizon.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('shows the first future cash shortfall and projected amount', () => {
+    fixture.futureOperatingBalance = -50;
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+    });
+    renderRoute();
+    expect(screen.getByText(/Cash shortfall projected/)).toBeInTheDocument();
+    expect(screen.getByText(/Projected cash on that date/)).toHaveTextContent(
+      '-0.50',
+    );
+    expect(
+      screen.queryByText('Cash is projected below zero today.'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows immediate danger when selected cash is negative today', () => {
+    fixture.operatingBalance = -50;
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+    });
+    renderRoute();
+    expect(
+      screen.getByText('Cash is projected below zero today.'),
+    ).toBeInTheDocument();
+  });
+
+  it('redacts Risk Summary amounts and shows the next Operating inflow', () => {
+    fixture.privacyMode = true;
+    fixture.futureOperatingBalance = 1500;
+    fixture.futureOperatingIncome = 500;
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+    });
+    renderRoute();
+    const callout = screen.getByText('Cash Flow Risk').parentElement;
+    expect(
+      callout?.querySelectorAll('[aria-hidden="true"]').length,
+    ).toBeGreaterThanOrEqual(2);
+    expect(
+      screen.getByText(/Next forecasted Operating inflow/),
+    ).toBeInTheDocument();
+    for (const element of callout?.querySelectorAll('[aria-label],[title]') ??
+      []) {
+      expect(
+        element.getAttribute('aria-label') ?? element.getAttribute('title'),
+      ).not.toMatch(/\d/);
+    }
   });
 
   it('redacts every advisor amount in privacy mode', async () => {
@@ -396,6 +492,7 @@ describe('Cash Flow page', () => {
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText(/Safe to move/)).not.toBeInTheDocument();
+    expect(screen.getByText('Cash Flow Risk')).toBeInTheDocument();
     expect(
       vi
         .mocked(send)
