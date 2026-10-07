@@ -9,8 +9,8 @@ _Last updated: 2026-10-07_
 - Stable upstream-aligned base: Actual Budget `v26.9.0`
 - Base SHA: `59fe126f637d858c061e1eeedbef5436c8f2225a`
 - Current branch: `feature/cash-flow-calendar-v2`
-- Current HEAD: `ac317de3148461f646504ccf699b10c3f09904dc`
-- Current branch state: 11 commits ahead of the v26.9.0 base, 0 behind
+- Current HEAD: `17ad215de86c2554c76b1a195eaa1b24ee7fb6b8`
+- Current branch state: 15 commits ahead of the v26.9.0 base, 0 behind
 - Local development path: `C:\Dev\actual-v2`
 - Development environment: VS Code + Actual Dev Container
 
@@ -30,35 +30,31 @@ Forecasting remains read-only. It must not modify transactions, schedules, budge
 
 ### Account roles
 
-The current product direction distinguishes three practical cash roles:
+The Cash Flow V2 account roles are locked:
 
-1. **Operating cash**
-   - Chequing/day-to-day cash.
-   - This is the primary source for normal bills and discretionary spending.
-   - This should drive the main day-to-day cash-safety warning.
+1. **Operating**
+   - Chequing and other day-to-day spendable cash.
+   - Primary safety boundary for normal bills and discretionary spending.
 
-2. **Sinking-fund reserve**
+2. **Sinking Savings**
    - Savings physically backing selected sinking-fund categories.
-   - Examples: clothing, vehicle maintenance, Christmas, birthdays, school supplies, family activities.
-   - Not ordinary discretionary liquidity.
-   - When a sinking-fund purchase is made from chequing, the intended household workflow is to reimburse chequing from this savings pool promptly.
+   - Examples: clothing, vehicle maintenance, Christmas, birthdays, school supplies, and family activities.
+   - Not ordinary discretionary liquidity. When a sinking-fund purchase is made from Operating, the intended household workflow is to reimburse Operating from Sinking Savings promptly.
 
-3. **Long-term protected savings**
-   - Emergency reserves, future down payment, long-term goals, and similar protected cash.
-   - Must not make ordinary discretionary spending appear affordable.
-   - Should not be treated as day-to-day liquidity.
+3. **Long-term, emergency, and other protected savings**
+   - Remains outside Cash Flow V2 and cannot make ordinary spending appear affordable.
 
-Credit cards, lines of credit, loans, and other debt are never liquid cash.
+Debt and credit accounts are never liquidity.
 
 ### Sinking-fund model
 
 Do not recreate a parallel sinking-fund accounting database.
 
-Use native Actual envelope/category balances as the purpose-level source of truth, while a selected savings account can act as the physical cash backing for those sinking categories.
+Use native Actual envelope/category balances as the purpose-level source of truth, while selected Sinking Savings accounts act as the physical cash backing for those sinking categories.
 
 A useful future metric is:
 
-> selected sinking-category balances vs physical sinking-reserve account balance
+> selected sinking-category balances vs selected Sinking Savings account balances
 
 This can show whether earmarked category balances are adequately backed by segregated savings without mapping every category to a separate bank account.
 
@@ -70,11 +66,13 @@ It remains a projection layer over native Actual forecast output and does not cr
 
 ### Planned paydays
 
-Payday/runway UX should be anchored to explicitly selected recurring income schedules, not to any positive transaction.
+Planned Payday/Runway UX should be anchored to explicitly selected recurring employment-income schedules, not to any positive transaction.
 
 - The two household employment pay schedules can be selected together and treated as the same payday when they occur on the same date.
 - Canada Child Benefit remains forecast income but should not automatically become the primary payday anchor unless explicitly selected.
 - Refunds, windfalls, reimbursements, or other random positive transactions must not redefine the next payday.
+
+The current generic "Next forecasted Operating inflow" can occur before the actual employment payday. This reinforces the planned distinction: explicitly selected employment schedules define payday; arbitrary positive inflows do not. Payday/Runway is not implemented yet.
 
 ### Read-only rule
 
@@ -98,7 +96,7 @@ This is a permanent architecture preference unless deliberately reconsidered.
 Completed:
 
 - first-class `/cash-flow` page;
-- explicit Operating and Reserve account selection;
+- explicit Operating and Sinking Savings account selection;
 - native Actual `forecast/generate` reuse;
 - daily projected end-of-day balances;
 - scheduled event display;
@@ -129,8 +127,8 @@ Completed:
 
 - full configured forecast horizon constrains safe-to-move advice;
 - Operating-only minimum cash and safety buffer;
-- Reserve funding target based on selected reserve-category balances;
-- future scheduled Operating-to-Reserve transfers can reduce the remaining funding need;
+- Sinking Savings funding target based on selected sinking-category balances;
+- future scheduled Operating-to-Sinking Savings transfers can reduce the remaining funding need;
 - strict conservative transfer matching;
 - next inflow is informational only;
 - Burn-incomplete states refuse green savings advice.
@@ -142,13 +140,23 @@ Completed:
 - safe / warning / danger summary;
 - first projected negative date;
 - lowest projected balance/date;
-- next qualifying Operating inflow information;
+- generic next forecasted Operating inflow information;
 - Tracking Budget support;
 - PrivacyFilter coverage.
 
-Architecture follow-up:
+The previous Cash Flow Risk architecture follow-up is completed by the Operating Cash Boundary work below.
 
-- The current total-liquidity headline should be revisited so protected savings do not make day-to-day discretionary spending appear safe. Operating cash should become the primary cash-safety guardrail, with broader household liquidity shown only as secondary context.
+### Operating Cash Boundary
+
+Completed:
+
+- Primary Cash Flow Risk uses Operating cash only, adjusted by Budget Burn. Sinking Savings cannot make primary Risk safe.
+- The calendar's primary end-of-day balance is Operating-only after Burn.
+- Operating-to-Operating transfers net to zero in the primary view.
+- Operating-to-Sinking Savings transfers show an Operating outflow; Sinking Savings-to-Operating reimbursements show an Operating inflow.
+- Sinking-only events do not clutter the primary Operating calendar.
+- Native forecast and accounting behavior remain unchanged.
+- Savings Sweep still uses both Operating and Sinking Savings where its funding and safety calculations require them.
 
 ### Manual schedule awareness
 
@@ -167,7 +175,30 @@ Known limitation:
 
 - a manual transfer whose primary schedule account is outside the selected Cash Flow accounts, but whose counterparty is selected, is not included in Needs Attention. This is intentionally deferred pending a careful native transfer-payee implementation.
 
-## 2025 Feature Review Backlog
+### Cash Flow QA generator
+
+Completed:
+
+- `scripts/cash-flow/generate-qa.mjs` runs with `yarn cash-flow:generate-qa` and accepts optional `--anchor YYYY-MM-DD` (default: today).
+- It uses `@actual-app/api` to build synthetic data and export a normal Actual-compatible ZIP to `data/cash-flow-qa/`. Generated ZIP output is ignored by Git.
+- The same anchor produces equivalent normalized financial data even when generated IDs differ.
+- The fixture includes Operating accounts, Sinking Savings, protected savings, Budget Burn categories, internal and cross-boundary transfers, manual and automatic schedules, and two synchronized biweekly employment schedules.
+- Import through the normal Actual budget import path has been validated.
+- Generator work did not change production Cash Flow behavior.
+
+### Manual UI validation
+
+Using the generated QA budget, manual UI validation confirmed:
+
+- large Sinking Savings and Long-Term Savings balances do not hide an Operating shortfall;
+- Budget Burn reduces displayed Operating cash;
+- an internal Operating transfer displays net zero when both Operating accounts are selected;
+- cross-boundary transfers retain their correct Operating effect;
+- both same-day employment schedules appear when both Operating accounts are selected;
+- manual missed, due, and upcoming schedule UI works;
+- per-account negative warnings work.
+
+## Feature Review Backlog
 
 ### Completed / substantially addressed
 
@@ -182,26 +213,20 @@ Known limitation:
 
 ### Next serious candidates
 
-1. **Account-role refinement**
-   - Separate Operating, Sinking Reserve, and Long-Term Protected Savings semantics.
-   - Ensure protected savings cannot make discretionary spending appear affordable.
+1. **Clickable day details / projection explanation**
+   - Explain each projected end-of-day balance using scheduled events, Burn, opening/closing balance, and relevant account detail.
 
-2. **Payday / runway UX**
-   - Explicitly select recurring employment-income schedules as payday anchors.
+2. **Explicit Payday / Runway UX**
+   - Select recurring employment-income schedules as payday anchors.
    - Show next planned payday, days remaining, lowest Operating cash before payday, and payday-relative warnings.
-   - Supplemental recurring income may affect balances without redefining payday.
+   - Other positive inflows may affect balances without redefining payday.
 
-3. **Clickable day-details / projection explanation**
-   - Explain how each projected end-of-day balance was derived.
-   - Show scheduled events, Burn, opening/closing balance, and relevant account detail.
+3. **Sinking Savings backing / progress visualization**
+   - Use native Actual category/envelope data, not a custom sinking-fund database.
+   - Compare selected sinking-category balances with physical Sinking Savings backing.
 
-4. **Sinking-fund / savings progress visualization**
-   - Use native Actual category/envelope data.
-   - Do not restore the old custom sinking-fund database.
-   - Consider aggregate backing coverage between selected sinking categories and the physical sinking-reserve account.
-
-5. **Debt / credit-card presentation**
-   - Debt and credit are never liquidity.
+4. **Debt / credit presentation**
+   - Keep debt and credit outside liquidity.
    - Use native accounts and schedules rather than a parallel debt model.
    - Focus on cash required to service debt and avoiding new revolving debt.
 
@@ -228,30 +253,19 @@ Prefer deep links/navigation to native Actual workflows instead of posting, tran
 
 ## Real-World Validation Plan
 
-The feature is mature enough to begin validating against a real household budget, but development must continue to retain a synthetic/demo budget as well.
+The synthetic Cash Flow QA budget is implemented and manually useful for regression testing. The next project phase is **Family Validation** with a separate, private household budget.
 
-Recommended two-budget workflow:
+For Family Validation:
 
-1. **Cash Flow Dev Demo**
-   - Synthetic/representative data.
-   - Used for development, regression, screenshots, and deliberate edge cases.
+- establish accurate current balances in the real household accounts;
+- verify recurring employment-income and bill schedules;
+- select variable-spending categories for Budget Burn and the relevant sinking categories;
+- import enough recent transaction history to test current-month behavior where useful;
+- use native Actual import and rules rather than custom import or categorization logic;
+- keep a known-good Actual backup/export before testing new builds or schema-sensitive changes;
+- never commit private financial data.
 
-2. **Family Validation Budget**
-   - Real accounts, schedules, categories, and imported transactions.
-   - Kept private and never committed.
-   - Used for manual product validation only.
-   - Export/back up before testing a new build or schema-sensitive change.
-
-For the real validation budget:
-
-- establish correct current account balances;
-- create/verify recurring income and bill schedules;
-- build variable-spending categories used by Budget Burn;
-- build sinking-fund categories;
-- use native CSV transaction import rather than custom import code;
-- import enough recent history to validate categorization and current-month Burn behavior;
-- create rules only through native Actual;
-- save a known-good backup that can be restored after experimental builds.
+Retain the synthetic QA budget for repeatable regression and edge-case testing.
 
 ## Fork Release / Versioning Maintenance
 
@@ -273,14 +287,12 @@ Do not change versioning until the native update/release machinery is understood
 
 ## Immediate Decision / Implementation Order
 
-1. Use the household spreadsheet and a real validation budget to finalize account-role semantics.
-2. Investigate how modern Actual identifies credit/debt account types reliably enough to exclude them from Cash Flow account selectors.
-3. Design the Operating vs Sinking Reserve vs Protected Savings model.
-4. Revise Cash Flow Risk semantics so protected savings do not green-light ordinary discretionary spending.
-5. Add explicit planned-payday schedule selection and runway UX.
-6. Build clickable day-details / projection explanation.
-7. Reassess sinking-fund progress visualization using native category balances.
-8. Investigate fork version/update/release-note behavior before routine personal deployment.
+1. Build the private Family Validation budget and save a known-good Actual backup/export.
+2. Observe real-world Cash Flow usage and record gaps.
+3. Choose the next major UX phase from those findings; Day Details and explicit Payday/Runway are the leading candidates.
+4. Add Sinking Savings backing/progress visualization.
+5. Improve debt/credit presentation without treating debt as liquidity.
+6. Investigate fork release, version, and update behavior before routine personal deployment.
 
 ## Agent Strategy
 
