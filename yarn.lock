@@ -9940,6 +9940,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "actual@workspace:."
   dependencies:
+    "@actual-app/api": "workspace:*"
     "@monorepo-utils/workspaces-to-typescript-project-references": "npm:^2.11.0"
     "@octokit/rest": "npm:^22.0.1"
     "@types/node": "npm:^22.20.1"

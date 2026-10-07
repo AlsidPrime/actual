@@ -41,6 +41,7 @@
     "build:desktop": "./bin/package-electron",
     "build:plugins-service": "yarn workspace plugins-service build",
     "build:api": "yarn build --scope=@actual-app/api",
+    "cash-flow:generate-qa": "yarn build --scope=@actual-app/api --no-cache && node scripts/cash-flow/generate-qa.mjs",
     "build:mobile": "yarn build --scope=mobile-client",
     "build:cli": "yarn build --scope=@actual-app/cli",
     "build:docs": "yarn workspace docs build",
@@ -68,6 +69,7 @@
     "prepare": "husky"
   },
   "devDependencies": {
+    "@actual-app/api": "workspace:*",
     "@monorepo-utils/workspaces-to-typescript-project-references": "^2.11.0",
     "@octokit/rest": "^22.0.1",
     "@types/node": "^22.20.1",
