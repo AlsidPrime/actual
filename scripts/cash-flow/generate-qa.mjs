@@ -40,10 +40,10 @@ function addMonths(anchor, months) {
   return date.toISOString().slice(0, 7);
 }
 
-function recurringMonthly(date) {
+function recurringSchedule(date, frequency, interval) {
   return {
-    frequency: 'monthly',
-    interval: 1,
+    frequency,
+    interval,
     start: date,
     patterns: [],
     skipWeekend: false,
@@ -184,7 +184,7 @@ async function createDataset(anchor) {
       accountName,
       payee,
       posts_transaction,
-      recurring = false,
+      recurrence = null,
     ) =>
       api.createSchedule({
         name,
@@ -193,8 +193,8 @@ async function createDataset(anchor) {
         payee,
         amount,
         amountOp: 'is',
-        date: recurring
-          ? recurringMonthly(addDays(anchor, days))
+        date: recurrence
+          ? recurringSchedule(addDays(anchor, days), ...recurrence)
           : addDays(anchor, days),
       });
 
@@ -205,7 +205,7 @@ async function createDataset(anchor) {
       'Operating Checking',
       payees['QA Landlord'],
       true,
-      true,
+      ['monthly', 1],
     );
     await schedule(
       'QA Utilities — automatic',
@@ -214,7 +214,7 @@ async function createDataset(anchor) {
       'Operating Checking',
       payees['QA Utility Company'],
       true,
-      true,
+      ['monthly', 1],
     );
     await schedule(
       'QA Insurance — automatic',
@@ -223,7 +223,7 @@ async function createDataset(anchor) {
       'Operating Checking',
       payees['QA Insurance Company'],
       true,
-      true,
+      ['monthly', 1],
     );
     await schedule(
       'QA Employer One payday',
@@ -232,7 +232,7 @@ async function createDataset(anchor) {
       'Operating Checking',
       payees['QA Employer One'],
       true,
-      true,
+      ['weekly', 2],
     );
     await schedule(
       'QA Employer Two payday',
@@ -241,7 +241,7 @@ async function createDataset(anchor) {
       'Secondary Operating',
       payees['QA Employer Two'],
       true,
-      true,
+      ['weekly', 2],
     );
     await schedule(
       'QA Operating to Operating transfer',
