@@ -41,6 +41,48 @@ const budgetBurn = buildBudgetBurnProjection({
 });
 
 describe('Cash Flow Calendar visible month', () => {
+  it('explains Manual events without placing amounts in accessibility text', () => {
+    const scheduledForecast: ForecastResult = {
+      ...forecastData,
+      dataPoints: [
+        {
+          date: '2024-10-31',
+          accountId: 'checking',
+          accountName: 'Checking',
+          balance: 700,
+          transactions: [
+            {
+              amount: -300,
+              isTransfer: true,
+              payee: 'Move to savings',
+              scheduleId: 'manual-transfer',
+              scheduleName: 'Move to savings',
+            },
+          ],
+        },
+      ],
+    };
+    render(
+      <TestProviders>
+        <CashFlowCalendarView
+          forecastData={scheduledForecast}
+          start="2024-10-30"
+          end="2024-10-31"
+          manualScheduleIds={new Set(['manual-transfer'])}
+        />
+      </TestProviders>,
+    );
+    const indicator = screen.getByText('Manual');
+    expect(indicator).toHaveAttribute(
+      'title',
+      'Manual schedule — Actual will not automatically add this transaction.',
+    );
+    expect(indicator.getAttribute('aria-label')).not.toMatch(/\d/);
+    expect(indicator.getAttribute('title')).not.toMatch(/\d/);
+    expect(indicator.parentElement).toHaveTextContent('Transfer');
+    expect(indicator.parentElement).toHaveTextContent('-3.00');
+  });
+
   it('updates the burn summary and category details when navigating months', async () => {
     render(
       <TestProviders>

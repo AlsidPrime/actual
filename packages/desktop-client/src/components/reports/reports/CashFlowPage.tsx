@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Trans } from 'react-i18next';
 
 import { Text } from '@actual-app/components/text';
@@ -17,6 +17,7 @@ import { useBalanceForecast } from '#hooks/useBalanceForecast';
 import { useCategories } from '#hooks/useCategories';
 import { useFormat } from '#hooks/useFormat';
 import { useLocale } from '#hooks/useLocale';
+import { getSchedulesQuery, useSchedules } from '#hooks/useSchedules';
 import { useSyncedPref } from '#hooks/useSyncedPref';
 
 import { buildBudgetBurnProjection } from './budgetBurn';
@@ -255,6 +256,15 @@ export function CashFlowPage() {
   const forecastAccountIds = [
     ...new Set([...operatingAccountIds, ...reserveAccountIds]),
   ];
+  const schedulesQuery = useMemo(() => getSchedulesQuery(), []);
+  const { schedules } = useSchedules({
+    query: operatingAccountIds.length > 0 ? schedulesQuery : undefined,
+  });
+  const manualScheduleIds = new Set(
+    schedules
+      .filter(schedule => schedule.posts_transaction === false)
+      .map(schedule => schedule.id),
+  );
   const today = monthUtils.currentDay();
   const currentMonth = monthUtils.currentMonth();
   const endMonth = monthUtils.addMonths(
@@ -445,6 +455,7 @@ export function CashFlowPage() {
               firstDayOfWeekIdx={firstDayOfWeekIdx}
               budgetBurn={budgetBurn ?? undefined}
               selectedBurnCategoryCount={selectedBurnCategories.length}
+              manualScheduleIds={manualScheduleIds}
             />
           </>
         )}

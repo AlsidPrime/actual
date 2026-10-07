@@ -38,6 +38,7 @@ type CashFlowCalendarViewProps = {
   lowThreshold?: number;
   budgetBurn?: BudgetBurnProjection;
   selectedBurnCategoryCount?: number;
+  manualScheduleIds?: ReadonlySet<string>;
 };
 
 function CalendarDay({ day }: { day: CashFlowCalendarDay }) {
@@ -272,6 +273,24 @@ function CalendarDay({ day }: { day: CashFlowCalendarDay }) {
               >
                 {event.isTransfer ? t('Transfer') : event.label}
               </Text>
+              {event.isManual && (
+                <Text
+                  title={t(
+                    'Manual schedule — Actual will not automatically add this transaction.',
+                  )}
+                  aria-label={t(
+                    'Manual schedule — Actual will not automatically add this transaction.',
+                  )}
+                  style={{
+                    flexShrink: 0,
+                    color: theme.pageTextSubdued,
+                    fontSize: 10,
+                    fontWeight: 600,
+                  }}
+                >
+                  <Trans>Manual</Trans>
+                </Text>
+              )}
               <PrivacyFilter>
                 <FinancialText
                   style={{
@@ -310,6 +329,7 @@ export function CashFlowCalendarView({
   lowThreshold,
   budgetBurn,
   selectedBurnCategoryCount = 0,
+  manualScheduleIds,
 }: CashFlowCalendarViewProps) {
   const { t } = useTranslation();
   const locale = useLocale();
@@ -334,6 +354,7 @@ export function CashFlowCalendarView({
     firstDayOfWeekIdx,
     lowThreshold,
     budgetBurn,
+    manualScheduleIds,
   });
   const visibleBurnMonth = budgetBurn?.months.find(
     burnMonth => burnMonth.month === visibleMonth,

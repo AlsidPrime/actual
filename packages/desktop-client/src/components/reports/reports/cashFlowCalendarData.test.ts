@@ -1,11 +1,13 @@
 import type { ForecastResult } from '@actual-app/core/types/models/forecast';
 import { describe, expect, it } from 'vitest';
 
+import { buildBudgetBurnProjection } from './budgetBurn';
 import {
   buildCashFlowCalendarData,
   getInitialCashFlowCalendarMonth,
   moveCashFlowCalendarMonth,
 } from './cashFlowCalendarData';
+import { calculateCashFlowRisk } from './cashFlowRisk';
 
 function makeForecast(
   dataPoints: ForecastResult['dataPoints'],
@@ -200,6 +202,174 @@ describe('buildCashFlowCalendarData', () => {
     ]);
   });
 
+  it('marks only native manual schedules without changing event amounts', () => {
+    const forecastData = makeForecast([
+      {
+        date: '2024-03-20',
+        balance: 1000,
+        accountId: 'checking',
+        accountName: 'Checking',
+        transactions: [
+          {
+            amount: -300,
+            payee: 'Rent',
+            scheduleId: 'manual-rent',
+            scheduleName: 'Rent',
+          },
+          {
+            amount: 500,
+            payee: 'Payday',
+            scheduleId: 'auto-income',
+            scheduleName: 'Payday',
+          },
+        ],
+      },
+    ]);
+    const [month] = buildCashFlowCalendarData({
+      forecastData,
+      start: '2024-03',
+      end: '2024-03',
+      manualScheduleIds: new Set(['manual-rent']),
+    });
+    expect(
+      month.days.find(day => day.date === '2024-03-20')?.scheduledEvents,
+    ).toMatchObject([
+      { label: 'Rent', amount: -300, isManual: true },
+      { label: 'Payday', amount: 500, isManual: false },
+    ]);
+  });
+
+  it('keeps Manual on a grouped two-leg transfer and preserves its net amount', () => {
+    const transfer = {
+      payee: 'Transfer',
+      scheduleId: 'manual-transfer',
+      scheduleName: 'Move to savings',
+      isTransfer: true,
+    };
+    const [month] = buildCashFlowCalendarData({
+      forecastData: makeForecast([
+        {
+          date: '2024-03-20',
+          balance: 700,
+          accountId: 'checking',
+          accountName: 'Checking',
+          transactions: [{ ...transfer, amount: -300 }],
+        },
+        {
+          date: '2024-03-20',
+          balance: 300,
+          accountId: 'savings',
+          accountName: 'Savings',
+          transactions: [{ ...transfer, amount: 300 }],
+        },
+      ]),
+      start: '2024-03',
+      end: '2024-03',
+      manualScheduleIds: new Set(['manual-transfer']),
+    });
+    expect(
+      month.days.find(day => day.date === '2024-03-20')?.scheduledEvents,
+    ).toMatchObject([
+      {
+        isTransfer: true,
+        isManual: true,
+        amount: 0,
+        accountNames: ['Checking', 'Savings'],
+      },
+    ]);
+  });
+
+  it('keeps Manual on a one-sided selected transfer', () => {
+    const [month] = buildCashFlowCalendarData({
+      forecastData: makeForecast([
+        {
+          date: '2024-03-20',
+          balance: 700,
+          accountId: 'checking',
+          accountName: 'Checking',
+          transactions: [
+            {
+              amount: -300,
+              payee: 'Transfer',
+              scheduleId: 'manual-transfer',
+              scheduleName: 'Move to savings',
+              isTransfer: true,
+            },
+          ],
+        },
+      ]),
+      start: '2024-03',
+      end: '2024-03',
+      manualScheduleIds: new Set(['manual-transfer']),
+    });
+    expect(
+      month.days.find(day => day.date === '2024-03-20')?.scheduledEvents,
+    ).toMatchObject([{ isTransfer: true, isManual: true, amount: -300 }]);
+  });
+
+  it('changes only event metadata, leaving Burn and risk results intact', () => {
+    const forecastData = makeForecast([
+      {
+        date: '2024-03-20',
+        balance: 500,
+        accountId: 'checking',
+        accountName: 'Checking',
+        transactions: [
+          {
+            amount: -100,
+            payee: 'Groceries',
+            scheduleId: 'manual-bill',
+            scheduleName: 'Groceries',
+            categoryId: 'groceries',
+          },
+        ],
+      },
+    ]);
+    const budgetBurn = buildBudgetBurnProjection({
+      enabled: true,
+      categories: [
+        { categoryId: 'groceries', categoryName: 'Groceries', leftover: 200 },
+      ],
+      forecastData,
+      today: '2024-03-20',
+      endDate: '2024-03-20',
+    });
+    const before = buildCashFlowCalendarData({
+      forecastData,
+      start: '2024-03',
+      end: '2024-03',
+      budgetBurn,
+    });
+    const risk = () =>
+      calculateCashFlowRisk({
+        forecastData,
+        budgetBurn,
+        accountIds: ['checking'],
+        operatingAccountIds: ['checking'],
+        today: '2024-03-20',
+        endDate: '2024-03-20',
+      });
+    const riskBefore = risk();
+    const after = buildCashFlowCalendarData({
+      forecastData,
+      start: '2024-03',
+      end: '2024-03',
+      budgetBurn,
+      manualScheduleIds: new Set(['manual-bill']),
+    });
+    const beforeDay = before[0].days.find(day => day.date === '2024-03-20');
+    const afterDay = after[0].days.find(day => day.date === '2024-03-20');
+    expect(afterDay?.scheduledEvents[0]).toMatchObject({
+      amount: -100,
+      isManual: true,
+    });
+    expect(afterDay?.adjustedCombinedBalance).toBe(
+      beforeDay?.adjustedCombinedBalance,
+    );
+    expect(budgetBurn.days[0].cumulativeBurn).toBe(100);
+    expect(risk()).toEqual(riskBefore);
+  });
+
   it('groups both selected legs of a scheduled transfer into one event', () => {
     const scheduledTransfer = {
       payee: 'Transfer',
@@ -236,6 +406,7 @@ describe('buildCashFlowCalendarData', () => {
         label: 'Move to savings',
         accountNames: ['Checking', 'Savings'],
         isTransfer: true,
+        isManual: false,
       },
     ]);
   });

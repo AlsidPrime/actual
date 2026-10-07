@@ -20,6 +20,8 @@ const fixture = vi.hoisted(() => ({
   withBurn: false,
   operatingBalance: 1000,
   scheduledFunding: 0,
+  manualScheduleIds: [] as string[],
+  autoScheduleIds: [] as string[],
   futureOperatingBalance: null as number | null,
   futureOperatingIncome: 0,
 }));
@@ -54,6 +56,18 @@ vi.mock('#hooks/useSyncedPref', () => ({
     }
     return [undefined, vi.fn()];
   },
+}));
+vi.mock('#hooks/useSchedules', () => ({
+  getSchedulesQuery: vi.fn(() => ({})),
+  useSchedules: () => ({
+    schedules: [
+      ...fixture.manualScheduleIds.map(id => ({
+        id,
+        posts_transaction: false,
+      })),
+      ...fixture.autoScheduleIds.map(id => ({ id, posts_transaction: true })),
+    ],
+  }),
 }));
 vi.mock('#hooks/useAccounts', () => ({
   useAccounts: () => ({
@@ -223,6 +237,8 @@ beforeEach(() => {
   fixture.withBurn = false;
   fixture.operatingBalance = 1000;
   fixture.scheduledFunding = 0;
+  fixture.manualScheduleIds = [];
+  fixture.autoScheduleIds = [];
   fixture.futureOperatingBalance = null;
   fixture.futureOperatingIncome = 0;
   vi.mocked(send).mockReset();
@@ -473,6 +489,69 @@ describe('Cash Flow page', () => {
     expect(
       screen.getByText(/Protected savings may be fully funded/),
     ).toBeInTheDocument();
+  });
+
+  it('does not label an auto-posting scheduled event Manual', async () => {
+    fixture.budgetType = 'tracking';
+    fixture.withReserve = true;
+    fixture.scheduledFunding = 200;
+    fixture.autoScheduleIds = ['move-to-savings'];
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+      reserveAccountIds: ['savings'],
+    });
+    renderRoute();
+    if (
+      monthUtils.getMonth(monthUtils.addDays(monthUtils.currentDay(), 1)) !==
+      monthUtils.currentMonth()
+    ) {
+      await userEvent.click(screen.getByRole('button', { name: 'Next month' }));
+    }
+    expect(screen.getByText('Transfer')).toBeInTheDocument();
+    expect(screen.queryByText('Manual')).not.toBeInTheDocument();
+  });
+
+  it('shows Manual in Tracking mode with privacy and no schedule writes', async () => {
+    fixture.budgetType = 'tracking';
+    fixture.privacyMode = true;
+    fixture.withReserve = true;
+    fixture.scheduledFunding = 200;
+    fixture.manualScheduleIds = ['move-to-savings'];
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+      reserveAccountIds: ['savings'],
+    });
+    renderRoute();
+    if (
+      monthUtils.getMonth(monthUtils.addDays(monthUtils.currentDay(), 1)) !==
+      monthUtils.currentMonth()
+    ) {
+      await userEvent.click(screen.getByRole('button', { name: 'Next month' }));
+    }
+    const indicator = screen.getByText('Manual');
+    expect(indicator.getAttribute('aria-label')).toBe(
+      'Manual schedule — Actual will not automatically add this transaction.',
+    );
+    expect(indicator.getAttribute('aria-label')).not.toMatch(/\d/);
+    expect(
+      indicator.parentElement?.querySelector('[aria-hidden="true"]'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Cash Flow Risk')).toBeInTheDocument();
+    expect(
+      vi
+        .mocked(send)
+        .mock.calls.filter(
+          ([name]) =>
+            name.startsWith('schedule/') || name.startsWith('transaction/'),
+        ),
+    ).toHaveLength(0);
+    expect(
+      vi
+        .mocked(send)
+        .mock.calls.filter(([name]) => name === 'envelope-budget-month'),
+    ).toHaveLength(0);
   });
 
   it('keeps native forecasting but skips envelope intelligence in Tracking mode', () => {

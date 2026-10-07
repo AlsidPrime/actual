@@ -23,6 +23,7 @@ export type CashFlowCalendarScheduledEvent = {
   label: string;
   accountNames: string[];
   isTransfer: boolean;
+  isManual: boolean;
 };
 
 export type CashFlowCalendarAccountBalance = {
@@ -89,6 +90,7 @@ function indexDataPoints(dataPoints: ForecastDataPoint[]) {
 function buildScheduledEvents(
   date: string,
   dataPoints: ForecastDataPoint[],
+  manualScheduleIds: ReadonlySet<string>,
 ): CashFlowCalendarScheduledEvent[] {
   const eventsById = new Map<string, MutableScheduledEvent>();
 
@@ -101,6 +103,9 @@ function buildScheduledEvents(
         existingEvent.amount += transaction.amount;
         existingEvent.amounts.push(transaction.amount);
         existingEvent.hasTransferFlag ||= transaction.isTransfer === true;
+        existingEvent.isManual ||= manualScheduleIds.has(
+          transaction.scheduleId,
+        );
         if (!existingEvent.accountNames.includes(dataPoint.accountName)) {
           existingEvent.accountNames.push(dataPoint.accountName);
         }
@@ -119,6 +124,7 @@ function buildScheduledEvents(
               : transaction.scheduleName,
           accountNames: [dataPoint.accountName],
           isTransfer: false,
+          isManual: manualScheduleIds.has(transaction.scheduleId),
         });
       }
     }
@@ -141,12 +147,14 @@ function buildDay({
   dataPoints,
   lowThreshold,
   budgetBurn,
+  manualScheduleIds,
 }: {
   date: Date;
   month: string;
   dataPoints: ForecastDataPoint[];
   lowThreshold: number | undefined;
   budgetBurn: BudgetBurnDay | undefined;
+  manualScheduleIds: ReadonlySet<string>;
 }): CashFlowCalendarDay {
   const dateString = format(date, 'yyyy-MM-dd');
   const accountBalances = dataPoints.map(dataPoint => ({
@@ -172,7 +180,11 @@ function buildDay({
     adjustedCombinedBalance,
     budgetBurn,
     accountBalances,
-    scheduledEvents: buildScheduledEvents(dateString, dataPoints),
+    scheduledEvents: buildScheduledEvents(
+      dateString,
+      dataPoints,
+      manualScheduleIds,
+    ),
     status: getStatus(adjustedCombinedBalance, lowThreshold),
   };
 }
@@ -237,6 +249,7 @@ export function buildCashFlowCalendarData({
   firstDayOfWeekIdx,
   lowThreshold,
   budgetBurn,
+  manualScheduleIds = new Set<string>(),
 }: {
   forecastData: ForecastResult | null;
   start: string;
@@ -244,6 +257,7 @@ export function buildCashFlowCalendarData({
   firstDayOfWeekIdx?: string;
   lowThreshold?: number;
   budgetBurn?: BudgetBurnProjection;
+  manualScheduleIds?: ReadonlySet<string>;
 }): CashFlowCalendarMonth[] {
   const startMonth = monthUtils.getMonth(start);
   const endMonth = monthUtils.getMonth(end);
@@ -267,6 +281,7 @@ export function buildCashFlowCalendarData({
           dataPoints: dataPointsByDate.get(dateString) ?? [],
           lowThreshold,
           budgetBurn: burnByDate.get(dateString),
+          manualScheduleIds,
         }),
       );
     }
