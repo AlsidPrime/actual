@@ -17,10 +17,12 @@ import { useBalanceForecast } from '#hooks/useBalanceForecast';
 import { useCategories } from '#hooks/useCategories';
 import { useFormat } from '#hooks/useFormat';
 import { useLocale } from '#hooks/useLocale';
+import { usePayeesById } from '#hooks/usePayees';
 import { getSchedulesQuery, useSchedules } from '#hooks/useSchedules';
 import { useSyncedPref } from '#hooks/useSyncedPref';
 
 import { buildBudgetBurnProjection } from './budgetBurn';
+import { CashFlowAttention } from './CashFlowAttention';
 import { CashFlowCalendarView } from './CashFlowCalendarView';
 import { parseCashFlowConfig } from './cashFlowConfig';
 import type { CashFlowCalendarConfig } from './cashFlowConfig';
@@ -29,6 +31,7 @@ import type { SweepAdvisorResult } from './cashFlowReserve';
 import { calculateCashFlowRisk } from './cashFlowRisk';
 import { CashFlowRiskCallout } from './CashFlowRiskCallout';
 import { CashFlowSetup } from './CashFlowSetup';
+import { deriveCashFlowAttention } from './deriveCashFlowAttention';
 
 function SweepCallout({
   advisor,
@@ -257,9 +260,26 @@ export function CashFlowPage() {
     ...new Set([...operatingAccountIds, ...reserveAccountIds]),
   ];
   const schedulesQuery = useMemo(() => getSchedulesQuery(), []);
-  const { schedules } = useSchedules({
+  const {
+    schedules,
+    statuses,
+    isLoading: schedulesLoading,
+    error: schedulesError,
+  } = useSchedules({
     query: operatingAccountIds.length > 0 ? schedulesQuery : undefined,
   });
+  const { data: payeesById = {} } = usePayeesById();
+  const attention = deriveCashFlowAttention(
+    schedules,
+    statuses,
+    new Set(forecastAccountIds),
+  );
+  const accountNames = Object.fromEntries(
+    availableAccounts.map(account => [account.id, account.name]),
+  );
+  const payeeNames = Object.fromEntries(
+    Object.entries(payeesById).map(([id, payee]) => [id, payee.name]),
+  );
   const manualScheduleIds = new Set(
     schedules
       .filter(schedule => schedule.posts_transaction === false)
@@ -429,6 +449,18 @@ export function CashFlowPage() {
               </Text>
             )}
             {risk && <CashFlowRiskCallout risk={risk} endDate={endDate} />}
+            {schedulesError && (
+              <Text style={{ color: theme.errorText }}>
+                <Trans>Failed to load schedules.</Trans>
+              </Text>
+            )}
+            {!schedulesLoading && !schedulesError && (
+              <CashFlowAttention
+                {...attention}
+                accountNames={accountNames}
+                payeeNames={payeeNames}
+              />
+            )}
             {isEnvelope && advisor && (
               <SweepCallout
                 advisor={advisor}
@@ -448,6 +480,21 @@ export function CashFlowPage() {
                 </Trans>
               </Text>
             )}
+            <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
+              <Trans>
+                Manual: Actual will not automatically add this transaction.
+              </Trans>{' '}
+              · <Trans>Negative: projected selected cash is below zero.</Trans>
+              {budgetBurn && (
+                <>
+                  {' · '}
+                  <Trans>
+                    Budget Burn: expected variable spending not already
+                    represented by scheduled expenses.
+                  </Trans>
+                </>
+              )}
+            </Text>
             <CashFlowCalendarView
               forecastData={forecastData}
               start={currentMonth}

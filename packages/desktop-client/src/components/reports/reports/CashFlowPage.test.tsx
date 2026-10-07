@@ -2,7 +2,8 @@ import { MemoryRouter, Route, Routes } from 'react-router';
 
 import { send } from '@actual-app/core/platform/client/connection';
 import * as monthUtils from '@actual-app/core/shared/months';
-import { render, screen, waitFor } from '@testing-library/react';
+import type { ScheduleStatusType } from '@actual-app/core/shared/schedules';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -22,6 +23,16 @@ const fixture = vi.hoisted(() => ({
   scheduledFunding: 0,
   manualScheduleIds: [] as string[],
   autoScheduleIds: [] as string[],
+  attentionSchedules: [] as Array<{
+    id: string;
+    name?: string;
+    next_date: string;
+    _account: string;
+    _payee: string;
+    _amount: number;
+    posts_transaction: boolean;
+  }>,
+  scheduleStatuses: {} as Record<string, ScheduleStatusType>,
   futureOperatingBalance: null as number | null,
   futureOperatingIncome: 0,
 }));
@@ -63,11 +74,23 @@ vi.mock('#hooks/useSchedules', () => ({
     schedules: [
       ...fixture.manualScheduleIds.map(id => ({
         id,
+        name: id,
+        next_date: monthUtils.addDays(monthUtils.currentDay(), 1),
+        _account: 'checking',
+        _payee: '',
+        _amount: -20000,
         posts_transaction: false,
       })),
       ...fixture.autoScheduleIds.map(id => ({ id, posts_transaction: true })),
+      ...fixture.attentionSchedules,
     ],
+    statuses: new Map(Object.entries(fixture.scheduleStatuses)),
+    isLoading: false,
+    error: undefined,
   }),
+}));
+vi.mock('#hooks/usePayees', () => ({
+  usePayeesById: () => ({ data: { hydro: { name: 'Hydro payee' } } }),
 }));
 vi.mock('#hooks/useAccounts', () => ({
   useAccounts: () => ({
@@ -239,6 +262,8 @@ beforeEach(() => {
   fixture.scheduledFunding = 0;
   fixture.manualScheduleIds = [];
   fixture.autoScheduleIds = [];
+  fixture.attentionSchedules = [];
+  fixture.scheduleStatuses = {};
   fixture.futureOperatingBalance = null;
   fixture.futureOperatingIncome = 0;
   vi.mocked(send).mockReset();
@@ -259,6 +284,7 @@ function renderRoute() {
       <TestProviders>
         <Routes>
           <Route path="/cash-flow" element={<CashFlowPage />} />
+          <Route path="/schedules" element={<div>Schedules destination</div>} />
         </Routes>
       </TestProviders>
     </MemoryRouter>,
@@ -576,6 +602,181 @@ describe('Cash Flow page', () => {
       vi
         .mocked(send)
         .mock.calls.filter(([name]) => name === 'envelope-budget-month'),
+    ).toHaveLength(0);
+  });
+  it('shows due and missed manual schedules with factual wording and review navigation', async () => {
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+      reserveAccountIds: ['savings'],
+    });
+    fixture.attentionSchedules = [
+      {
+        id: 'hydro',
+        name: '',
+        next_date: monthUtils.currentDay(),
+        _account: 'checking',
+        _payee: 'hydro',
+        _amount: -18432,
+        posts_transaction: false,
+      },
+      {
+        id: 'transfer',
+        name: 'Transfer to savings',
+        next_date: monthUtils.subDays(monthUtils.currentDay(), 2),
+        _account: 'savings',
+        _payee: '',
+        _amount: -62000,
+        posts_transaction: false,
+      },
+      {
+        id: 'next',
+        name: 'Next manual',
+        next_date: monthUtils.addDays(monthUtils.currentDay(), 5),
+        _account: 'checking',
+        _payee: '',
+        _amount: -5000,
+        posts_transaction: false,
+      },
+    ];
+    fixture.scheduleStatuses = {
+      hydro: 'due',
+      transfer: 'missed',
+      next: 'upcoming',
+    };
+    renderRoute();
+    const panel =
+      screen.getByText('Needs Attention').parentElement?.parentElement;
+    expect(panel).toBeInTheDocument();
+    expect(panel).toHaveTextContent('Hydro payee');
+    expect(panel).toHaveTextContent('Due today');
+    expect(panel).toHaveTextContent('184.32');
+    expect(panel).toHaveTextContent('Checking');
+    expect(panel).toHaveTextContent(
+      `Missed ${monthUtils.format(monthUtils.subDays(monthUtils.currentDay(), 2), 'MMMM d')}`,
+    );
+    expect(panel).toHaveTextContent('Savings');
+    expect(panel).toHaveTextContent('1 upcoming manual schedule');
+    expect(panel).toHaveTextContent('Next manual');
+    expect(panel?.textContent?.indexOf('Transfer to savings')).toBeLessThan(
+      panel?.textContent?.indexOf('Hydro payee') ?? 0,
+    );
+    expect(panel).not.toHaveTextContent('unpaid');
+    expect(panel).not.toHaveTextContent('failed payment');
+    expect(panel?.querySelectorAll('a[href="/schedules"]')).toHaveLength(1);
+    await userEvent.click(
+      screen.getByRole('link', { name: 'Review schedules' }),
+    );
+    expect(screen.getByText('Schedules destination')).toBeInTheDocument();
+    expect(
+      vi
+        .mocked(send)
+        .mock.calls.filter(
+          ([name]) =>
+            name.startsWith('schedule/') || name.startsWith('transaction/'),
+        ),
+    ).toHaveLength(0);
+  });
+
+  it('shows attention and upcoming manual work in Tracking mode with amounts redacted', () => {
+    fixture.budgetType = 'tracking';
+    fixture.privacyMode = true;
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+    });
+    fixture.attentionSchedules = [
+      {
+        id: 'due',
+        name: 'Card payment',
+        next_date: monthUtils.currentDay(),
+        _account: 'checking',
+        _payee: '',
+        _amount: -987654,
+        posts_transaction: false,
+      },
+      {
+        id: 'future',
+        name: 'Future manual',
+        next_date: monthUtils.addDays(monthUtils.currentDay(), 8),
+        _account: 'checking',
+        _payee: '',
+        _amount: -1234,
+        posts_transaction: false,
+      },
+    ];
+    fixture.scheduleStatuses = { due: 'due', future: 'scheduled' };
+    renderRoute();
+    const panel =
+      screen.getByText('Needs Attention').parentElement?.parentElement;
+    expect(panel).toHaveTextContent('Card payment');
+    expect(panel).toHaveTextContent('Due today');
+    expect(panel).toHaveTextContent('1 upcoming manual schedule');
+    expect(panel).toHaveTextContent('Future manual');
+    expect(panel?.querySelector('[aria-hidden="true"]')).toBeInTheDocument();
+    for (const element of panel?.querySelectorAll('[aria-label],[title]') ??
+      []) {
+      expect(
+        element.getAttribute('aria-label') ?? element.getAttribute('title'),
+      ).not.toMatch(/987654|9,876/);
+    }
+    expect(screen.getByText('Cash Flow Risk')).toBeInTheDocument();
+    expect(screen.queryByText(/Safe to move/)).not.toBeInTheDocument();
+    expect(
+      vi
+        .mocked(send)
+        .mock.calls.filter(([name]) => name === 'envelope-budget-month'),
+    ).toHaveLength(0);
+  });
+
+  it('keeps forecast, Risk, Burn, and Sweep output independent of attention metadata', async () => {
+    fixture.withReserve = true;
+    fixture.withBurn = true;
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+      reserveAccountIds: ['savings'],
+      reserveCategoryIds: ['emergency'],
+      burnCategoryIds: ['groceries'],
+      budgetBurnEnabled: true,
+    });
+    renderRoute();
+    await screen.findByText('Cash Flow Risk');
+    await screen.findByText(/Safe to move/);
+    const before = {
+      risk: screen.getByText('Cash Flow Risk').parentElement?.textContent,
+      sweep: screen.getByText(/Safe to move/).parentElement?.textContent,
+      burn: screen.getByText(/Budget Burn on/).parentElement?.textContent,
+    };
+    cleanup();
+    fixture.attentionSchedules = [
+      {
+        id: 'manual',
+        name: 'Manual payment',
+        next_date: monthUtils.currentDay(),
+        _account: 'checking',
+        _payee: '',
+        _amount: -50000,
+        posts_transaction: false,
+      },
+    ];
+    fixture.scheduleStatuses = { manual: 'due' };
+    renderRoute();
+    await screen.findByText('Cash Flow Risk');
+    await screen.findByText(/Safe to move/);
+    expect({
+      risk: screen.getByText('Cash Flow Risk').parentElement?.textContent,
+      sweep: screen.getByText(/Safe to move/).parentElement?.textContent,
+      burn: screen.getByText(/Budget Burn on/).parentElement?.textContent,
+    }).toEqual(before);
+    expect(screen.getByText('Manual payment')).toBeInTheDocument();
+    expect(
+      vi
+        .mocked(send)
+        .mock.calls.filter(
+          ([name]) =>
+            name.startsWith('schedule/') || name.startsWith('transaction/'),
+        ),
     ).toHaveLength(0);
   });
 });
