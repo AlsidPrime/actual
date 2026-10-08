@@ -337,6 +337,9 @@ describe('Cash Flow page', () => {
     renderRoute();
     expect(screen.getByText('Cash Flow Risk')).toBeInTheDocument();
     expect(
+      document.querySelector('article[aria-current="date"]'),
+    ).toBeInTheDocument();
+    expect(
       screen.getByText(/No Operating cash shortfall projected through/),
     ).toBeInTheDocument();
     expect(
@@ -844,6 +847,74 @@ describe('Cash Flow page', () => {
     ).toHaveLength(0);
   });
 
+  it('hides the calendar when required Burn budget data fails', async () => {
+    fixture.withReserve = true;
+    fixture.withBurn = true;
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+      burnCategoryIds: ['groceries'],
+      budgetBurnEnabled: true,
+    });
+    vi.mocked(send).mockImplementation(async name => {
+      if (name === 'envelope-budget-month') {
+        throw new Error('Budget read failed');
+      }
+      if (name === 'budget/get-category-automations') {
+        return { groceries: [] };
+      }
+      throw new Error(`Unexpected API call: ${name}`);
+    });
+    renderRoute();
+    expect(
+      await screen.findByText('Failed to load budget data.'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector('article[aria-current="date"]'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows loading until required Burn budget data arrives', async () => {
+    fixture.withReserve = true;
+    fixture.withBurn = true;
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+      burnCategoryIds: ['groceries'],
+      budgetBurnEnabled: true,
+    });
+    let resolveBudget:
+      | ((cells: Array<{ name: string; value: number }>) => void)
+      | undefined;
+    const pendingBudget = new Promise<Array<{ name: string; value: number }>>(
+      resolve => {
+        resolveBudget = resolve;
+      },
+    );
+    vi.mocked(send).mockImplementation(async name => {
+      if (name === 'envelope-budget-month') {
+        return pendingBudget;
+      }
+      if (name === 'budget/get-category-automations') {
+        return { groceries: [] };
+      }
+      throw new Error(`Unexpected API call: ${name}`);
+    });
+    renderRoute();
+    expect(
+      document.querySelector('article[aria-current="date"]'),
+    ).not.toBeInTheDocument();
+    resolveBudget?.([
+      { name: 'leftover-groceries', value: 100 },
+      { name: 'budget-groceries', value: 100 },
+    ]);
+    await waitFor(() =>
+      expect(
+        document.querySelector('article[aria-current="date"]'),
+      ).toBeInTheDocument(),
+    );
+  });
+
   it.each(['definitions', 'dry-run'])(
     'shows no Risk or Sweep when automation %s fail',
     async failure => {
@@ -892,6 +963,9 @@ describe('Cash Flow page', () => {
         await screen.findByText('Failed to load Budget Automation plans.'),
       ).toBeInTheDocument();
       expect(screen.queryByText('Cash Flow Risk')).not.toBeInTheDocument();
+      expect(
+        document.querySelector('article[aria-current="date"]'),
+      ).not.toBeInTheDocument();
       expect(screen.queryByText(/Safe to move/)).not.toBeInTheDocument();
       expect(
         screen.queryByText(/Do not transfer to Sinking Savings/),
@@ -954,6 +1028,9 @@ describe('Cash Flow page', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(/Budget Burn uses fixed Budget Automation plans/),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector('article[aria-current="date"]'),
     ).toBeInTheDocument();
     expect(
       vi

@@ -400,6 +400,7 @@ export function CashFlowPage() {
           monthSpending,
         })
       : null;
+  const isCalendarReady = !needsBurn || (budgetBurn != null && !budgetError);
   const risk =
     forecastData && (!needsBurn || budgetBurn)
       ? calculateCashFlowRisk({
@@ -524,7 +525,7 @@ export function CashFlowPage() {
             {isEnvelope &&
               !advisor &&
               !forecast.isPending &&
-              needsReserve &&
+              (needsReserve || !isCalendarReady) &&
               !budgetError &&
               !automationError && <LoadingIndicator />}
             {needsBurn && automationPlans && !automationError && (
@@ -559,16 +560,18 @@ export function CashFlowPage() {
                 </>
               )}
             </Text>
-            <CashFlowCalendarView
-              forecastData={forecastData}
-              start={currentMonth}
-              end={endMonth}
-              firstDayOfWeekIdx={firstDayOfWeekIdx}
-              budgetBurn={budgetBurn ?? undefined}
-              selectedBurnCategoryCount={selectedBurnCategories.length}
-              manualScheduleIds={manualScheduleIds}
-              operatingAccountIds={operatingAccountIds}
-            />
+            {isCalendarReady && (
+              <CashFlowCalendarView
+                forecastData={forecastData}
+                start={currentMonth}
+                end={endMonth}
+                firstDayOfWeekIdx={firstDayOfWeekIdx}
+                budgetBurn={budgetBurn ?? undefined}
+                selectedBurnCategoryCount={selectedBurnCategories.length}
+                manualScheduleIds={manualScheduleIds}
+                operatingAccountIds={operatingAccountIds}
+              />
+            )}
           </>
         )}
       </View>
