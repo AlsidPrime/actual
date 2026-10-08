@@ -708,6 +708,15 @@ describe('Cash Flow page', () => {
         .mocked(send)
         .mock.calls.filter(([name]) => name === 'envelope-budget-month'),
     ).toHaveLength(0);
+    expect(
+      vi
+        .mocked(send)
+        .mock.calls.filter(
+          ([name]) =>
+            name === 'budget/get-category-automations' ||
+            name === 'budget/dry-run-category-template',
+        ),
+    ).toHaveLength(0);
   });
   it('shows due and missed manual schedules with factual wording and review navigation', async () => {
     fixture.rawConfig = JSON.stringify({
@@ -832,6 +841,95 @@ describe('Cash Flow page', () => {
         .mocked(send)
         .mock.calls.filter(([name]) => name === 'envelope-budget-month'),
     ).toHaveLength(0);
+  });
+
+  it('uses a fixed automation plan for Operating Risk and conservative Sweep despite partial funding', async () => {
+    fixture.withReserve = true;
+    fixture.withBurn = true;
+    fixture.privacyMode = true;
+    const daysRemaining = monthUtils.dayRangeInclusive(
+      monthUtils.currentDay(),
+      monthUtils.lastDayOfMonth(monthUtils.currentMonth()),
+    ).length;
+    fixture.operatingBalance = Math.floor(70000 / daysRemaining);
+    fixture.reserveBalance = 1000000;
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+      reserveAccountIds: ['savings'],
+      reserveCategoryIds: ['emergency'],
+      burnCategoryIds: ['groceries'],
+      budgetBurnEnabled: true,
+    });
+    vi.mocked(send).mockImplementation(async name => {
+      if (name === 'envelope-budget-month') {
+        return [
+          { name: 'leftover-emergency', value: 600 },
+          { name: 'leftover-groceries', value: 30000 },
+          { name: 'budget-groceries', value: 30000 },
+          { name: 'sum-amount-groceries', value: -70000 },
+        ];
+      }
+      if (name === 'budget/get-category-automations') {
+        return {
+          groceries: [
+            {
+              directive: 'template',
+              type: 'periodic',
+              amount: 1800,
+              period: { period: 'month', amount: 1 },
+              starting: monthUtils.currentMonth(),
+              priority: 1,
+            },
+          ],
+        };
+      }
+      if (name === 'budget/dry-run-category-template') {
+        return { budgeted: 180000, perTemplate: [180000] };
+      }
+      throw new Error(`Unexpected API call: ${name}`);
+    });
+    renderRoute();
+    expect(
+      await screen.findByText('Do not transfer to Sinking Savings'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Operating cash is projected below zero today.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Budget Burn uses fixed Budget Automation plans/),
+    ).toBeInTheDocument();
+    expect(
+      vi
+        .mocked(send)
+        .mock.calls.filter(
+          ([name]) => name === 'budget/get-category-automations',
+        ),
+    ).toHaveLength(1);
+    expect(
+      vi
+        .mocked(send)
+        .mock.calls.filter(
+          ([name]) => name === 'budget/dry-run-category-template',
+        ),
+    ).toHaveLength(12);
+    expect(
+      vi
+        .mocked(send)
+        .mock.calls.some(
+          ([name]) =>
+            name.startsWith('budget/apply') ||
+            name === 'budget/set-category-automations' ||
+            name === 'budget/budget-amount' ||
+            name.startsWith('transaction/') ||
+            name.startsWith('schedule/'),
+        ),
+    ).toBe(false);
+    for (const element of document.querySelectorAll('[aria-label],[title]')) {
+      expect(
+        element.getAttribute('aria-label') ?? element.getAttribute('title'),
+      ).not.toMatch(/180,?000|70,?000|30,?000/);
+    }
   });
 
   it('keeps forecast, Risk, Burn, and Sweep output independent of attention metadata', async () => {

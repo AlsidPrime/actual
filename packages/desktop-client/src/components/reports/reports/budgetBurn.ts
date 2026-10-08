@@ -13,6 +13,7 @@ export type BudgetBurnCategorySummary = {
   available: number;
   scheduledExpense: number;
   remainingBurn: number;
+  planSource?: 'automation' | 'funded';
 };
 
 export type BudgetBurnDay = {
@@ -44,6 +45,8 @@ export function buildBudgetBurnProjection({
   today,
   endDate,
   monthBudgets,
+  automationPlans,
+  monthSpending,
 }: {
   enabled: boolean;
   categories: BudgetBurnCategory[];
@@ -53,6 +56,10 @@ export function buildBudgetBurnProjection({
   // Present on the dedicated page. The legacy widget continues to model only
   // the current month when this is omitted.
   monthBudgets?: Record<string, Record<string, number>>;
+  // Optional native automation demand and signed posted month activity.
+  // Omitted by the shared Balance Forecast caller, which keeps its legacy model.
+  automationPlans?: Record<string, Record<string, number>>;
+  monthSpending?: Record<string, Record<string, number>>;
 }): BudgetBurnProjection {
   if (!enabled || categories.length === 0 || endDate < today) {
     return { totalBurn: 0, categories: [], months: [], days: [] };
@@ -90,13 +97,20 @@ export function buildBudgetBurnProjection({
       const currentBudget =
         monthBudgets?.[currentMonth]?.[category.categoryId] ?? 0;
       const futureBudget = monthBudgets?.[month]?.[category.categoryId] ?? 0;
+      const automationPlan = automationPlans?.[month]?.[category.categoryId];
+      const usesAutomation = automationPlan != null;
+      const postedSpending = isCurrentMonth
+        ? Math.max(0, -(monthSpending?.[month]?.[category.categoryId] ?? 0))
+        : 0;
       const available = Math.max(
         0,
-        isCurrentMonth
-          ? category.leftover
-          : futureBudget > 0
-            ? futureBudget
-            : currentBudget,
+        usesAutomation
+          ? automationPlan - postedSpending
+          : isCurrentMonth
+            ? category.leftover
+            : futureBudget > 0
+              ? futureBudget
+              : currentBudget,
       );
       const scheduledExpense =
         scheduledByMonthAndCategory.get(`${month}:${category.categoryId}`) ?? 0;
@@ -106,7 +120,8 @@ export function buildBudgetBurnProjection({
         available,
         scheduledExpense,
         remainingBurn: Math.max(0, available - scheduledExpense),
-      };
+        planSource: usesAutomation ? 'automation' : 'funded',
+      } satisfies BudgetBurnCategorySummary;
     });
     return {
       month,

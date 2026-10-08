@@ -22,6 +22,7 @@ import { getSchedulesQuery, useSchedules } from '#hooks/useSchedules';
 import { useSyncedPref } from '#hooks/useSyncedPref';
 
 import { buildBudgetBurnProjection } from './budgetBurn';
+import { loadAutomationBurnPlans } from './budgetBurnAutomation';
 import { CashFlowAttention } from './CashFlowAttention';
 import { CashFlowCalendarView } from './CashFlowCalendarView';
 import { parseCashFlowConfig } from './cashFlowConfig';
@@ -218,6 +219,9 @@ export function CashFlowPage() {
           void queryClient.invalidateQueries({
             queryKey: ['cash-flow-calendar-budget'],
           });
+          void queryClient.invalidateQueries({
+            queryKey: ['cash-flow-calendar-automation-plans'],
+          });
         }
       }),
     [queryClient],
@@ -321,6 +325,20 @@ export function CashFlowPage() {
       ),
     enabled: operatingAccountIds.length > 0 && (needsBurn || needsReserve),
   });
+  const { data: automationPlans } = useQuery({
+    queryKey: [
+      'cash-flow-calendar-automation-plans',
+      currentMonth,
+      endMonth,
+      selectedBurnCategories.map(category => category.id),
+    ],
+    queryFn: () =>
+      loadAutomationBurnPlans(
+        selectedBurnCategories.map(category => category.id),
+        monthsToLoad,
+      ),
+    enabled: operatingAccountIds.length > 0 && needsBurn,
+  });
   const currentCells = budgetData?.find(
     item => item.month === currentMonth,
   )?.cells;
@@ -339,8 +357,23 @@ export function CashFlowPage() {
       );
     }
   }
+  const monthSpending: Record<string, Record<string, number>> = {
+    [currentMonth]: {},
+  };
+  for (const category of selectedBurnCategories) {
+    monthSpending[currentMonth][category.id] = Number(
+      currentCells?.find(cell =>
+        cell.name.endsWith(`sum-amount-${category.id}`),
+      )?.value ?? 0,
+    );
+  }
+  const hasFundedFallback =
+    automationPlans != null &&
+    selectedBurnCategories.some(category =>
+      monthsToLoad.some(month => automationPlans[month]?.[category.id] == null),
+    );
   const budgetBurn =
-    needsBurn && budgetData && forecastData
+    needsBurn && budgetData && automationPlans && forecastData
       ? buildBudgetBurnProjection({
           enabled: true,
           categories: selectedBurnCategories.map(category => ({
@@ -352,6 +385,8 @@ export function CashFlowPage() {
           today,
           endDate,
           monthBudgets,
+          automationPlans,
+          monthSpending,
         })
       : null;
   const risk =
@@ -472,12 +507,21 @@ export function CashFlowPage() {
               !forecast.isPending &&
               needsReserve &&
               !budgetError && <LoadingIndicator />}
-            {needsBurn && (
+            {needsBurn && automationPlans && (
               <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
-                <Trans>
-                  Future months without a positive budget repeat the current
-                  monthly plan.
-                </Trans>
+                {hasFundedFallback ? (
+                  <Trans>
+                    Fixed Budget Automations provide spending plans independent
+                    of envelope funding. Categories without a usable fixed
+                    automation use funded-budget amounts; future months without
+                    a positive budget repeat the current monthly budget.
+                  </Trans>
+                ) : (
+                  <Trans>
+                    Budget Burn uses fixed Budget Automation plans independent
+                    of envelope funding.
+                  </Trans>
+                )}
               </Text>
             )}
             <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>

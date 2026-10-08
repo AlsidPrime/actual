@@ -2,6 +2,8 @@ import type { ForecastResult } from '@actual-app/core/types/models/forecast';
 import { describe, expect, it } from 'vitest';
 
 import { buildBudgetBurnProjection } from './budgetBurn';
+import { calculateSweepAdvisor } from './cashFlowReserve';
+import { calculateCashFlowRisk } from './cashFlowRisk';
 
 const today = '2024-04-29';
 const category = {
@@ -48,6 +50,161 @@ function project(
 }
 
 describe('Budget Burn', () => {
+  it('uses the native plan minus posted spending and one future scheduled expense despite partial funding', () => {
+    const result = project({
+      categories: [{ ...category, leftover: 30000 }],
+      monthBudgets: {
+        '2024-04': { groceries: 30000 },
+        '2024-05': { groceries: 0 },
+      },
+      automationPlans: { '2024-04': { groceries: 180000 } },
+      monthSpending: { '2024-04': { groceries: -70000 } },
+      forecastData: forecast([
+        {
+          amount: -10000,
+          categoryId: 'groceries',
+          payee: 'Scheduled groceries',
+          scheduleId: 'groceries',
+          scheduleName: 'Groceries',
+        },
+      ]),
+    });
+    expect(result.months[0]?.categories[0]).toMatchObject({
+      available: 110000,
+      scheduledExpense: 10000,
+      remainingBurn: 100000,
+      planSource: 'automation',
+    });
+  });
+
+  it('keeps automation Burn independent of envelope funding and nets posted refunds', () => {
+    const options = {
+      monthBudgets: {
+        '2024-04': { groceries: 0 },
+        '2024-05': { groceries: 0 },
+      },
+      automationPlans: { '2024-04': { groceries: 180000 } },
+      monthSpending: { '2024-04': { groceries: -70000 } },
+    };
+    const lowFunding = project({
+      ...options,
+      categories: [{ ...category, leftover: 30000 }],
+    });
+    const highFunding = project({
+      ...options,
+      categories: [{ ...category, leftover: 150000 }],
+    });
+    expect(lowFunding.months[0]?.totalBurn).toBe(110000);
+    expect(highFunding.months[0]?.totalBurn).toBe(110000);
+    expect(
+      project({
+        ...options,
+        monthSpending: { '2024-04': { groceries: -60000 } },
+      }).months[0]?.totalBurn,
+    ).toBe(120000);
+  });
+
+  it('uses the future native plan without funded envelope cash and subtracts its schedule once', () => {
+    const future = forecast();
+    future.dataPoints.push({
+      ...future.dataPoints[0],
+      date: '2024-05-01',
+      transactions: [
+        {
+          amount: -10000,
+          categoryId: 'groceries',
+          payee: 'Scheduled groceries',
+          scheduleId: 'groceries',
+          scheduleName: 'Groceries',
+        },
+      ],
+    });
+    const result = project({
+      categories: [{ ...category, leftover: 0 }],
+      monthBudgets: {
+        '2024-04': { groceries: 0 },
+        '2024-05': { groceries: 0 },
+      },
+      automationPlans: { '2024-05': { groceries: 180000 } },
+      forecastData: future,
+    });
+    expect(result.months[1]?.categories[0]).toMatchObject({
+      available: 180000,
+      scheduledExpense: 10000,
+      remainingBurn: 170000,
+      planSource: 'automation',
+    });
+    expect(result.months[0]?.categories[0]).toMatchObject({
+      remainingBurn: 0,
+      planSource: 'funded',
+    });
+  });
+
+  it('makes Operating Risk and Sweep more conservative than the funded fallback', () => {
+    const forecastData = forecast();
+    forecastData.dataPoints[0].balance = 30000;
+    forecastData.dataPoints.push({
+      date: today,
+      accountId: 'savings',
+      accountName: 'Savings',
+      balance: 1000000,
+      transactions: [],
+    });
+    const common = {
+      categories: [{ ...category, leftover: 30000 }],
+      monthBudgets: {
+        '2024-04': { groceries: 30000 },
+        '2024-05': { groceries: 0 },
+      },
+      forecastData,
+    };
+    const fallback = project(common);
+    const automation = project({
+      ...common,
+      automationPlans: { '2024-04': { groceries: 180000 } },
+      monthSpending: { '2024-04': { groceries: -70000 } },
+    });
+    const risk = (budgetBurn: typeof fallback) =>
+      calculateCashFlowRisk({
+        forecastData,
+        budgetBurn,
+        operatingAccountIds: ['checking'],
+        today,
+        endDate: '2024-05-02',
+      });
+    const sweep = (budgetBurn: typeof fallback) =>
+      calculateSweepAdvisor({
+        forecastData,
+        budgetBurn,
+        isBudgetBurnComplete: true,
+        operatingAccountIds: ['checking'],
+        reserveAccountIds: ['savings'],
+        reserveCategoryLeftovers: [1000500],
+        safetyBuffer: 0,
+        today,
+        endDate: '2024-05-02',
+      });
+    expect(risk(fallback)?.status).toBe('safe');
+    expect(risk(automation)?.status).toBe('danger');
+    expect(sweep(fallback).status).toBe('safe');
+    expect(sweep(automation).status).toBe('danger');
+  });
+
+  it('keeps the funded-budget fallback for categories with no usable automation plan', () => {
+    const result = project({
+      categories: [{ ...category, leftover: 30000 }],
+      monthBudgets: {
+        '2024-04': { groceries: 30000 },
+        '2024-05': { groceries: 0 },
+      },
+      automationPlans: {},
+    });
+    expect(result.months.map(month => month.categories[0])).toMatchObject([
+      { available: 30000, planSource: 'funded' },
+      { available: 30000, planSource: 'funded' },
+    ]);
+  });
+
   it('uses positive Actual leftover and distributes cents per category to the earliest days', () => {
     const result = project();
     expect(result.totalBurn).toBe(10001);

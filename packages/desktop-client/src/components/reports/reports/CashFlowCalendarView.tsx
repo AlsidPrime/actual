@@ -446,7 +446,12 @@ export function CashFlowCalendarView({
                         }}
                       >
                         <Text>
-                          <Trans>Available</Trans>:
+                          {category.planSource === 'automation' ? (
+                            <Trans>Plan after spending</Trans>
+                          ) : (
+                            <Trans>Available</Trans>
+                          )}
+                          :
                         </Text>
                         <PrivacyFilter>
                           <FinancialText>
