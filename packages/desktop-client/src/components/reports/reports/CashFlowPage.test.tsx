@@ -1,9 +1,9 @@
 import { MemoryRouter, Route, Routes } from 'react-router';
 
-import { send } from '@actual-app/core/platform/client/connection';
+import { listen, send } from '@actual-app/core/platform/client/connection';
 import * as monthUtils from '@actual-app/core/shared/months';
 import type { ScheduleStatusType } from '@actual-app/core/shared/schedules';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -281,6 +281,7 @@ beforeEach(() => {
   fixture.scheduleStatuses = {};
   fixture.futureOperatingBalance = null;
   fixture.futureOperatingIncome = 0;
+  vi.mocked(listen).mockClear();
   vi.mocked(send).mockReset();
   vi.mocked(send).mockImplementation(async (name: string) =>
     name === 'envelope-budget-month'
@@ -843,6 +844,61 @@ describe('Cash Flow page', () => {
     ).toHaveLength(0);
   });
 
+  it.each(['definitions', 'dry-run'])(
+    'shows no Risk or Sweep when automation %s fail',
+    async failure => {
+      fixture.withReserve = true;
+      fixture.withBurn = true;
+      fixture.rawConfig = JSON.stringify({
+        ...DEFAULT_CASH_FLOW_CONFIG,
+        operatingAccountIds: ['checking'],
+        reserveAccountIds: ['savings'],
+        reserveCategoryIds: ['emergency'],
+        burnCategoryIds: ['groceries'],
+        budgetBurnEnabled: true,
+      });
+      vi.mocked(send).mockImplementation(async name => {
+        if (name === 'envelope-budget-month') {
+          return [
+            { name: 'leftover-emergency', value: 600 },
+            { name: 'leftover-groceries', value: 30000 },
+            { name: 'budget-groceries', value: 30000 },
+          ];
+        }
+        if (name === 'budget/get-category-automations') {
+          if (failure === 'definitions') {
+            throw new Error('Definition read failed');
+          }
+          return {
+            groceries: [
+              {
+                directive: 'template',
+                type: 'periodic',
+                amount: 1800,
+                period: { period: 'month', amount: 1 },
+                starting: monthUtils.currentMonth(),
+                priority: 1,
+              },
+            ],
+          };
+        }
+        if (name === 'budget/dry-run-category-template') {
+          throw new Error('Dry-run failed');
+        }
+        throw new Error(`Unexpected API call: ${name}`);
+      });
+      renderRoute();
+      expect(
+        await screen.findByText('Failed to load Budget Automation plans.'),
+      ).toBeInTheDocument();
+      expect(screen.queryByText('Cash Flow Risk')).not.toBeInTheDocument();
+      expect(screen.queryByText(/Safe to move/)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/Do not transfer to Sinking Savings/),
+      ).not.toBeInTheDocument();
+    },
+  );
+
   it('uses a fixed automation plan for Operating Risk and conservative Sweep despite partial funding', async () => {
     fixture.withReserve = true;
     fixture.withBurn = true;
@@ -913,6 +969,36 @@ describe('Cash Flow page', () => {
           ([name]) => name === 'budget/dry-run-category-template',
         ),
     ).toHaveLength(12);
+    const onSync = vi
+      .mocked(listen)
+      .mock.calls.find(([name]) => name === 'sync-event')?.[1];
+    expect(onSync).toBeDefined();
+    act(() => onSync?.({ type: 'success', tables: ['transactions'] }));
+    await waitFor(() =>
+      expect(
+        vi
+          .mocked(send)
+          .mock.calls.filter(([name]) => name === 'envelope-budget-month')
+          .length,
+      ).toBeGreaterThan(12),
+    );
+    expect(
+      vi
+        .mocked(send)
+        .mock.calls.filter(
+          ([name]) => name === 'budget/get-category-automations',
+        ),
+    ).toHaveLength(1);
+    act(() => onSync?.({ type: 'success', tables: ['categories'] }));
+    await waitFor(() =>
+      expect(
+        vi
+          .mocked(send)
+          .mock.calls.filter(
+            ([name]) => name === 'budget/get-category-automations',
+          ),
+      ).toHaveLength(2),
+    );
     expect(
       vi
         .mocked(send)

@@ -111,7 +111,29 @@ describe('native Budget Automation Burn plans', () => {
     ).toHaveLength(72);
   });
 
-  it('keeps a funded-budget fallback when native projection is unusable', async () => {
+  it('leaves successful no-automation and unsupported definitions for funded fallback', async () => {
+    vi.mocked(send).mockImplementation(async (name, categoryId) => {
+      if (name === 'budget/get-category-automations') {
+        return categoryId === 'groceries'
+          ? { groceries: [] }
+          : { fuel: [{ directive: 'template', type: 'refill', priority: 1 }] };
+      }
+      throw new Error(`Unexpected API call: ${name}`);
+    });
+    await expect(
+      loadAutomationBurnPlans(['groceries', 'fuel'], ['2024-04']),
+    ).resolves.toEqual({});
+    expect(vi.mocked(send).mock.calls).toHaveLength(2);
+  });
+
+  it('rejects when definitions cannot be read', async () => {
+    vi.mocked(send).mockRejectedValue(new Error('Definition read failed'));
+    await expect(
+      loadAutomationBurnPlans(['groceries'], ['2024-04']),
+    ).rejects.toThrow('Definition read failed');
+  });
+
+  it('rejects when a fixed plan cannot be projected for a required month', async () => {
     vi.mocked(send).mockImplementation(async name => {
       if (name === 'budget/get-category-automations') {
         return { groceries: [fixed] };
@@ -120,6 +142,21 @@ describe('native Budget Automation Burn plans', () => {
     });
     await expect(
       loadAutomationBurnPlans(['groceries'], ['2024-04']),
-    ).resolves.toEqual({});
+    ).rejects.toThrow('Dry-run unavailable');
   });
+
+  it.each([NaN, -1])(
+    'rejects an invalid fixed-plan projection of %s',
+    async budgeted => {
+      vi.mocked(send).mockImplementation(async name => {
+        if (name === 'budget/get-category-automations') {
+          return { groceries: [fixed] };
+        }
+        return { budgeted, perTemplate: [budgeted] };
+      });
+      await expect(
+        loadAutomationBurnPlans(['groceries'], ['2024-04']),
+      ).rejects.toThrow('Invalid Budget Automation projection');
+    },
+  );
 });

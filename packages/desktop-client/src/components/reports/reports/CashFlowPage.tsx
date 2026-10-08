@@ -219,6 +219,13 @@ export function CashFlowPage() {
           void queryClient.invalidateQueries({
             queryKey: ['cash-flow-calendar-budget'],
           });
+        }
+        if (
+          (event.type === 'success' || event.type === 'applied') &&
+          event.tables.some(table =>
+            ['categories', 'preferences'].includes(table),
+          )
+        ) {
           void queryClient.invalidateQueries({
             queryKey: ['cash-flow-calendar-automation-plans'],
           });
@@ -325,7 +332,7 @@ export function CashFlowPage() {
       ),
     enabled: operatingAccountIds.length > 0 && (needsBurn || needsReserve),
   });
-  const { data: automationPlans } = useQuery({
+  const { data: automationPlans, error: automationError } = useQuery({
     queryKey: [
       'cash-flow-calendar-automation-plans',
       currentMonth,
@@ -373,7 +380,11 @@ export function CashFlowPage() {
       monthsToLoad.some(month => automationPlans[month]?.[category.id] == null),
     );
   const budgetBurn =
-    needsBurn && budgetData && automationPlans && forecastData
+    needsBurn &&
+    budgetData &&
+    automationPlans &&
+    !automationError &&
+    forecastData
       ? buildBudgetBurnProjection({
           enabled: true,
           categories: selectedBurnCategories.map(category => ({
@@ -400,7 +411,10 @@ export function CashFlowPage() {
         })
       : null;
   const advisor =
-    isEnvelope && forecastData && (budgetData || !needsReserve)
+    isEnvelope &&
+    forecastData &&
+    (budgetData || !needsReserve) &&
+    (!needsBurn || (automationPlans && !automationError))
       ? calculateSweepAdvisor({
           forecastData,
           budgetBurn,
@@ -483,6 +497,11 @@ export function CashFlowPage() {
                 <Trans>Failed to load budget data.</Trans>
               </Text>
             )}
+            {automationError && (
+              <Text style={{ color: theme.errorText }}>
+                <Trans>Failed to load Budget Automation plans.</Trans>
+              </Text>
+            )}
             {risk && <CashFlowRiskCallout risk={risk} endDate={endDate} />}
             {schedulesError && (
               <Text style={{ color: theme.errorText }}>
@@ -506,8 +525,9 @@ export function CashFlowPage() {
               !advisor &&
               !forecast.isPending &&
               needsReserve &&
-              !budgetError && <LoadingIndicator />}
-            {needsBurn && automationPlans && (
+              !budgetError &&
+              !automationError && <LoadingIndicator />}
+            {needsBurn && automationPlans && !automationError && (
               <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
                 {hasFundedFallback ? (
                   <Trans>

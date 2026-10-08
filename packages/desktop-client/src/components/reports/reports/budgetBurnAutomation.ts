@@ -40,41 +40,34 @@ export async function loadAutomationBurnPlans(
 ): Promise<AutomationBurnPlans> {
   const entries = await Promise.all(
     categoryIds.map(async categoryId => {
-      try {
-        const definitions = await send(
-          'budget/get-category-automations',
-          categoryId,
-        );
-        const templates = definitions[categoryId] ?? [];
-        if (!hasFixedSpendingPlan(templates)) {
-          return [];
-        }
-        return await Promise.all(
-          months.map(async month => {
-            try {
-              const result = await send('budget/dry-run-category-template', {
-                month,
-                categoryId,
-                templates,
-              });
-              return Number.isFinite(result.budgeted) && result.budgeted >= 0
-                ? { month, categoryId, amount: result.budgeted }
-                : null;
-            } catch {
-              return null;
-            }
-          }),
-        );
-      } catch {
+      const definitions = await send(
+        'budget/get-category-automations',
+        categoryId,
+      );
+      const templates = definitions[categoryId] ?? [];
+      if (!hasFixedSpendingPlan(templates)) {
         return [];
       }
+      return Promise.all(
+        months.map(async month => {
+          const result = await send('budget/dry-run-category-template', {
+            month,
+            categoryId,
+            templates,
+          });
+          if (!Number.isFinite(result.budgeted) || result.budgeted < 0) {
+            throw new Error(
+              `Invalid Budget Automation projection for ${categoryId} in ${month}`,
+            );
+          }
+          return { month, categoryId, amount: result.budgeted };
+        }),
+      );
     }),
   );
   const plans: AutomationBurnPlans = {};
   for (const entry of entries.flat()) {
-    if (entry) {
-      (plans[entry.month] ??= {})[entry.categoryId] = entry.amount;
-    }
+    (plans[entry.month] ??= {})[entry.categoryId] = entry.amount;
   }
   return plans;
 }
