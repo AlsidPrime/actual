@@ -32,6 +32,7 @@ const fixture = vi.hoisted(() => ({
     _payee: string;
     _amount: number;
     posts_transaction: boolean;
+    _date?: { frequency: 'weekly'; start: string };
   }>,
   scheduleStatuses: {} as Record<string, ScheduleStatusType>,
   futureOperatingBalance: null as number | null,
@@ -92,6 +93,15 @@ vi.mock('#hooks/useSchedules', () => ({
 }));
 vi.mock('#hooks/usePayees', () => ({
   usePayeesById: () => ({ data: { hydro: { name: 'Hydro payee' } } }),
+}));
+vi.mock('#hooks/useAccountBalances', () => ({
+  useAccountBalances: (ids: string[]) =>
+    Object.fromEntries(
+      ids.map(id => [
+        id,
+        id === 'savings' ? fixture.reserveBalance : fixture.operatingBalance,
+      ]),
+    ),
 }));
 vi.mock('#hooks/useAccounts', () => ({
   useAccounts: () => ({
@@ -329,6 +339,35 @@ describe('Cash Flow page', () => {
     });
   });
 
+  it('loads a selected payday from synced settings and shows native current cash', () => {
+    fixture.futureOperatingBalance = 11000;
+    fixture.futureOperatingIncome = 10000;
+    fixture.attentionSchedules = [
+      {
+        id: 'payday',
+        name: 'Employment pay',
+        next_date: monthUtils.addDays(monthUtils.currentDay(), 1),
+        _account: 'checking',
+        _payee: '',
+        _amount: 10000,
+        posts_transaction: true,
+        _date: { frequency: 'weekly', start: monthUtils.currentDay() },
+      },
+    ];
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+      paydayScheduleIds: ['payday'],
+    });
+    renderRoute();
+    expect(screen.getByText('Next Payday / Cash Runway')).toBeInTheDocument();
+    expect(screen.getByText('Cash survives until payday')).toBeInTheDocument();
+    expect(screen.getByText(/Employment pay/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Current Operating cash/).parentElement,
+    ).toHaveTextContent('10.00');
+  });
+
   it('shows a safe Cash Flow Risk summary and no scheduled inflow', () => {
     fixture.rawConfig = JSON.stringify({
       ...DEFAULT_CASH_FLOW_CONFIG,
@@ -506,6 +545,7 @@ describe('Cash Flow page', () => {
     await waitFor(() =>
       expect(document.body.textContent).toContain('Safe to move'),
     );
+    expect(screen.getByRole('progressbar')).not.toHaveAttribute('value');
     const heading = [...document.querySelectorAll('span')].find(
       element =>
         element.textContent?.includes('Safe to move') &&

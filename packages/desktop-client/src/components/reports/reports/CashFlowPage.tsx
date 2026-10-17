@@ -12,6 +12,7 @@ import { FinancialText } from '#components/FinancialText';
 import { Page, PageHeader } from '#components/Page';
 import { PrivacyFilter } from '#components/PrivacyFilter';
 import { LoadingIndicator } from '#components/reports/LoadingIndicator';
+import { useAccountBalances } from '#hooks/useAccountBalances';
 import { useAccounts } from '#hooks/useAccounts';
 import { useBalanceForecast } from '#hooks/useBalanceForecast';
 import { useCategories } from '#hooks/useCategories';
@@ -24,9 +25,15 @@ import { useSyncedPref } from '#hooks/useSyncedPref';
 import { buildBudgetBurnProjection } from './budgetBurn';
 import { loadAutomationBurnPlans } from './budgetBurnAutomation';
 import { CashFlowAttention } from './CashFlowAttention';
+import { calculateSinkingBacking } from './cashFlowBacking';
+import { CashFlowBackingCallout } from './CashFlowBackingCallout';
 import { CashFlowCalendarView } from './CashFlowCalendarView';
 import { parseCashFlowConfig } from './cashFlowConfig';
 import type { CashFlowCalendarConfig } from './cashFlowConfig';
+import { deriveScheduledDebtPayments } from './cashFlowDebt';
+import { CashFlowDebtCallout } from './CashFlowDebtCallout';
+import { calculatePaydayRunway } from './cashFlowPayday';
+import { CashFlowPaydayCallout } from './CashFlowPaydayCallout';
 import { calculateSweepAdvisor } from './cashFlowReserve';
 import type { SweepAdvisorResult } from './cashFlowReserve';
 import { calculateCashFlowRisk } from './cashFlowRisk';
@@ -257,6 +264,21 @@ export function CashFlowPage() {
   const reserveAccountIds = config.reserveAccountIds.filter(id =>
     availableAccountIds.has(id),
   );
+  const accountBalances = useAccountBalances([
+    ...operatingAccountIds,
+    ...reserveAccountIds,
+  ]);
+  const currentOperatingCash = operatingAccountIds.every(
+    id => accountBalances[id] != null && Number.isFinite(accountBalances[id]),
+  )
+    ? operatingAccountIds.reduce(
+        (sum, id) => sum + (accountBalances[id] ?? 0),
+        0,
+      )
+    : null;
+  const debtAccountIds = config.debtAccountIds.filter(id =>
+    availableAccountIds.has(id),
+  );
   const { data: categoryData } = useCategories(isEnvelope);
   const expenseGroups =
     categoryData?.grouped.filter(group => !group.is_income) ?? [];
@@ -269,7 +291,11 @@ export function CashFlowPage() {
     config.reserveCategoryIds.includes(category.id),
   );
   const forecastAccountIds = [
-    ...new Set([...operatingAccountIds, ...reserveAccountIds]),
+    ...new Set([
+      ...operatingAccountIds,
+      ...reserveAccountIds,
+      ...debtAccountIds,
+    ]),
   ];
   const schedulesQuery = useMemo(() => getSchedulesQuery(), []);
   const {
@@ -392,7 +418,15 @@ export function CashFlowPage() {
             categoryName: category.name,
             leftover: leftoverFor(category.id),
           })),
-          forecastData,
+          forecastData:
+            debtAccountIds.length > 0
+              ? {
+                  ...forecastData,
+                  dataPoints: forecastData.dataPoints.filter(
+                    point => !debtAccountIds.includes(point.accountId),
+                  ),
+                }
+              : forecastData,
           today,
           endDate,
           monthBudgets,
@@ -411,6 +445,46 @@ export function CashFlowPage() {
           endDate,
         })
       : null;
+  const runway =
+    !schedulesLoading && !schedulesError
+      ? calculatePaydayRunway({
+          forecastData,
+          schedules,
+          selectedScheduleIds: config.paydayScheduleIds,
+          operatingAccountIds,
+          budgetBurn,
+          isBurnComplete: isCalendarReady,
+          safetyBuffer: config.safetyBuffer,
+          currentOperatingCash,
+          today,
+          endDate,
+        })
+      : null;
+  const backing = isEnvelope
+    ? calculateSinkingBacking({
+        categories: selectedReserveCategories.map(category => {
+          const value = currentCells?.find(cell =>
+            cell.name.endsWith(`leftover-${category.id}`),
+          )?.value;
+          const balance = value == null ? null : Number(value);
+          return {
+            id: category.id,
+            name: category.name,
+            balance:
+              balance != null && Number.isFinite(balance) ? balance : null,
+          };
+        }),
+        accountIds: reserveAccountIds,
+        balances: accountBalances,
+      })
+    : null;
+  const debtPayments = deriveScheduledDebtPayments({
+    forecastData,
+    operatingAccountIds,
+    debtAccountIds,
+    today,
+    endDate,
+  });
   const advisor =
     isEnvelope &&
     forecastData &&
@@ -458,6 +532,14 @@ export function CashFlowPage() {
             accounts={availableAccounts}
             expenseGroups={expenseGroups}
             expenseCategories={expenseCategories}
+            schedules={schedules}
+            transferPayeeIds={
+              new Set(
+                Object.entries(payeesById)
+                  .filter(([, payee]) => payee.transfer_acct != null)
+                  .map(([id]) => id),
+              )
+            }
             onChange={updateConfig}
           />
           <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
@@ -504,6 +586,9 @@ export function CashFlowPage() {
               </Text>
             )}
             {risk && <CashFlowRiskCallout risk={risk} endDate={endDate} />}
+            {runway && forecastData && (
+              <CashFlowPaydayCallout runway={runway} />
+            )}
             {schedulesError && (
               <Text style={{ color: theme.errorText }}>
                 <Trans>Failed to load schedules.</Trans>
@@ -514,6 +599,13 @@ export function CashFlowPage() {
                 {...attention}
                 accountNames={accountNames}
                 payeeNames={payeeNames}
+              />
+            )}
+            {backing && <CashFlowBackingCallout backing={backing} />}
+            {forecastData && (
+              <CashFlowDebtCallout
+                payments={debtPayments}
+                hasDebtAccounts={debtAccountIds.length > 0}
               />
             )}
             {isEnvelope && advisor && (
@@ -570,6 +662,7 @@ export function CashFlowPage() {
                 selectedBurnCategoryCount={selectedBurnCategories.length}
                 manualScheduleIds={manualScheduleIds}
                 operatingAccountIds={operatingAccountIds}
+                enableDayDetails
               />
             )}
           </>

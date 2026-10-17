@@ -1,0 +1,203 @@
+import type { ForecastResult } from '@actual-app/core/types/models/forecast';
+import type { ScheduleEntity } from '@actual-app/core/types/models/schedule';
+import { describe, expect, it } from 'vitest';
+
+import { calculatePaydayRunway } from './cashFlowPayday';
+
+function schedule(id: string, account = 'checking'): ScheduleEntity {
+  return {
+    id,
+    name: id,
+    rule: id,
+    next_date: '2026-10-30',
+    completed: false,
+    posts_transaction: true,
+    tombstone: false,
+    _payee: id,
+    _account: account,
+    _amount: 10000,
+    _amountOp: 'is',
+    _date: { frequency: 'weekly', interval: 2, start: '2026-10-16' },
+    _conditions: [],
+    _actions: [],
+  };
+}
+
+function forecast(
+  days: Array<{
+    date: string;
+    balance: number;
+    transactions?: Array<{
+      scheduleId: string;
+      amount: number;
+      isTransfer?: boolean;
+    }>;
+  }>,
+): ForecastResult {
+  return {
+    forecastStartDate: '2026-10-28',
+    forecastEndDate: '2026-11-04',
+    lowestBalance: {
+      date: '2026-10-28',
+      balance: 0,
+      accountId: 'checking',
+      accountName: 'Checking',
+    },
+    dataPoints: days.map(day => ({
+      date: day.date,
+      balance: day.balance,
+      accountId: 'checking',
+      accountName: 'Checking',
+      transactions: (day.transactions ?? []).map(tx => ({
+        ...tx,
+        payee: null,
+        scheduleName: tx.scheduleId,
+      })),
+    })),
+  };
+}
+
+const days = [
+  { date: '2026-10-28', balance: 4000 },
+  {
+    date: '2026-10-29',
+    balance: -1000,
+    transactions: [
+      { scheduleId: 'benefit', amount: 2000 },
+      { scheduleId: 'refund', amount: 1000 },
+      { scheduleId: 'transfer', amount: 2000, isTransfer: true },
+    ],
+  },
+  {
+    date: '2026-10-30',
+    balance: 19000,
+    transactions: [
+      { scheduleId: 'pay-a', amount: 10000 },
+      { scheduleId: 'pay-b', amount: 10000 },
+    ],
+  },
+  { date: '2026-10-31', balance: 18000 },
+];
+
+function calculate(
+  overrides: Partial<Parameters<typeof calculatePaydayRunway>[0]> = {},
+) {
+  return calculatePaydayRunway({
+    forecastData: forecast(days),
+    schedules: [schedule('pay-a'), schedule('pay-b')],
+    selectedScheduleIds: ['pay-a', 'pay-b'],
+    operatingAccountIds: ['checking'],
+    budgetBurn: null,
+    isBurnComplete: true,
+    safetyBuffer: 500,
+    currentOperatingCash: 4000,
+    today: '2026-10-28',
+    endDate: '2026-10-31',
+    ...overrides,
+  });
+}
+
+describe('payday runway', () => {
+  it('groups same-day employment income and ignores other inflows and transfers as anchors', () => {
+    expect(calculate()).toMatchObject({
+      status: 'negative',
+      paydayDate: '2026-10-30',
+      daysUntilPayday: 2,
+      scheduleNames: ['pay-a', 'pay-b'],
+      expectedIncome: 20000,
+      lowestCash: -1000,
+      lowestDate: '2026-10-29',
+      firstNegativeDate: '2026-10-29',
+      firstNegativeCash: -1000,
+      paydayClosingCash: 19000,
+    });
+  });
+
+  it('uses the next future occurrence across different frequencies and year boundary', () => {
+    const result = calculate({
+      today: '2026-12-31',
+      endDate: '2027-01-02',
+      forecastData: forecast([
+        {
+          date: '2026-12-31',
+          balance: 2000,
+          transactions: [{ scheduleId: 'pay-a', amount: 10000 }],
+        },
+        {
+          date: '2027-01-01',
+          balance: 1000,
+          transactions: [{ scheduleId: 'pay-b', amount: 10000 }],
+        },
+        { date: '2027-01-02', balance: 1000 },
+      ]),
+    });
+    expect(result).toMatchObject({
+      paydayDate: '2027-01-01',
+      daysUntilPayday: 1,
+      expectedIncome: 10000,
+      lowestCash: 2000,
+    });
+  });
+
+  it('shows setup or unavailable when no selected or funded future payday exists', () => {
+    expect(calculate({ selectedScheduleIds: [] }).status).toBe('setup');
+    expect(
+      calculate({ today: '2026-10-30', endDate: '2026-10-30' }).status,
+    ).toBe('unavailable');
+    expect(calculate({ selectedScheduleIds: ['deleted'] }).status).toBe(
+      'unavailable',
+    );
+    expect(
+      calculate({
+        selectedScheduleIds: ['pay-a'],
+        schedules: [schedule('pay-a', 'savings')],
+        forecastData: forecast(days.filter(day => day.date !== '2026-10-30')),
+      }).status,
+    ).toBe('unavailable');
+  });
+
+  it('does not declare safety when Burn is incomplete and applies cumulative Burn when complete', () => {
+    expect(calculate({ isBurnComplete: false })).toMatchObject({
+      status: 'incomplete',
+      paydayClosingCash: null,
+    });
+    expect(calculate({ currentOperatingCash: null }).status).toBe('incomplete');
+    expect(calculate({ currentOperatingCash: Number.NaN }).status).toBe(
+      'incomplete',
+    );
+    expect(
+      calculate({
+        forecastData: forecast([
+          { date: '2026-10-28', balance: Number.NaN },
+          ...days.slice(1),
+        ]),
+      }).status,
+    ).toBe('incomplete');
+    const result = calculate({
+      budgetBurn: {
+        totalBurn: 0,
+        categories: [],
+        months: [],
+        days: [
+          {
+            date: '2026-10-28',
+            dailyBurn: 0,
+            cumulativeBurn: 0,
+            monthlyCumulativeBurn: 0,
+            remainingBurn: 0,
+            categories: [],
+          },
+          {
+            date: '2026-10-29',
+            dailyBurn: 1000,
+            cumulativeBurn: 1000,
+            monthlyCumulativeBurn: 1000,
+            remainingBurn: 0,
+            categories: [],
+          },
+        ],
+      },
+    });
+    expect(result.lowestCash).toBe(-2000);
+  });
+});

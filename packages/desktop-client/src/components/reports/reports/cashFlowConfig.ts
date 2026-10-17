@@ -5,6 +5,8 @@ export type CashFlowCalendarConfig = {
   budgetBurnEnabled: boolean;
   burnCategoryIds: string[];
   reserveCategoryIds: string[];
+  paydayScheduleIds: string[];
+  debtAccountIds: string[];
   safetyBuffer: number;
   forecastMonths: 3 | 6 | 12;
 };
@@ -16,6 +18,8 @@ export const DEFAULT_CASH_FLOW_CONFIG: CashFlowCalendarConfig = {
   budgetBurnEnabled: false,
   burnCategoryIds: [],
   reserveCategoryIds: [],
+  paydayScheduleIds: [],
+  debtAccountIds: [],
   safetyBuffer: 0,
   forecastMonths: 12,
 };
@@ -60,17 +64,28 @@ export function parseCashFlowConfig(
     }
     const operatingIds = [...new Set(value.operatingAccountIds)];
     const burnIds = [...new Set(value.burnCategoryIds)];
+    const reserveIds = [...new Set(value.reserveAccountIds)].filter(
+      id => !operatingIds.includes(id),
+    );
     return {
       version: 1,
       operatingAccountIds: operatingIds,
-      reserveAccountIds: [...new Set(value.reserveAccountIds)].filter(
-        id => !operatingIds.includes(id),
-      ),
+      reserveAccountIds: reserveIds,
       budgetBurnEnabled: value.budgetBurnEnabled,
       burnCategoryIds: burnIds,
       reserveCategoryIds: [...new Set(value.reserveCategoryIds)].filter(
         id => !burnIds.includes(id),
       ),
+      paydayScheduleIds:
+        'paydayScheduleIds' in value && isStringArray(value.paydayScheduleIds)
+          ? [...new Set(value.paydayScheduleIds)]
+          : [],
+      debtAccountIds:
+        'debtAccountIds' in value && isStringArray(value.debtAccountIds)
+          ? [...new Set(value.debtAccountIds)].filter(
+              id => !operatingIds.includes(id) && !reserveIds.includes(id),
+            )
+          : [],
       safetyBuffer: value.safetyBuffer,
       forecastMonths: value.forecastMonths,
     };
@@ -81,10 +96,22 @@ export function parseCashFlowConfig(
 
 export function selectAccountRole(
   config: CashFlowCalendarConfig,
-  role: 'operating' | 'reserve',
+  role: 'operating' | 'reserve' | 'debt',
   selectedIds: string[],
 ): CashFlowCalendarConfig {
   const ids = [...new Set(selectedIds)];
+  if (role === 'debt') {
+    return {
+      ...config,
+      debtAccountIds: ids,
+      operatingAccountIds: config.operatingAccountIds.filter(
+        id => !ids.includes(id),
+      ),
+      reserveAccountIds: config.reserveAccountIds.filter(
+        id => !ids.includes(id),
+      ),
+    };
+  }
   return role === 'operating'
     ? {
         ...config,
@@ -92,6 +119,7 @@ export function selectAccountRole(
         reserveAccountIds: config.reserveAccountIds.filter(
           id => !ids.includes(id),
         ),
+        debtAccountIds: config.debtAccountIds.filter(id => !ids.includes(id)),
       }
     : {
         ...config,
@@ -99,6 +127,7 @@ export function selectAccountRole(
         operatingAccountIds: config.operatingAccountIds.filter(
           id => !ids.includes(id),
         ),
+        debtAccountIds: config.debtAccountIds.filter(id => !ids.includes(id)),
       };
 }
 

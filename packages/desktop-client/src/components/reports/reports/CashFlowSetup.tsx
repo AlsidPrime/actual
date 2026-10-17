@@ -12,32 +12,41 @@ import type {
   AccountEntity,
   CategoryEntity,
   CategoryGroupEntity,
+  ScheduleEntity,
 } from '@actual-app/core/types/models';
 
+import { Checkbox } from '#components/forms';
 import { AccountSelector } from '#components/reports/AccountSelector';
 import { CategorySelector } from '#components/reports/CategorySelector';
 import { FinancialInput } from '#components/util/FinancialInput';
 
 import { selectAccountRole, selectCategoryRole } from './cashFlowConfig';
 import type { CashFlowCalendarConfig } from './cashFlowConfig';
+import { isEligiblePaydaySchedule } from './cashFlowPayday';
 
 type SetupSection =
   | 'operating'
   | 'reserve-accounts'
+  | 'debt-accounts'
   | 'burn'
-  | 'reserve-categories';
+  | 'reserve-categories'
+  | 'payday';
 
 export function CashFlowSetup({
   config,
   accounts,
   expenseGroups,
   expenseCategories,
+  schedules,
+  transferPayeeIds,
   onChange,
 }: {
   config: CashFlowCalendarConfig;
   accounts: AccountEntity[];
   expenseGroups: CategoryGroupEntity[];
   expenseCategories: CategoryEntity[];
+  schedules: readonly ScheduleEntity[];
+  transferPayeeIds: ReadonlySet<string>;
   onChange: (config: CashFlowCalendarConfig) => void;
 }) {
   const { t } = useTranslation();
@@ -49,11 +58,15 @@ export function CashFlowSetup({
     ).includes(category.id),
   );
   const isAccountSection =
-    section === 'operating' || section === 'reserve-accounts';
+    section === 'operating' ||
+    section === 'reserve-accounts' ||
+    section === 'debt-accounts';
   const selectedAccountIds =
     section === 'operating'
       ? config.operatingAccountIds
-      : config.reserveAccountIds;
+      : section === 'debt-accounts'
+        ? config.debtAccountIds
+        : config.reserveAccountIds;
 
   return (
     <DialogTrigger>
@@ -81,8 +94,9 @@ export function CashFlowSetup({
               <Trans>
                 Select Operating accounts for day-to-day spending. Sinking
                 Savings accounts back sinking categories and do not count as
-                ordinary spending cash. Leave long-term or emergency savings,
-                debt, and credit accounts unselected.
+                ordinary spending cash. Leave long-term and emergency savings
+                unselected. Select debt and credit accounts only in the Debt and
+                credit accounts section.
               </Trans>
             </Text>
             <Select
@@ -91,12 +105,85 @@ export function CashFlowSetup({
               options={[
                 ['operating', t('Operating accounts')],
                 ['reserve-accounts', t('Sinking Savings accounts')],
+                ['debt-accounts', t('Debt and credit accounts')],
                 ['burn', t('Burn categories')],
                 ['reserve-categories', t('Sinking categories')],
+                ['payday', t('Payday schedules')],
               ]}
             />
             <View style={{ maxHeight: 260, overflowY: 'auto' }}>
-              {isAccountSection ? (
+              {section === 'payday' ? (
+                <View style={{ gap: 8 }}>
+                  <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
+                    <Trans>
+                      Select recurring employment income schedules. Only income
+                      forecast into Operating accounts establishes a funded
+                      payday.
+                    </Trans>
+                  </Text>
+                  {schedules.every(
+                    schedule =>
+                      !isEligiblePaydaySchedule(schedule) ||
+                      transferPayeeIds.has(schedule._payee),
+                  ) && (
+                    <Text>
+                      <Trans>
+                        No eligible recurring income schedules were found.
+                      </Trans>
+                    </Text>
+                  )}
+                  {schedules
+                    .filter(
+                      schedule =>
+                        isEligiblePaydaySchedule(schedule) &&
+                        !transferPayeeIds.has(schedule._payee),
+                    )
+                    .map(schedule => (
+                      <label
+                        key={schedule.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
+                        }}
+                      >
+                        <Checkbox
+                          checked={config.paydayScheduleIds.includes(
+                            schedule.id,
+                          )}
+                          onChange={() =>
+                            onChange({
+                              ...config,
+                              paydayScheduleIds:
+                                config.paydayScheduleIds.includes(schedule.id)
+                                  ? config.paydayScheduleIds.filter(
+                                      id => id !== schedule.id,
+                                    )
+                                  : [...config.paydayScheduleIds, schedule.id],
+                            })
+                          }
+                        />
+                        {schedule.name || t('Unnamed schedule')}
+                      </label>
+                    ))}
+                  {config.paydayScheduleIds.some(
+                    id =>
+                      !schedules.some(
+                        schedule =>
+                          schedule.id === id &&
+                          isEligiblePaydaySchedule(schedule) &&
+                          !transferPayeeIds.has(schedule._payee),
+                      ),
+                  ) && (
+                    <Text style={{ color: theme.warningText }}>
+                      <Trans>
+                        A selected payday schedule is missing or no longer
+                        eligible. Review your selection.
+                      </Trans>
+                    </Text>
+                  )}
+                </View>
+              ) : isAccountSection ? (
                 <AccountSelector
                   accounts={accounts}
                   selectedAccountIds={selectedAccountIds}
@@ -104,7 +191,11 @@ export function CashFlowSetup({
                     onChange(
                       selectAccountRole(
                         config,
-                        section === 'operating' ? 'operating' : 'reserve',
+                        section === 'operating'
+                          ? 'operating'
+                          : section === 'debt-accounts'
+                            ? 'debt'
+                            : 'reserve',
                         ids,
                       ),
                     )

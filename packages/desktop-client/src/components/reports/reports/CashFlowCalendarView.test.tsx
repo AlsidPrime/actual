@@ -1,5 +1,5 @@
 import type { ForecastResult } from '@actual-app/core/types/models/forecast';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
@@ -158,5 +158,60 @@ describe('Cash Flow Calendar visible month', () => {
     expect(
       screen.getByRole('dialog', { name: 'Budget Burn categories' }),
     ).toHaveTextContent('2.00');
+  });
+  it('opens a date by keyboard and explains its native balance, Burn, and scheduled activity', async () => {
+    const scheduledForecast: ForecastResult = {
+      ...forecastData,
+      dataPoints: [
+        {
+          date: '2024-10-31',
+          accountId: 'checking',
+          accountName: 'Checking',
+          balance: 700,
+          transactions: [
+            {
+              amount: -300,
+              isTransfer: true,
+              payee: 'Move to savings',
+              scheduleId: 'manual-transfer',
+              scheduleName: 'Move to savings',
+            },
+          ],
+        },
+      ],
+    };
+    render(
+      <TestProviders>
+        <CashFlowCalendarView
+          forecastData={scheduledForecast}
+          start="2024-10-31"
+          end="2024-10-31"
+          budgetBurn={budgetBurn}
+          manualScheduleIds={new Set(['manual-transfer'])}
+          operatingAccountIds={['checking']}
+          enableDayDetails
+        />
+      </TestProviders>,
+    );
+    const button = screen.getByRole('button', {
+      name: /Cash flow details for Oct 31/,
+    });
+    act(() => button.focus());
+    await userEvent.keyboard('{Enter}');
+    const dialog = screen.getByRole('dialog', {
+      name: /Cash flow details for Oct 31/,
+    });
+    expect(dialog).toHaveTextContent('Native projected Operating cash');
+    expect(dialog).toHaveTextContent('Cumulative Budget Burn');
+    expect(dialog).toHaveTextContent('Projected Operating closing balance');
+    expect(dialog).toHaveTextContent('Transfer: Move to savings');
+    expect(dialog).toHaveTextContent('Manual');
+    expect(dialog).toHaveTextContent('Checking');
+    await userEvent.keyboard('{Escape}');
+    expect(
+      screen.queryByRole('dialog', {
+        name: /Cash flow details for Oct 31/,
+      }),
+    ).not.toBeInTheDocument();
   });
 });

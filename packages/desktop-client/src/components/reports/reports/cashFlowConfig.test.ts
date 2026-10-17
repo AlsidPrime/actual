@@ -44,4 +44,34 @@ describe('Cash Flow synced config', () => {
     expect(categories.burnCategoryIds).toEqual([]);
     expect(categories.reserveCategoryIds).toEqual(['groceries', 'emergency']);
   });
+  it('upgrades a version-one config without losing existing settings', () => {
+    const old = {
+      version: 1,
+      operatingAccountIds: ['checking'],
+      reserveAccountIds: ['savings'],
+      budgetBurnEnabled: true,
+      burnCategoryIds: ['groceries'],
+      reserveCategoryIds: ['car'],
+      safetyBuffer: 5000,
+      forecastMonths: 6,
+    };
+    expect(parseCashFlowConfig(JSON.stringify(old))).toEqual({
+      ...old,
+      paydayScheduleIds: [],
+      debtAccountIds: [],
+    });
+    expect(
+      parseCashFlowConfig(
+        JSON.stringify({
+          ...old,
+          paydayScheduleIds: ['pay', 'pay'],
+          debtAccountIds: ['card', 'checking'],
+        }),
+      ),
+    ).toMatchObject({
+      paydayScheduleIds: ['pay'],
+      debtAccountIds: ['card'],
+      operatingAccountIds: ['checking'],
+    });
+  });
 });

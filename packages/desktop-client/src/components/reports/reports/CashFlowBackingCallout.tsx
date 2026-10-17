@@ -1,0 +1,111 @@
+import { Trans, useTranslation } from 'react-i18next';
+
+import { Text } from '@actual-app/components/text';
+import { theme } from '@actual-app/components/theme';
+import { View } from '@actual-app/components/view';
+
+import { FinancialText } from '#components/FinancialText';
+import { PrivacyFilter } from '#components/PrivacyFilter';
+import { useFormat } from '#hooks/useFormat';
+import { usePrivacyMode } from '#hooks/usePrivacyMode';
+
+import type { SinkingBacking } from './cashFlowBacking';
+
+export function CashFlowBackingCallout({
+  backing,
+}: {
+  backing: SinkingBacking;
+}) {
+  const { t } = useTranslation();
+  const format = useFormat();
+  const isPrivacyMode = usePrivacyMode();
+  const money = (amount: number) => (
+    <PrivacyFilter>
+      <FinancialText>{format(amount, 'financial')}</FinancialText>
+    </PrivacyFilter>
+  );
+  return (
+    <View
+      style={{ border: `1px solid ${theme.tableBorder}`, padding: 14, gap: 6 }}
+    >
+      <Text style={{ fontWeight: 600, fontSize: 16 }}>
+        <Trans>Sinking Savings backing</Trans>
+      </Text>
+      {backing.status === 'setup' ? (
+        <Text>
+          <Trans>
+            Select Sinking Savings accounts and sinking categories to see
+            physical backing.
+          </Trans>
+        </Text>
+      ) : backing.status === 'incomplete' ? (
+        <Text>
+          <Trans>Sinking Savings backing data is unavailable.</Trans>
+        </Text>
+      ) : (
+        <>
+          <Text
+            style={{
+              color:
+                backing.status === 'partial'
+                  ? theme.warningText
+                  : theme.reportsNumberPositive,
+              fontWeight: 600,
+            }}
+          >
+            {backing.status === 'partial' ? (
+              <Trans>Partially backed</Trans>
+            ) : backing.status === 'zero-target' ? (
+              <Trans>No positive sinking category target</Trans>
+            ) : (
+              <Trans>Fully backed</Trans>
+            )}
+          </Text>
+          <Text>
+            <Trans>Earmarked category balances</Trans>: {money(backing.target)}
+          </Text>
+          <Text>
+            <Trans>Physical Sinking Savings cash</Trans>:{' '}
+            {money(backing.backing)}
+          </Text>
+          {backing.shortfall > 0 && (
+            <Text>
+              <Trans>Backing shortfall</Trans>: {money(backing.shortfall)}
+            </Text>
+          )}
+          {backing.excess > 0 && (
+            <Text>
+              <Trans>Excess physical backing</Trans>: {money(backing.excess)}
+            </Text>
+          )}
+          {backing.percent != null && (
+            <progress
+              aria-label={t('Sinking Savings backing progress')}
+              value={isPrivacyMode ? undefined : Math.min(backing.percent, 100)}
+              max={100}
+              style={{ width: '100%' }}
+            />
+          )}
+          {backing.percent != null && (
+            <Text>
+              <PrivacyFilter>
+                <FinancialText>{backing.percent}%</FinancialText>
+              </PrivacyFilter>{' '}
+              <Trans>backed</Trans>
+            </Text>
+          )}
+          {backing.categories.map(category => (
+            <Text key={category.id}>
+              {category.name}: {money(category.balance)}
+            </Text>
+          ))}
+          <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
+            <Trans>
+              Future scheduled transfers are excluded from cash already held.
+            </Trans>
+          </Text>
+        </>
+      )}
+    </View>
+  );
+}

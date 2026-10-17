@@ -40,14 +40,165 @@ type CashFlowCalendarViewProps = {
   selectedBurnCategoryCount?: number;
   manualScheduleIds?: ReadonlySet<string>;
   operatingAccountIds?: readonly string[];
+  enableDayDetails?: boolean;
 };
 
-function CalendarDay({
+function CashFlowDayDetails({
   day,
   isOperatingOnly,
 }: {
   day: CashFlowCalendarDay;
   isOperatingOnly: boolean;
+}) {
+  const { t } = useTranslation();
+  const format = useFormat();
+  const locale = useLocale();
+  function money(amount: number) {
+    return (
+      <PrivacyFilter>
+        <FinancialText>{format(amount, 'financial')}</FinancialText>
+      </PrivacyFilter>
+    );
+  }
+  const line = (label: string, amount: number) => (
+    <View
+      style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 16 }}
+    >
+      <Text>{label}</Text>
+      {money(amount)}
+    </View>
+  );
+  return (
+    <View style={{ gap: 8 }}>
+      <Text style={{ fontWeight: 600, fontSize: 16 }}>
+        {monthUtils.format(day.date, 'PPPP', locale)}
+      </Text>
+      {day.combinedBalance == null ? (
+        <Text>
+          <Trans>Projected balance is unavailable for this date.</Trans>
+        </Text>
+      ) : (
+        <>
+          {line(
+            isOperatingOnly
+              ? t('Native projected Operating cash')
+              : t('Native projected cash'),
+            day.combinedBalance,
+          )}
+          {day.budgetBurn ? (
+            <>
+              {line(
+                t('Cumulative Budget Burn'),
+                -day.budgetBurn.cumulativeBurn,
+              )}
+              {line(t('Daily projected Burn'), -day.budgetBurn.dailyBurn)}
+            </>
+          ) : (
+            <Text>
+              <Trans>Budget Burn is not applied.</Trans>
+            </Text>
+          )}
+          {day.adjustedCombinedBalance != null &&
+            line(
+              t('Projected Operating closing balance'),
+              day.adjustedCombinedBalance,
+            )}
+          <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
+            <Trans>
+              Closing cash equals the native projected balance minus cumulative
+              Budget Burn. Forecast values are end-of-day; activity within a day
+              is not ordered.
+            </Trans>
+          </Text>
+        </>
+      )}
+      {day.accountBalances.length > 0 && (
+        <View style={{ gap: 3 }}>
+          <Text style={{ fontWeight: 600 }}>
+            <Trans>Operating accounts</Trans>
+          </Text>
+          {day.accountBalances.map(account => (
+            <View key={account.accountId}>
+              {line(account.accountName, account.balance)}
+              {account.balance < 0 && (
+                <Text style={{ color: theme.errorText, fontSize: 12 }}>
+                  <Trans>Account below zero</Trans>
+                </Text>
+              )}
+            </View>
+          ))}
+        </View>
+      )}
+      <View style={{ gap: 3 }}>
+        <Text style={{ fontWeight: 600 }}>
+          <Trans>Scheduled activity</Trans>
+        </Text>
+        {day.scheduledEvents.length === 0 ? (
+          <Text>
+            <Trans>No scheduled activity in selected Operating accounts.</Trans>
+          </Text>
+        ) : (
+          day.scheduledEvents.map(event => (
+            <View
+              key={event.id}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                gap: 12,
+              }}
+            >
+              <View>
+                <Text>
+                  {event.isTransfer
+                    ? t('Transfer: {{name}}', { name: event.label })
+                    : event.label}
+                  {event.isManual ? ` · ${t('Manual')}` : ''}
+                </Text>
+                <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
+                  {event.accountNames.join(', ')}
+                </Text>
+              </View>
+              {money(event.amount)}
+            </View>
+          ))
+        )}
+      </View>
+      {day.budgetBurn && (
+        <View style={{ gap: 3 }}>
+          <Text style={{ fontWeight: 600 }}>
+            <Trans>Planned variable spending today</Trans>
+          </Text>
+          {day.budgetBurn.categories.map(category => (
+            <View key={category.categoryId}>
+              {line(category.categoryName, -category.amount)}
+            </View>
+          ))}
+          <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
+            <Trans>
+              Budget Burn estimates variable spending not already represented by
+              scheduled expenses above.
+            </Trans>
+          </Text>
+        </View>
+      )}
+      <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
+        <Trans>
+          Other changes are included in the native forecast balance. The
+          forecast does not identify every underlying movement.
+        </Trans>
+      </Text>
+    </View>
+  );
+}
+
+function CalendarDay({
+  day,
+  isOperatingOnly,
+  enableDayDetails,
+}: {
+  day: CashFlowCalendarDay;
+  isOperatingOnly: boolean;
+  enableDayDetails: boolean;
 }) {
   const { t } = useTranslation();
   const format = useFormat();
@@ -73,6 +224,7 @@ function CalendarDay({
       style={{
         display: 'flex',
         flexDirection: 'column',
+        position: 'relative',
         minHeight: 128,
         minWidth: 0,
         padding: 8,
@@ -95,6 +247,39 @@ function CalendarDay({
         overflow: 'hidden',
       }}
     >
+      {enableDayDetails && day.isInMonth && (
+        <DialogTrigger>
+          <Button
+            variant="bare"
+            aria-label={t('Cash flow details for {{date}}', {
+              date: monthUtils.format(day.date, 'PP', locale),
+            })}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              zIndex: 1,
+            }}
+          />
+          <Popover>
+            <Dialog
+              aria-label={t('Cash flow details for {{date}}', {
+                date: monthUtils.format(day.date, 'PP', locale),
+              })}
+              style={{
+                padding: 14,
+                minWidth: 320,
+                maxWidth: 'min(520px, 90vw)',
+                maxHeight: '75vh',
+                overflowY: 'auto',
+              }}
+            >
+              <CashFlowDayDetails day={day} isOperatingOnly={isOperatingOnly} />
+            </Dialog>
+          </Popover>
+        </DialogTrigger>
+      )}
       <View
         style={{
           flexDirection: 'row',
@@ -145,84 +330,89 @@ function CalendarDay({
         </Text>
       )}
 
-      {day.isInMonth && day.budgetBurn && day.combinedBalance != null && (
-        <DialogTrigger>
-          <Button
-            variant="bare"
-            aria-label={t('Cash flow details for {{date}}', {
-              date: monthUtils.format(day.date, 'PP', locale),
-            })}
-            style={{ fontSize: 11, padding: 0 }}
-          >
-            <Trans>Details</Trans>
-          </Button>
-          <Popover>
-            <Dialog
-              aria-label={t('Cash flow details')}
-              style={{ padding: 12, minWidth: 260 }}
+      {!enableDayDetails &&
+        day.isInMonth &&
+        day.budgetBurn &&
+        day.combinedBalance != null && (
+          <DialogTrigger>
+            <Button
+              variant="bare"
+              aria-label={t('Cash flow details for {{date}}', {
+                date: monthUtils.format(day.date, 'PP', locale),
+              })}
+              style={{ fontSize: 11, padding: 0 }}
             >
-              <Text style={{ fontWeight: 600, marginBottom: 8 }}>
-                {monthUtils.format(day.date, 'PPPP', locale)}
-              </Text>
-              {[
-                [
-                  isOperatingOnly
-                    ? t('Native projected Operating cash')
-                    : t('Native projected cash'),
-                  day.combinedBalance,
-                ],
-                [t('Projected spending today'), -day.budgetBurn.dailyBurn],
-                [
-                  t('Projected spending this month'),
-                  -day.budgetBurn.monthlyCumulativeBurn,
-                ],
-                [t('After projected spending'), day.adjustedCombinedBalance],
-                [t('Remaining this month'), day.budgetBurn.remainingBurn],
-              ].map(([label, amount]) => (
-                <View
-                  key={label}
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    gap: 12,
-                  }}
-                >
-                  <Text>{label}</Text>
-                  <PrivacyFilter>
-                    <FinancialText>{format(amount, 'financial')}</FinancialText>
-                  </PrivacyFilter>
-                </View>
-              ))}
-              {day.budgetBurn.categories.length > 0 && (
-                <View style={{ marginTop: 10, gap: 3 }}>
-                  <Text style={{ fontWeight: 600 }}>
-                    <Trans>Today's burn</Trans>
-                  </Text>
-                  {day.budgetBurn.categories.map(category => (
-                    <View
-                      key={category.categoryId}
-                      style={{
-                        flexDirection: 'row',
-                        justifyContent: 'space-between',
-                        gap: 12,
-                      }}
-                    >
-                      <Text>{category.categoryName}</Text>
-                      <PrivacyFilter>
-                        <FinancialText>
-                          {format(category.amount, 'financial')}
-                        </FinancialText>
-                      </PrivacyFilter>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </Dialog>
-          </Popover>
-        </DialogTrigger>
-      )}
+              <Trans>Details</Trans>
+            </Button>
+            <Popover>
+              <Dialog
+                aria-label={t('Cash flow details')}
+                style={{ padding: 12, minWidth: 260 }}
+              >
+                <Text style={{ fontWeight: 600, marginBottom: 8 }}>
+                  {monthUtils.format(day.date, 'PPPP', locale)}
+                </Text>
+                {[
+                  [
+                    isOperatingOnly
+                      ? t('Native projected Operating cash')
+                      : t('Native projected cash'),
+                    day.combinedBalance,
+                  ],
+                  [t('Projected spending today'), -day.budgetBurn.dailyBurn],
+                  [
+                    t('Projected spending this month'),
+                    -day.budgetBurn.monthlyCumulativeBurn,
+                  ],
+                  [t('After projected spending'), day.adjustedCombinedBalance],
+                  [t('Remaining this month'), day.budgetBurn.remainingBurn],
+                ].map(([label, amount]) => (
+                  <View
+                    key={label}
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      gap: 12,
+                    }}
+                  >
+                    <Text>{label}</Text>
+                    <PrivacyFilter>
+                      <FinancialText>
+                        {format(amount, 'financial')}
+                      </FinancialText>
+                    </PrivacyFilter>
+                  </View>
+                ))}
+                {day.budgetBurn.categories.length > 0 && (
+                  <View style={{ marginTop: 10, gap: 3 }}>
+                    <Text style={{ fontWeight: 600 }}>
+                      <Trans>Today's burn</Trans>
+                    </Text>
+                    {day.budgetBurn.categories.map(category => (
+                      <View
+                        key={category.categoryId}
+                        style={{
+                          flexDirection: 'row',
+                          justifyContent: 'space-between',
+                          gap: 12,
+                        }}
+                      >
+                        <Text>{category.categoryName}</Text>
+                        <PrivacyFilter>
+                          <FinancialText>
+                            {format(category.amount, 'financial')}
+                          </FinancialText>
+                        </PrivacyFilter>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </Dialog>
+            </Popover>
+          </DialogTrigger>
+        )}
 
-      {day.isInMonth && negativeAccounts.length > 0 && (
+      {!enableDayDetails && day.isInMonth && negativeAccounts.length > 0 && (
         <DialogTrigger>
           <Button
             variant="bare"
@@ -259,6 +449,14 @@ function CalendarDay({
             </Dialog>
           </Popover>
         </DialogTrigger>
+      )}
+
+      {enableDayDetails && day.isInMonth && negativeAccounts.length > 0 && (
+        <Text style={{ color: theme.warningText, fontSize: 11 }}>
+          <Trans count={negativeAccounts.length}>
+            {{ count: negativeAccounts.length }} account below zero
+          </Trans>
+        </Text>
       )}
 
       {day.isInMonth && visibleEvents.length > 0 && (
@@ -343,6 +541,7 @@ export function CashFlowCalendarView({
   selectedBurnCategoryCount = 0,
   manualScheduleIds,
   operatingAccountIds,
+  enableDayDetails = false,
 }: CashFlowCalendarViewProps) {
   const { t } = useTranslation();
   const locale = useLocale();
@@ -584,6 +783,7 @@ export function CashFlowCalendarView({
                   key={day.date}
                   day={day}
                   isOperatingOnly={operatingAccountIds != null}
+                  enableDayDetails={enableDayDetails}
                 />
               ))}
             </View>
