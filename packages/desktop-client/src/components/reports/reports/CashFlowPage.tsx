@@ -306,7 +306,12 @@ export function CashFlowPage() {
   } = useSchedules({
     query: operatingAccountIds.length > 0 ? schedulesQuery : undefined,
   });
-  const { data: payeesById = {} } = usePayeesById();
+  const { data: payeesById, isLoading: payeesLoading } = usePayeesById();
+  const transferPayeeIds = new Set(
+    Object.entries(payeesById ?? {})
+      .filter(([, payee]) => payee.transfer_acct != null)
+      .map(([id]) => id),
+  );
   const attention = deriveCashFlowAttention(
     schedules,
     statuses,
@@ -316,7 +321,7 @@ export function CashFlowPage() {
     availableAccounts.map(account => [account.id, account.name]),
   );
   const payeeNames = Object.fromEntries(
-    Object.entries(payeesById).map(([id, payee]) => [id, payee.name]),
+    Object.entries(payeesById ?? {}).map(([id, payee]) => [id, payee.name]),
   );
   const manualScheduleIds = new Set(
     schedules
@@ -446,14 +451,16 @@ export function CashFlowPage() {
         })
       : null;
   const runway =
-    !schedulesLoading && !schedulesError
+    !schedulesLoading && !schedulesError && !payeesLoading && payeesById != null
       ? calculatePaydayRunway({
           forecastData,
           schedules,
           selectedScheduleIds: config.paydayScheduleIds,
+          transferPayeeIds,
           operatingAccountIds,
           budgetBurn,
           isBurnComplete: isCalendarReady,
+          isVariableSpendingIncluded: needsBurn,
           safetyBuffer: config.safetyBuffer,
           currentOperatingCash,
           today,
@@ -532,14 +539,8 @@ export function CashFlowPage() {
             accounts={availableAccounts}
             expenseGroups={expenseGroups}
             expenseCategories={expenseCategories}
-            schedules={schedules}
-            transferPayeeIds={
-              new Set(
-                Object.entries(payeesById)
-                  .filter(([, payee]) => payee.transfer_acct != null)
-                  .map(([id]) => id),
-              )
-            }
+            schedules={payeesById == null ? [] : schedules}
+            transferPayeeIds={transferPayeeIds}
             onChange={updateConfig}
           />
           <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>

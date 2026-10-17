@@ -5,10 +5,14 @@ import { differenceInCalendarDays } from 'date-fns';
 
 import type { BudgetBurnProjection } from './budgetBurn';
 
-export function isEligiblePaydaySchedule(schedule: ScheduleEntity) {
+export function isEligiblePaydaySchedule(
+  schedule: ScheduleEntity,
+  transferPayeeIds: ReadonlySet<string>,
+) {
   return (
     !schedule.completed &&
     !schedule.tombstone &&
+    !transferPayeeIds.has(schedule._payee) &&
     typeof schedule._date === 'object' &&
     schedule._date !== null &&
     typeof schedule._amount === 'number' &&
@@ -17,12 +21,23 @@ export function isEligiblePaydaySchedule(schedule: ScheduleEntity) {
 }
 
 export type PaydayRunway = {
-  status: 'setup' | 'unavailable' | 'incomplete' | 'safe' | 'low' | 'negative';
+  status:
+    | 'setup'
+    | 'unavailable'
+    | 'incomplete'
+    | 'scheduled-only'
+    | 'safe'
+    | 'low'
+    | 'negative';
+  isConfigurationIncomplete: boolean;
+  isScheduledOnly: boolean;
+  currentCashWarning: 'negative' | 'below-buffer' | null;
   paydayDate: string | null;
   daysUntilPayday: number | null;
   scheduleNames: string[];
   expectedIncome: number | null;
   currentCash: number | null;
+  todayClosingCash: number | null;
   lowestCash: number | null;
   lowestDate: string | null;
   firstNegativeDate: string | null;
@@ -34,9 +49,11 @@ export function calculatePaydayRunway({
   forecastData,
   schedules,
   selectedScheduleIds,
+  transferPayeeIds,
   operatingAccountIds,
   budgetBurn,
   isBurnComplete,
+  isVariableSpendingIncluded,
   safetyBuffer,
   currentOperatingCash,
   today,
@@ -45,9 +62,11 @@ export function calculatePaydayRunway({
   forecastData: ForecastResult | null;
   schedules: readonly ScheduleEntity[];
   selectedScheduleIds: readonly string[];
+  transferPayeeIds: ReadonlySet<string>;
   operatingAccountIds: readonly string[];
   budgetBurn: BudgetBurnProjection | null;
   isBurnComplete: boolean;
+  isVariableSpendingIncluded: boolean;
   safetyBuffer: number;
   currentOperatingCash: number | null;
   today: string;
@@ -55,11 +74,15 @@ export function calculatePaydayRunway({
 }): PaydayRunway {
   const empty: PaydayRunway = {
     status: 'setup',
+    isConfigurationIncomplete: false,
+    isScheduledOnly: !isVariableSpendingIncluded,
+    currentCashWarning: null,
     paydayDate: null,
     daysUntilPayday: null,
     scheduleNames: [],
     expectedIncome: null,
     currentCash: null,
+    todayClosingCash: null,
     lowestCash: null,
     lowestDate: null,
     firstNegativeDate: null,
@@ -72,9 +95,18 @@ export function calculatePaydayRunway({
   const selectedIds = new Set(selectedScheduleIds);
   const eligible = schedules.filter(
     schedule =>
-      selectedIds.has(schedule.id) && isEligiblePaydaySchedule(schedule),
+      selectedIds.has(schedule.id) &&
+      isEligiblePaydaySchedule(schedule, transferPayeeIds),
   );
-  const unavailable = { ...empty, status: 'unavailable' as const };
+  const eligibleIds = new Set(eligible.map(schedule => schedule.id));
+  const isConfigurationIncomplete = eligibleIds.size !== selectedIds.size;
+  const unavailable = {
+    ...empty,
+    status: isConfigurationIncomplete
+      ? ('incomplete' as const)
+      : ('unavailable' as const),
+    isConfigurationIncomplete,
+  };
   if (
     eligible.length === 0 ||
     !forecastData ||
@@ -83,7 +115,6 @@ export function calculatePaydayRunway({
     return unavailable;
   }
   const operatingIds = new Set(operatingAccountIds);
-  const eligibleIds = new Set(eligible.map(schedule => schedule.id));
   const dates = new Map<string, Map<string, number>>();
   const nativeCash = new Map<string, number>();
   for (const point of forecastData.dataPoints) {
@@ -140,8 +171,17 @@ export function calculatePaydayRunway({
     }
     return native - burn;
   };
+  const currentCashWarning: PaydayRunway['currentCashWarning'] =
+    currentOperatingCash == null || !Number.isFinite(currentOperatingCash)
+      ? null
+      : currentOperatingCash < 0
+        ? 'negative'
+        : currentOperatingCash < safetyBuffer
+          ? 'below-buffer'
+          : null;
   const base = {
     ...empty,
+    isConfigurationIncomplete,
     paydayDate,
     daysUntilPayday: differenceInCalendarDays(
       monthUtils.parseDate(paydayDate),
@@ -155,6 +195,8 @@ export function calculatePaydayRunway({
       0,
     ),
     currentCash: currentOperatingCash,
+    currentCashWarning,
+    todayClosingCash: isBurnComplete ? adjustedCash(today) : null,
     paydayClosingCash: isBurnComplete ? adjustedCash(paydayDate) : null,
   };
   if (
@@ -188,11 +230,17 @@ export function calculatePaydayRunway({
   }
   return {
     ...base,
-    status: firstNegativeDate
-      ? 'negative'
-      : lowestCash < safetyBuffer
-        ? 'low'
-        : 'safe',
+    status:
+      base.currentCashWarning === 'negative' || firstNegativeDate
+        ? 'negative'
+        : base.currentCashWarning === 'below-buffer' ||
+            lowestCash < safetyBuffer
+          ? 'low'
+          : isConfigurationIncomplete
+            ? 'incomplete'
+            : !isVariableSpendingIncluded
+              ? 'scheduled-only'
+              : 'safe',
     lowestCash,
     lowestDate,
     firstNegativeDate,

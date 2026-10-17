@@ -17,6 +17,7 @@ const fixture = vi.hoisted(() => ({
   budgetType: 'envelope',
   savedConfig: undefined as string | undefined,
   privacyMode: false,
+  payeesAvailable: true,
   withReserve: false,
   withBurn: false,
   operatingBalance: 1000,
@@ -92,7 +93,11 @@ vi.mock('#hooks/useSchedules', () => ({
   }),
 }));
 vi.mock('#hooks/usePayees', () => ({
-  usePayeesById: () => ({ data: { hydro: { name: 'Hydro payee' } } }),
+  usePayeesById: () => ({
+    data: fixture.payeesAvailable
+      ? { hydro: { name: 'Hydro payee' } }
+      : undefined,
+  }),
 }));
 vi.mock('#hooks/useAccountBalances', () => ({
   useAccountBalances: (ids: string[]) =>
@@ -280,6 +285,7 @@ beforeEach(() => {
   fixture.budgetType = 'envelope';
   fixture.savedConfig = undefined;
   fixture.privacyMode = false;
+  fixture.payeesAvailable = true;
   fixture.withReserve = false;
   fixture.withBurn = false;
   fixture.operatingBalance = 1000;
@@ -361,11 +367,116 @@ describe('Cash Flow page', () => {
     });
     renderRoute();
     expect(screen.getByText('Next Payday / Cash Runway')).toBeInTheDocument();
-    expect(screen.getByText('Cash survives until payday')).toBeInTheDocument();
+    expect(screen.getByText('Scheduled cash runway only')).toBeInTheDocument();
+    expect(
+      screen.getByText(/excludes unplanned variable spending/),
+    ).toBeInTheDocument();
     expect(screen.getByText(/Employment pay/)).toBeInTheDocument();
     expect(
-      screen.getByText(/Current Operating cash/).parentElement,
+      screen.getByText(/Actual Operating cash now/).parentElement,
     ).toHaveTextContent('10.00');
+  });
+
+  it.each([
+    ['Burn disabled', 'envelope', false, ['groceries']],
+    ['no Burn categories', 'envelope', true, []],
+    ['Tracking Budget', 'tracking', true, ['groceries']],
+  ])(
+    'labels a positive Payday forecast as scheduled-only with %s',
+    (_, budgetType, budgetBurnEnabled, burnCategoryIds) => {
+      fixture.budgetType = budgetType;
+      fixture.withReserve = true;
+      fixture.withBurn = true;
+      fixture.futureOperatingBalance = 11000;
+      fixture.futureOperatingIncome = 10000;
+      fixture.attentionSchedules = [
+        {
+          id: 'payday',
+          name: 'Employment pay',
+          next_date: monthUtils.addDays(monthUtils.currentDay(), 1),
+          _account: 'checking',
+          _payee: '',
+          _amount: 10000,
+          posts_transaction: true,
+          _date: { frequency: 'weekly', start: monthUtils.currentDay() },
+        },
+      ];
+      fixture.rawConfig = JSON.stringify({
+        ...DEFAULT_CASH_FLOW_CONFIG,
+        operatingAccountIds: ['checking'],
+        paydayScheduleIds: ['payday'],
+        budgetBurnEnabled,
+        burnCategoryIds,
+      });
+      renderRoute();
+      expect(
+        screen.getByText('Scheduled cash runway only'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/excludes unplanned variable spending/),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText('Cash survives until payday'),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  it('warns about an unavailable selected payday despite a valid forecast payday', () => {
+    fixture.futureOperatingBalance = 11000;
+    fixture.futureOperatingIncome = 10000;
+    fixture.attentionSchedules = [
+      {
+        id: 'payday',
+        name: 'Employment pay',
+        next_date: monthUtils.addDays(monthUtils.currentDay(), 1),
+        _account: 'checking',
+        _payee: '',
+        _amount: 10000,
+        posts_transaction: true,
+        _date: { frequency: 'weekly', start: monthUtils.currentDay() },
+      },
+    ];
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+      paydayScheduleIds: ['payday', 'deleted'],
+    });
+    renderRoute();
+    expect(screen.getByText('Runway data is incomplete')).toBeInTheDocument();
+    expect(
+      screen.getByText(/selected payday schedule is unavailable/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Employment pay/)).toBeInTheDocument();
+    expect(
+      screen.queryByText('Cash survives until payday'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('withholds Payday validation until payees are available', () => {
+    fixture.payeesAvailable = false;
+    fixture.futureOperatingBalance = 11000;
+    fixture.futureOperatingIncome = 10000;
+    fixture.attentionSchedules = [
+      {
+        id: 'payday',
+        name: 'Employment pay',
+        next_date: monthUtils.addDays(monthUtils.currentDay(), 1),
+        _account: 'checking',
+        _payee: '',
+        _amount: 10000,
+        posts_transaction: true,
+        _date: { frequency: 'weekly', start: monthUtils.currentDay() },
+      },
+    ];
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+      paydayScheduleIds: ['payday'],
+    });
+    renderRoute();
+    expect(
+      screen.queryByText('Next Payday / Cash Runway'),
+    ).not.toBeInTheDocument();
   });
 
   it('shows a safe Cash Flow Risk summary and no scheduled inflow', () => {

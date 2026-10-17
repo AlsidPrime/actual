@@ -86,9 +86,11 @@ function calculate(
     forecastData: forecast(days),
     schedules: [schedule('pay-a'), schedule('pay-b')],
     selectedScheduleIds: ['pay-a', 'pay-b'],
+    transferPayeeIds: new Set(),
     operatingAccountIds: ['checking'],
     budgetBurn: null,
     isBurnComplete: true,
+    isVariableSpendingIncluded: true,
     safetyBuffer: 500,
     currentOperatingCash: 4000,
     today: '2026-10-28',
@@ -98,6 +100,130 @@ function calculate(
 }
 
 describe('payday runway', () => {
+  const positiveDays = forecast([
+    { date: '2026-10-28', balance: 4000 },
+    { date: '2026-10-29', balance: 5000 },
+    {
+      date: '2026-10-30',
+      balance: 25000,
+      transactions: [
+        { scheduleId: 'pay-a', amount: 10000 },
+        { scheduleId: 'pay-b', amount: 10000 },
+      ],
+    },
+  ]);
+
+  it('keeps the actual cash checkpoint separate from positive projected closing balances', () => {
+    const negative = calculate({
+      forecastData: positiveDays,
+      currentOperatingCash: -100,
+    });
+    expect(negative).toMatchObject({
+      status: 'negative',
+      currentCash: -100,
+      currentCashWarning: 'negative',
+      todayClosingCash: 4000,
+      lowestCash: 4000,
+      lowestDate: '2026-10-28',
+      firstNegativeDate: null,
+    });
+    const belowBuffer = calculate({
+      forecastData: positiveDays,
+      currentOperatingCash: 100,
+    });
+    expect(belowBuffer).toMatchObject({
+      status: 'low',
+      currentCashWarning: 'below-buffer',
+      todayClosingCash: 4000,
+      firstNegativeDate: null,
+    });
+  });
+
+  it('accepts two valid selected schedules as a complete payday configuration', () => {
+    expect(calculate({ forecastData: positiveDays })).toMatchObject({
+      status: 'safe',
+      isConfigurationIncomplete: false,
+      scheduleNames: ['pay-a', 'pay-b'],
+      expectedIncome: 20000,
+    });
+  });
+
+  it.each([
+    ['deleted', [schedule('pay-a')], new Set<string>()],
+    [
+      'completed',
+      [schedule('pay-a'), { ...schedule('pay-b'), completed: true }],
+      new Set<string>(),
+    ],
+    [
+      'no longer eligible',
+      [schedule('pay-a'), { ...schedule('pay-b'), _amount: -10000 }],
+      new Set<string>(),
+    ],
+    [
+      'transfer payee',
+      [schedule('pay-a'), schedule('pay-b')],
+      new Set(['pay-b']),
+    ],
+  ])(
+    'marks one valid and one %s selection incomplete',
+    (_, schedules, transferPayeeIds) => {
+      expect(
+        calculate({ forecastData: positiveDays, schedules, transferPayeeIds }),
+      ).toMatchObject({
+        status: 'incomplete',
+        isConfigurationIncomplete: true,
+        paydayDate: '2026-10-30',
+        scheduleNames: ['pay-a'],
+        expectedIncome: 10000,
+      });
+    },
+  );
+
+  it('does not let duplicate schedule records conceal a deleted selection', () => {
+    expect(
+      calculate({
+        forecastData: positiveDays,
+        schedules: [schedule('pay-a'), schedule('pay-a')],
+        selectedScheduleIds: ['pay-a', 'deleted'],
+      }),
+    ).toMatchObject({
+      status: 'incomplete',
+      isConfigurationIncomplete: true,
+    });
+  });
+
+  it('rejects a selected transfer schedule even if forecast data calls it income', () => {
+    expect(
+      calculate({
+        forecastData: positiveDays,
+        schedules: [schedule('pay-b')],
+        selectedScheduleIds: ['pay-b'],
+        transferPayeeIds: new Set(['pay-b']),
+      }),
+    ).toMatchObject({
+      status: 'incomplete',
+      isConfigurationIncomplete: true,
+      paydayDate: null,
+    });
+  });
+
+  it('keeps warnings but avoids a green conclusion when variable spending is excluded', () => {
+    expect(
+      calculate({
+        forecastData: positiveDays,
+        isVariableSpendingIncluded: false,
+      }),
+    ).toMatchObject({ status: 'scheduled-only', isScheduledOnly: true });
+    expect(
+      calculate({
+        forecastData: positiveDays,
+        isVariableSpendingIncluded: false,
+        currentOperatingCash: -100,
+      }),
+    ).toMatchObject({ status: 'negative', isScheduledOnly: true });
+  });
+
   it('groups same-day employment income and ignores other inflows and transfers as anchors', () => {
     expect(calculate()).toMatchObject({
       status: 'negative',
@@ -144,9 +270,10 @@ describe('payday runway', () => {
     expect(
       calculate({ today: '2026-10-30', endDate: '2026-10-30' }).status,
     ).toBe('unavailable');
-    expect(calculate({ selectedScheduleIds: ['deleted'] }).status).toBe(
-      'unavailable',
-    );
+    expect(calculate({ selectedScheduleIds: ['deleted'] })).toMatchObject({
+      status: 'incomplete',
+      isConfigurationIncomplete: true,
+    });
     expect(
       calculate({
         selectedScheduleIds: ['pay-a'],
@@ -160,6 +287,12 @@ describe('payday runway', () => {
     expect(calculate({ isBurnComplete: false })).toMatchObject({
       status: 'incomplete',
       paydayClosingCash: null,
+    });
+    expect(
+      calculate({ isBurnComplete: false, currentOperatingCash: -100 }),
+    ).toMatchObject({
+      status: 'incomplete',
+      currentCashWarning: 'negative',
     });
     expect(calculate({ currentOperatingCash: null }).status).toBe('incomplete');
     expect(calculate({ currentOperatingCash: Number.NaN }).status).toBe(

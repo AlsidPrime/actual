@@ -123,8 +123,7 @@ export function CashFlowSetup({
                   </Text>
                   {schedules.every(
                     schedule =>
-                      !isEligiblePaydaySchedule(schedule) ||
-                      transferPayeeIds.has(schedule._payee),
+                      !isEligiblePaydaySchedule(schedule, transferPayeeIds),
                   ) && (
                     <Text>
                       <Trans>
@@ -133,10 +132,8 @@ export function CashFlowSetup({
                     </Text>
                   )}
                   {schedules
-                    .filter(
-                      schedule =>
-                        isEligiblePaydaySchedule(schedule) &&
-                        !transferPayeeIds.has(schedule._payee),
+                    .filter(schedule =>
+                      isEligiblePaydaySchedule(schedule, transferPayeeIds),
                     )
                     .map(schedule => (
                       <label
@@ -171,8 +168,7 @@ export function CashFlowSetup({
                       !schedules.some(
                         schedule =>
                           schedule.id === id &&
-                          isEligiblePaydaySchedule(schedule) &&
-                          !transferPayeeIds.has(schedule._payee),
+                          isEligiblePaydaySchedule(schedule, transferPayeeIds),
                       ),
                   ) && (
                     <Text style={{ color: theme.warningText }}>
