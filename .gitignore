@@ -116,3 +116,9 @@ storybook-static
 .actualrc.yaml
 .actualrc.yml
 actual.config.js
+
+# Local Playwright MCP browser artifacts
+/.playwright-mcp/
+
+# Interactive release acceptance screenshots and snapshots
+/acceptance/evidence/
