@@ -17,6 +17,7 @@ COPY packages/eslint-plugin-actual/package.json packages/eslint-plugin-actual/pa
 COPY packages/loot-core/package.json packages/loot-core/package.json
 COPY packages/sync-server/package.json packages/sync-server/package.json
 COPY packages/plugins-service/package.json packages/plugins-service/package.json
+COPY packages/vite-plugin-peggy/package.json packages/vite-plugin-peggy/package.json
 
 COPY ./bin/package-browser ./bin/package-browser
 
@@ -27,6 +28,15 @@ FROM deps AS builder
 WORKDIR /app
 
 COPY packages/ ./packages/
+
+# Windows checkouts can merge src/Themes (Storybook docs) and src/themes (CSS)
+# into one directory. Restore the lowercase path expected by package exports.
+RUN if [ ! -d packages/component-library/src/themes ]; then \
+      ln -s Themes packages/component-library/src/themes; \
+    fi \
+    && for theme in dark light midnight palette; do \
+      test -f "packages/component-library/src/themes/$theme.css"; \
+    done
 
 # Pin translation input so the browser build is repeatable and does not use
 # a developer's ignored locale directory or pull a moving branch at build time.
