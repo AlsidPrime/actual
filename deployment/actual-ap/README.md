@@ -71,62 +71,20 @@ The full `/data` mount is required for recovery. It includes optional
 copy on each device; server backup does not replace an unsynced device copy.
 Never place live data or backup archives in the source checkout.
 
-Use an external destination such as `D:\ActualAPBackups`. A stopped-server
-copy avoids an inconsistent SQLite snapshot. Schedule a regular manual backup
-or a Windows Task Scheduler job that performs these same steps during a quiet
-period; automation and retention must be configured on the host. This example
-backs up production after verifying that the destination is a different drive
-or folder from the live data:
-
-```powershell
-$compose = 'deployment/actual-ap/compose.yml'
-$envFile = 'deployment/actual-ap/production.env'
-$backup = 'D:\ActualAPBackups\actual-ap-' + (Get-Date -Format 'yyyyMMdd-HHmmss')
-docker compose --env-file $envFile -f $compose -p actual-ap stop actual
-New-Item -ItemType Directory -Path $backup -Force | Out-Null
-Copy-Item -Path 'C:\ActualAP\production\data' -Destination $backup -Recurse
-docker compose --env-file $envFile -f $compose -p actual-ap up -d --no-build
-```
-
-Verify the copy contains `data/server-files/account.sqlite`, `data/user-files`,
-and `data/.migrate` if present. Store another copy off the PC and protect it
-like the budget itself. If the copy fails, keep the stopped source intact and
-resolve the error before an upgrade. To rehearse, restore into an empty
-**staging** data directory with the staging container stopped, then start and
-verify login, budget list, accounts, and Cash Flow. Never rehearse against live
-production data.
-
-Restore a selected backup to production only after stopping the production
-container and moving the current data directory aside. Copy the backup's
-`data` directory to the configured production data path, start the matching
-image, and verify `/health`, `/info`, login, and budget contents. Keep the
-pre-restore directory until verification is complete. A restore must contain
-all of `/data`, not just `account.sqlite` or a single budget blob.
-
-For a synthetic restore rehearsal, change the paths and project to staging:
-
-```powershell
-$compose = 'deployment/actual-ap/compose.yml'
-$envFile = 'deployment/actual-ap/staging.env'
-$data = 'C:\ActualAP\staging\data'
-$backupData = 'D:\ActualAPBackups\actual-ap-YYYYMMDD-HHMMSS\data'
-docker compose --env-file $envFile -f $compose -p actual-ap-staging stop actual
-Move-Item -Path $data -Destination ($data + '.before-restore')
-Copy-Item -Path $backupData -Destination $data -Recurse
-docker compose --env-file $envFile -f $compose -p actual-ap-staging up -d --no-build
-```
-
-Verify that `$backupData` exists and contains the expected files before moving
-the current directory. Use the same sequence for production only after the
-owner selects the backup and approves the restore.
+The automated backup, staging drill, Task Scheduler setup, key recovery, and
+restore procedure are in [BACKUP.md](BACKUP.md). Do not install tasks or enable
+production automation until the owner has reviewed staging results and approved
+the prerequisites in that runbook.
 
 ## Update and rollback
 
 For each new fork release, review upstream Actual changes and migration notes,
 test against a copy of synthetic data first, and build an image tagged with the
-new fork version. Before updating production, stop it and take a full `/data`
-backup. Build and start the new tagged image, then verify it. Keep the old
-image and backup until the new version has passed browser checks.
+new fork version. Before updating production, take a verified backup, then run
+the update through `Invoke-ActualApMaintenance.ps1` so the update and backup
+share the same per-environment lock. Build and start the new tagged image, then
+verify it. Keep the old image and backup until the new version has passed
+browser checks.
 
 An image rollback alone does **not** reverse server or budget migrations. To
 roll back, stop the container, preserve the post-upgrade data separately,
