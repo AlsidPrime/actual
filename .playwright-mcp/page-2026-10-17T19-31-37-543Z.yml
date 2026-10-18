@@ -1,0 +1,96 @@
+- generic [active] [ref=f2e1]:
+  - generic [ref=f2e2383]:
+    - log
+    - log
+  - generic [ref=f2e5014]:
+    - generic [ref=f2e5017]:
+      - generic [ref=f2e5018]:
+        - button "QA Tracking Compatibility" [ref=f2e5605]
+        - button "Unpin sidebar" [ref=f2e5023]
+      - generic [ref=f2e5026]:
+        - generic [ref=f2e5027]:
+          - link "Budget" [ref=f2e5029] [cursor=pointer]:
+            - /url: /budget
+          - link "Cash Flow" [ref=f2e5035] [cursor=pointer]:
+            - /url: /cash-flow
+          - link "Reports" [ref=f2e5041] [cursor=pointer]:
+            - /url: /reports
+          - link "Schedules" [ref=f2e5047] [cursor=pointer]:
+            - /url: /schedules
+          - button "More" [ref=f2e5054]
+          - link "Payees" [ref=f2e5612] [cursor=pointer]:
+            - /url: /payees
+          - link "Rules" [ref=f2e5618] [cursor=pointer]:
+            - /url: /rules
+          - link "Tags" [ref=f2e5624] [cursor=pointer]:
+            - /url: /tags
+          - link "Settings" [ref=f2e5630] [cursor=pointer]:
+            - /url: /settings
+        - generic [ref=f2e5061]:
+          - link "All accounts 1,000.00" [ref=f2e5872] [cursor=pointer]:
+            - /url: /accounts
+            - generic [ref=f2e5068]:
+              - generic [ref=f2e5069]: All accounts
+              - generic [ref=f2e5070]: 1,000.00
+          - link "On budget 1,000.00" [ref=f2e5876] [cursor=pointer]:
+            - /url: /accounts/onbudget
+            - generic [ref=f2e5879]:
+              - generic [ref=f2e5880]: On budget
+              - generic [ref=f2e5881]: 1,000.00
+          - link "QA Tracking Checking 1,000.00" [ref=f2e5888] [cursor=pointer]:
+            - /url: /accounts/7fe32292-613c-4fc4-b03f-fc6a912dd949
+            - generic [ref=f2e5891]:
+              - generic [ref=f2e5892]: QA Tracking Checking
+              - generic [ref=f2e5893]: 1,000.00
+        - button "Add account" [ref=f2e5075]
+    - generic [ref=f2e5083]:
+      - generic:
+        - button "Back" [ref=f2e7318]
+        - generic [ref=f2e5092]:
+          - button "Switch theme" [ref=f2e5094]
+          - button "Enable privacy mode" [ref=f2e5099]
+          - button "No server" [ref=f2e5104]
+          - button "Help" [ref=f2e5106]
+      - generic [ref=f2e7321]:
+        - generic [ref=f2e7322]: Balance Forecast
+        - main [ref=f2e7324]:
+          - generic [ref=f2e7326]:
+            - generic [ref=f2e7327]:
+              - button "Oct 2026 – Sep 2027" [ref=f2e7329]
+              - button "Filter" [ref=f2e7333]
+              - button "Chart" [ref=f2e7336]
+              - button "Scheduled transactions" [ref=f2e7341]
+              - button "Monthly" [ref=f2e7346]
+            - button "Save widget" [ref=f2e7352]
+          - generic [ref=f2e7353]:
+            - generic [ref=f2e7354]:
+              - generic [ref=f2e7355]: "900.00"
+              - generic [ref=f2e7356]: "Ending Balance: 2027-09"
+              - generic [ref=f2e7357]: "Lowest visible point: 900.00 (2026-10)"
+            - generic [ref=f2e7358]:
+              - application [ref=f2e7364]:
+                - generic [ref=f2e7374]:
+                  - generic [ref=f2e7375]:
+                    - generic [ref=f2e7376]: 2026-10
+                    - generic [ref=f2e7378]: 2026-11
+                    - generic [ref=f2e7380]: 2026-12
+                    - generic [ref=f2e7382]: 2027-01
+                    - generic [ref=f2e7384]: 2027-02
+                    - generic [ref=f2e7386]: 2027-03
+                    - generic [ref=f2e7388]: 2027-04
+                    - generic [ref=f2e7390]: 2027-05
+                    - generic [ref=f2e7392]: 2027-06
+                    - generic [ref=f2e7394]: 2027-07
+                    - generic [ref=f2e7396]: 2027-08
+                    - generic [ref=f2e7398]: 2027-09
+                  - generic [ref=f2e7400]:
+                    - generic [ref=f2e7401]: "900"
+                    - generic [ref=f2e7403]: "900"
+                    - generic [ref=f2e7405]: "900"
+                    - generic [ref=f2e7407]: "900"
+                    - generic [ref=f2e7409]: "900"
+                  - generic [ref=f2e7411]: Today
+              - generic [ref=f2e7412]: 1 scheduled transactions included in this date range
+            - generic [ref=f2e7413]: This forecast shows your running balance from posted transactions, plus upcoming scheduled transactions in the future.
+  - status [ref=f2e2177]
+  - generic [aria-hidden] [ref=f2e6644]: "900"

@@ -1,0 +1,60 @@
+- generic [ref=e1]:
+  - generic [ref=e6]:
+    - generic [ref=e14]:
+      - generic [ref=e15]:
+        - generic [ref=e19]: Welcome to Actual
+        - generic [ref=e20]: Your finances - made simple
+      - generic [ref=e21]: "Actual is a super fast, privacy-focused app for managing your finances. It is 100% free and open source: everything stays on your device, no data is collected, and there is nothing to sign up for."
+      - generic [ref=e23]:
+        - button "Start budgeting" [ref=e24]
+        - button "Try the demo" [ref=e25]
+        - button "Connect to a sync server" [ref=e26]
+      - generic [ref=e27]:
+        - generic [ref=e28]: Coming from another budgeting app?
+        - button "Import my budget" [ref=e29]
+        - generic [ref=e30]:
+          - text: New to budgeting? Take the
+          - link "guided tour" [ref=e31] [cursor=pointer]:
+            - /url: https://actualbudget.org/docs/tour/
+          - text: to learn how Actual works.
+    - generic [ref=e33]:
+      - generic [ref=e34]: Using this device only
+      - link "Set up sync" [ref=e35] [cursor=pointer]:
+        - /url: /config-server
+    - generic [ref=e36]: "App: v26.9.0 | Server: N/A"
+  - generic [ref=e39]:
+    - button "Dismiss" [ref=e41]
+    - dialog "Modal dialog" [ref=e42]:
+      - generic:
+        - generic:
+          - heading "Import From Close" [level=1]:
+            - generic: Import From
+            - generic:
+              - button "Close"
+          - generic:
+            - generic: Select an app to import from, and we'll guide you through the process.
+            - button "YNAB4 The old unsupported desktop app":
+              - text: YNAB4
+              - generic: The old unsupported desktop app
+            - button "nYNAB The newer web app":
+              - text: nYNAB
+              - generic: The newer web app
+            - button "Actual Import a file exported from Actual":
+              - text: Actual
+              - generic: Import a file exported from Actual
+  - generic [ref=e65]:
+    - button "Dismiss" [ref=e67]
+    - dialog "Modal dialog" [ref=e68]:
+      - generic [ref=e70]:
+        - heading "Import from Actual export Close" [level=1] [ref=e71]:
+          - generic [ref=e72]: Import from Actual export
+          - button "Close" [ref=e76]
+        - generic [ref=e80]:
+          - generic [ref=e81]:
+            - text: You can import data from another Actual account or instance. First export your data from a different account, and it will give you a compressed file. This file is a simple zip file that contains the
+            - code [ref=e82]: db.sqlite
+            - text: and
+            - code [ref=e83]: metadata.json
+            - text: files.
+          - generic [ref=e84]: Select one of these compressed files and import it here.
+          - button "Select file..." [active] [ref=e86] [cursor=pointer]

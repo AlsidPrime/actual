@@ -25,6 +25,7 @@ type FinancialInputProps = Omit<
   value: IntegerAmount;
   onUpdate?: (value: IntegerAmount) => void;
   onChangeValue?: (value: IntegerAmount) => void;
+  onEditValue?: (value: string) => void;
   onEnter?: (value: IntegerAmount) => void;
 };
 
@@ -33,6 +34,7 @@ export function FinancialInput({
   value: integerValue,
   onUpdate,
   onChangeValue,
+  onEditValue,
   onBlur,
   onFocus,
   onEnter,
@@ -80,6 +82,7 @@ export function FinancialInput({
 
   const handleChange = (stringValue: string) => {
     setInternalValue(stringValue);
+    onEditValue?.(stringValue);
 
     if (onChangeValue) {
       const newInteger = format.fromEdit(stringValue, 0) ?? 0;

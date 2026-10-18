@@ -1,0 +1,304 @@
+- generic [ref=f4e1]:
+  - generic [ref=f4e13]:
+    - generic [ref=f4e16]:
+      - generic [ref=f4e17]:
+        - button "Cash Flow Calendar QA (2026-10-17)" [ref=f4e18]
+        - button "Unpin sidebar" [ref=f4e22]
+      - generic [ref=f4e25]:
+        - generic [ref=f4e26]:
+          - link "Budget" [ref=f4e28] [cursor=pointer]:
+            - /url: /budget
+          - link "Cash Flow" [ref=f4e34] [cursor=pointer]:
+            - /url: /cash-flow
+          - link "Reports" [ref=f4e40] [cursor=pointer]:
+            - /url: /reports
+          - link "Schedules" [ref=f4e46] [cursor=pointer]:
+            - /url: /schedules
+          - button "More" [ref=f4e53]
+        - generic [ref=f4e60]:
+          - link "All accounts 28,620.00" [ref=f4e64] [cursor=pointer]:
+            - /url: /accounts
+            - generic [ref=f4e67]:
+              - generic [ref=f4e68]: All accounts
+              - generic [ref=f4e69]: 28,620.00
+          - link "On budget 28,620.00" [ref=f4e75] [cursor=pointer]:
+            - /url: /accounts/onbudget
+            - generic [ref=f4e78]:
+              - generic [ref=f4e79]: On budget
+              - generic [ref=f4e80]: 28,620.00
+          - link "Operating Checking 1,420.00" [ref=f4e87] [cursor=pointer]:
+            - /url: /accounts/e1c0064a-06be-4b51-b73c-ec4f30598f63
+            - generic [ref=f4e90]:
+              - generic [ref=f4e91]: Operating Checking
+              - generic [ref=f4e92]: 1,420.00
+          - link "Secondary Operating 350.00" [ref=f4e97] [cursor=pointer]:
+            - /url: /accounts/56716c0b-b5eb-4ca6-9265-6fae78246bde
+            - generic [ref=f4e100]:
+              - generic [ref=f4e101]: Secondary Operating
+              - generic [ref=f4e102]: "350.00"
+          - link "Sinking Savings 8,850.00" [ref=f4e107] [cursor=pointer]:
+            - /url: /accounts/a184dc77-d567-40b9-99a0-3436aae41657
+            - generic [ref=f4e110]:
+              - generic [ref=f4e111]: Sinking Savings
+              - generic [ref=f4e112]: 8,850.00
+          - link "Long-Term Savings 18,000.00" [ref=f4e117] [cursor=pointer]:
+            - /url: /accounts/9bdf179e-f7d5-4054-9d08-15161a389fe7
+            - generic [ref=f4e120]:
+              - generic [ref=f4e121]: Long-Term Savings
+              - generic [ref=f4e122]: 18,000.00
+        - button "Add account" [ref=f4e125]
+    - generic [ref=f4e133]:
+      - generic [ref=f4e134]:
+        - button "4 uncategorized transactions" [ref=f4e135]
+        - button "Switch theme" [ref=f4e137]
+        - button "Enable privacy mode" [ref=f4e141]
+        - button "No server" [ref=f4e146]
+        - button "Help" [ref=f4e148]
+      - generic:
+        - generic:
+          - alert [ref=f4e416]:
+            - generic [ref=f4e417]:
+              - button "Close" [ref=f4e418]
+              - generic [ref=f4e421]:
+                - generic [ref=f4e422]: A new version of Actual is available!
+                - generic [ref=f4e423]:
+                  - generic [ref=f4e424]: Version v26.10.0 of Actual was recently released.
+                  - button "Open changelog" [ref=f4e427]
+          - alert:
+            - generic:
+              - button "Close"
+              - generic:
+                - generic: Welcome to Actual!
+                - generic:
+                  - generic: New to Actual? Take a short tour to learn how budgeting works and find your way around.
+                  - button "Take the tour"
+      - generic [ref=f4e164]:
+        - generic [ref=f4e165]: Cash Flow Calendar
+        - main [ref=f4e167]:
+          - generic [ref=f4e168]:
+            - generic [ref=f4e169]:
+              - button "Cash Flow Setup" [expanded] [ref=f4e170]
+              - generic [ref=f4e171]: "Operating accounts: 1 · Sinking Savings accounts: 0 · Budget Burn: Off · Burn categories: 0 · Sinking categories: 0"
+            - generic [ref=f4e377]:
+              - generic [ref=f4e379]:
+                - generic [ref=f4e380]: Next Payday / Cash Runway
+                - generic [ref=f4e381]: Select employment income in Payday schedules under Cash Flow Setup.
+              - generic [ref=f4e383]:
+                - generic [ref=f4e384]: Cash Flow Risk
+                - generic [ref=f4e385]: Operating cash falls below the safety buffer Oct 18, 2026.
+                - generic [ref=f4e386]: "Projected cash on that date: 350.00 · Safety buffer: 400.00"
+                - generic [ref=f4e387]: "Lowest projected Operating cash: 350.00 on Oct 18, 2026."
+                - generic [ref=f4e388]: Unplanned variable spending is excluded from this scheduled forecast.
+                - generic [ref=f4e389]: No payday schedule selected; a future payday is not verified.
+                - generic [ref=f4e390]: "Next forecasted Operating inflow: Oct 27, 2026 · 1,500.00"
+            - generic [ref=f4e178]:
+              - generic [ref=f4e179]: Projected Operating cash is shown at the end of each day, after Budget Burn when enabled. Sinking Savings is excluded. Transactions within a day are not ordered.
+              - generic [ref=f4e180]:
+                - generic [ref=f4e181]:
+                  - button "Previous month" [disabled] [ref=f4e182]
+                  - generic [ref=f4e185]: October 2026
+                  - button "Next month" [ref=f4e186]
+                - region "October 2026" [ref=f4e190]:
+                  - generic [ref=f4e191]:
+                    - generic [ref=f4e192]: Sun
+                    - generic [ref=f4e193]: Mon
+                    - generic [ref=f4e194]: Tue
+                    - generic [ref=f4e195]: Wed
+                    - generic [ref=f4e196]: Thu
+                    - generic [ref=f4e197]: Fri
+                    - generic [ref=f4e198]: Sat
+                  - generic [ref=f4e199]:
+                    - article "Sunday, September 27th, 2026" [ref=f4e200]:
+                      - generic [ref=f4e201]: "27"
+                    - article "Monday, September 28th, 2026" [ref=f4e204]:
+                      - generic [ref=f4e205]: "28"
+                    - article "Tuesday, September 29th, 2026" [ref=f4e208]:
+                      - generic [ref=f4e209]: "29"
+                    - article "Wednesday, September 30th, 2026" [ref=f4e212]:
+                      - generic [ref=f4e213]: "30"
+                    - article "Thursday, October 1st, 2026" [ref=f4e216]:
+                      - button "Cash flow details for Oct 1, 2026" [ref=f4e217]
+                      - generic [ref=f4e218]: "1"
+                    - article "Friday, October 2nd, 2026" [ref=f4e221]:
+                      - button "Cash flow details for Oct 2, 2026" [ref=f4e222]
+                      - generic [ref=f4e223]: "2"
+                    - article "Saturday, October 3rd, 2026" [ref=f4e226]:
+                      - button "Cash flow details for Oct 3, 2026" [ref=f4e227]
+                      - generic [ref=f4e228]: "3"
+                    - article "Sunday, October 4th, 2026" [ref=f4e231]:
+                      - button "Cash flow details for Oct 4, 2026" [ref=f4e232]
+                      - generic [ref=f4e233]: "4"
+                    - article "Monday, October 5th, 2026" [ref=f4e236]:
+                      - button "Cash flow details for Oct 5, 2026" [ref=f4e237]
+                      - generic [ref=f4e238]: "5"
+                    - article "Tuesday, October 6th, 2026" [ref=f4e241]:
+                      - button "Cash flow details for Oct 6, 2026" [ref=f4e242]
+                      - generic [ref=f4e243]: "6"
+                    - article "Wednesday, October 7th, 2026" [ref=f4e246]:
+                      - button "Cash flow details for Oct 7, 2026" [ref=f4e247]
+                      - generic [ref=f4e248]: "7"
+                    - article "Thursday, October 8th, 2026" [ref=f4e251]:
+                      - button "Cash flow details for Oct 8, 2026" [ref=f4e252]
+                      - generic [ref=f4e253]: "8"
+                    - article "Friday, October 9th, 2026" [ref=f4e256]:
+                      - button "Cash flow details for Oct 9, 2026" [ref=f4e257]
+                      - generic [ref=f4e258]: "9"
+                    - article "Saturday, October 10th, 2026" [ref=f4e261]:
+                      - button "Cash flow details for Oct 10, 2026" [ref=f4e262]
+                      - generic [ref=f4e263]: "10"
+                    - article "Sunday, October 11th, 2026" [ref=f4e266]:
+                      - button "Cash flow details for Oct 11, 2026" [ref=f4e267]
+                      - generic [ref=f4e268]: "11"
+                    - article "Monday, October 12th, 2026" [ref=f4e271]:
+                      - button "Cash flow details for Oct 12, 2026" [ref=f4e272]
+                      - generic [ref=f4e273]: "12"
+                    - article "Tuesday, October 13th, 2026" [ref=f4e276]:
+                      - button "Cash flow details for Oct 13, 2026" [ref=f4e277]
+                      - generic [ref=f4e278]: "13"
+                    - article "Wednesday, October 14th, 2026" [ref=f4e281]:
+                      - button "Cash flow details for Oct 14, 2026" [ref=f4e282]
+                      - generic [ref=f4e283]: "14"
+                    - article "Thursday, October 15th, 2026" [ref=f4e286]:
+                      - button "Cash flow details for Oct 15, 2026" [ref=f4e287]
+                      - generic [ref=f4e288]: "15"
+                    - article "Friday, October 16th, 2026" [ref=f4e291]:
+                      - button "Cash flow details for Oct 16, 2026" [ref=f4e292]
+                      - generic [ref=f4e293]: "16"
+                    - article "Saturday, October 17th, 2026" [ref=f4e296]:
+                      - button "Cash flow details for Oct 17, 2026" [ref=f4e297]
+                      - generic [ref=f4e298]: "17"
+                    - article "Sunday, October 18th, 2026" [ref=f4e301]:
+                      - button "Cash flow details for Oct 18, 2026" [ref=f4e302]
+                      - generic [ref=f4e303]:
+                        - generic [ref=f4e304]:
+                          - generic [ref=f4e305]: "18"
+                          - generic [ref=f4e306]: Today
+                        - generic [ref=f4e391]: "350.00"
+                    - article "Monday, October 19th, 2026" [ref=f4e307]:
+                      - button "Cash flow details for Oct 19, 2026" [ref=f4e308]
+                      - generic [ref=f4e309]:
+                        - generic [ref=f4e310]: "19"
+                        - generic [ref=f4e392]: "350.00"
+                    - article "Tuesday, October 20th, 2026" [ref=f4e312]:
+                      - button "Cash flow details for Oct 20, 2026" [ref=f4e313]
+                      - generic [ref=f4e314]:
+                        - generic [ref=f4e315]: "20"
+                        - generic [ref=f4e393]: "350.00"
+                    - article "Wednesday, October 21st, 2026" [ref=f4e317]:
+                      - button "Cash flow details for Oct 21, 2026" [ref=f4e318]
+                      - generic [ref=f4e319]:
+                        - generic [ref=f4e320]: "21"
+                        - generic [ref=f4e394]: "350.00"
+                    - article "Thursday, October 22nd, 2026" [ref=f4e322]:
+                      - button "Cash flow details for Oct 22, 2026" [ref=f4e323]
+                      - generic [ref=f4e324]:
+                        - generic [ref=f4e325]: "22"
+                        - generic [ref=f4e395]: "350.00"
+                    - article "Friday, October 23rd, 2026" [ref=f4e327]:
+                      - button "Cash flow details for Oct 23, 2026" [ref=f4e328]
+                      - generic [ref=f4e329]:
+                        - generic [ref=f4e330]: "23"
+                        - generic [ref=f4e396]: "350.00"
+                    - article "Saturday, October 24th, 2026" [ref=f4e332]:
+                      - button "Cash flow details for Oct 24, 2026" [ref=f4e333]
+                      - generic [ref=f4e334]:
+                        - generic [ref=f4e335]: "24"
+                        - generic [ref=f4e397]: "350.00"
+                    - article "Sunday, October 25th, 2026" [ref=f4e337]:
+                      - button "Cash flow details for Oct 25, 2026" [ref=f4e338]
+                      - generic [ref=f4e339]:
+                        - generic [ref=f4e340]: "25"
+                        - generic [ref=f4e398]: "350.00"
+                    - article "Monday, October 26th, 2026" [ref=f4e342]:
+                      - button "Cash flow details for Oct 26, 2026" [ref=f4e343]
+                      - generic [ref=f4e344]:
+                        - generic [ref=f4e345]: "26"
+                        - generic [ref=f4e399]: "350.00"
+                    - article "Tuesday, October 27th, 2026" [ref=f4e347]:
+                      - button "Cash flow details for Oct 27, 2026" [ref=f4e348]
+                      - generic [ref=f4e349]:
+                        - generic [ref=f4e350]: "27"
+                        - generic [ref=f4e400]: 1,850.00
+                      - generic "QA Employer Two payday (Secondary Operating)" [ref=f4e402]:
+                        - generic [ref=f4e403]: QA Employer Two payday
+                        - generic [ref=f4e404]: 1,500.00
+                    - article "Wednesday, October 28th, 2026" [ref=f4e352]:
+                      - button "Cash flow details for Oct 28, 2026" [ref=f4e353]
+                      - generic [ref=f4e354]:
+                        - generic [ref=f4e355]: "28"
+                        - generic [ref=f4e405]: 1,850.00
+                    - article "Thursday, October 29th, 2026" [ref=f4e357]:
+                      - button "Cash flow details for Oct 29, 2026" [ref=f4e358]
+                      - generic [ref=f4e359]:
+                        - generic [ref=f4e360]: "29"
+                        - generic [ref=f4e406]: 1,850.00
+                    - article "Friday, October 30th, 2026" [ref=f4e362]:
+                      - button "Cash flow details for Oct 30, 2026" [ref=f4e363]
+                      - generic [ref=f4e364]:
+                        - generic [ref=f4e365]: "30"
+                        - generic [ref=f4e407]: 1,850.00
+                    - article "Saturday, October 31st, 2026" [ref=f4e367]:
+                      - button "Cash flow details for Oct 31, 2026" [ref=f4e368]
+                      - generic [ref=f4e369]:
+                        - generic [ref=f4e370]: "31"
+                        - generic [ref=f4e408]: 1,850.00
+            - generic [ref=f4e372]:
+              - generic [ref=f4e373]: Sinking Savings backing
+              - generic [ref=f4e374]: Select Sinking Savings accounts and sinking categories to see physical backing.
+            - generic [ref=f4e409]: Configure Sinking Savings accounts and sinking categories to see savings advice.
+            - generic [ref=f4e411]:
+              - generic [ref=f4e412]: Scheduled debt service
+              - generic [ref=f4e413]: Select debt and credit accounts in Cash Flow Setup to show their scheduled Operating payments.
+              - generic [ref=f4e414]: These scheduled transfers are already included in Operating cash projections.
+              - link "Review debt schedules" [ref=f4e415] [cursor=pointer]:
+                - /url: /schedules
+            - group [ref=f4e375]:
+              - generic "Forecast notes" [ref=f4e376]
+  - generic "Cash Flow Setup" [ref=f4e450]:
+    - button "Dismiss" [ref=f4e452]
+    - dialog "Cash Flow Setup" [ref=f4e453]:
+      - generic [ref=f4e454]:
+        - generic [ref=f4e455]: Cash Flow Setup
+        - generic [ref=f4e456]: Select Operating accounts for day-to-day spending. Sinking Savings accounts back sinking categories and do not count as ordinary spending cash. Leave long-term and emergency savings unselected. Select debt and credit accounts only in the Debt and credit accounts section.
+        - button "Operating accounts" [ref=f4e457]
+        - generic [ref=f4e463]:
+          - generic [ref=f4e464]:
+            - button "Hide unchecked" [ref=f4e465]
+            - generic [ref=f4e471]:
+              - button "Select All" [ref=f4e473]
+              - button "Unselect All" [ref=f4e477]
+          - list [ref=f4e480]:
+            - listitem [ref=f4e481]:
+              - checkbox "On Budget" [ref=f4e482]
+              - generic [ref=f4e483]: On Budget
+            - listitem [ref=f4e484]:
+              - checkbox "Operating Checking" [ref=f4e485]
+              - generic [ref=f4e486]: Operating Checking
+            - listitem [ref=f4e487]:
+              - checkbox "Secondary Operating" [checked] [ref=f4e488]
+              - generic [ref=f4e489]: Secondary Operating
+            - listitem [ref=f4e490]:
+              - checkbox "Sinking Savings" [ref=f4e491]
+              - generic [ref=f4e492]: Sinking Savings
+            - listitem [ref=f4e493]:
+              - checkbox "Long-Term Savings" [ref=f4e494]
+              - generic [ref=f4e495]: Long-Term Savings
+        - button "Budget Burn disabled" [ref=f4e496]
+        - generic [ref=f4e497]:
+          - generic [ref=f4e498]: Safety buffer
+          - textbox "Safety buffer" [ref=f4e499]: "400.00"
+        - generic [ref=f4e500]:
+          - generic [ref=f4e501]: Forecast horizon
+          - button "12 months" [ref=f4e502]
+        - generic [ref=f4e507]: Valid safety buffer amounts save as you type. Other changes save automatically. Forecasts use end-of-day balances.
+    - button "Dismiss" [ref=f4e509]
+  - dialog "Cash Flow Setup" [ref=f4e512]:
+    - button "Dismiss" [ref=f4e514]
+    - menu [active] [ref=f4e515]:
+      - button "Operating accounts" [ref=f4e516]
+      - button "Sinking Savings accounts" [ref=f4e518]
+      - button "Debt and credit accounts" [ref=f4e520]
+      - button "Burn categories" [ref=f4e522]
+      - button "Sinking categories" [ref=f4e524]
+      - button "Payday schedules" [ref=f4e526]
+    - button "Dismiss" [ref=f4e529]

@@ -1,0 +1,6 @@
+Total messages: 43 (Errors: 0, Warnings: 1)
+Returning 3 messages for level "error"
+
+[ERROR] `value` prop on `%s` should not be null. Consider using an empty string to clear the component or `undefined` for uncontrolled components. input @ http://localhost:3001/node_modules/.vite/deps/react-dom_client.js?v=49b8e321:9495
+[ERROR] A component is changing an uncontrolled input to be controlled. This is likely caused by the value changing from undefined to a defined value, which should not happen. Decide between using a controlled or uncontrolled input element for the lifetime of the component. More info: https://react.dev/link/controlled-components @ http://localhost:3001/node_modules/.vite/deps/react-dom_client.js?v=49b8e321:9978
+[ERROR] Cannot update a component (`%s`) while rendering a different component (`%s`). To locate the bad setState() call inside `%s`, follow the stack trace as described in https://react.dev/link/setstate-in-render BalanceHistoryGraph DefaultTooltipContent DefaultTooltipContent @ http://localhost:3001/node_modules/.vite/deps/react-dom_client.js?v=49b8e321:7933

@@ -1,0 +1,25 @@
+- generic [active] [ref=f2e1]:
+  - generic [ref=f2e2383]:
+    - log
+    - log
+  - generic [ref=f2e4975]:
+    - generic [ref=f2e4983]:
+      - generic [ref=f2e4984]: Files
+      - grid "Budget files" [ref=f2e4986]:
+        - row "Cash Flow Calendar QA (2026-10-17)" [ref=f2e4987]:
+          - gridcell "Cash Flow Calendar QA (2026-10-17) Local Menu" [ref=f2e4988]:
+            - generic [ref=f2e4989] [cursor=pointer]:
+              - generic [ref=f2e4990]:
+                - generic [ref=f2e4991]: Cash Flow Calendar QA (2026-10-17)
+                - generic [ref=f2e4993]: Local
+              - button "Menu" [ref=f2e5001]
+      - generic [ref=f2e5004]:
+        - button "Import file" [ref=f2e5005]
+        - button "Create new file" [ref=f2e5006]
+        - button "Create test file" [ref=f2e5007]
+    - generic [ref=f2e5009]:
+      - generic [ref=f2e5010]: Using this device only
+      - link "Set up sync" [ref=f2e5011] [cursor=pointer]:
+        - /url: /config-server
+    - generic [ref=f2e5012]: "App: v26.9.0 | Server: N/A"
+  - status [ref=f2e2177]

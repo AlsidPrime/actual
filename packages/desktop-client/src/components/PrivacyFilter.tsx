@@ -1,6 +1,7 @@
 // @ts-strict-ignore
 import { Children, useLayoutEffect, useRef } from 'react';
 import type { ComponentPropsWithRef, ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useResponsive } from '@actual-app/components/hooks/useResponsive';
 import { View } from '@actual-app/components/view';
@@ -95,6 +96,7 @@ function RedactedContent({ children }: RedactedContentProps) {
 }
 
 function PrivacyOverlay({ children, ...props }) {
+  const { t } = useTranslation();
   const { style, ...restProps } = props;
 
   return (
@@ -124,8 +126,11 @@ function PrivacyOverlay({ children, ...props }) {
         style,
       )}
       {...restProps}
+      role="img"
+      aria-label={t('Private value hidden')}
     >
       <div
+        aria-hidden="true"
         className={css([
           {
             display: 'flex',

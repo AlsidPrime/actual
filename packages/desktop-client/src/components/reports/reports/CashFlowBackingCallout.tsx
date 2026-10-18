@@ -74,9 +74,18 @@ export function CashFlowBackingCallout({
             </Text>
           )}
           {backing.excess > 0 && (
-            <Text>
-              <Trans>Excess physical backing</Trans>: {money(backing.excess)}
-            </Text>
+            <>
+              <Text>
+                <Trans>Physical backing above selected category targets</Trans>:{' '}
+                {money(backing.excess)}
+              </Text>
+              <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
+                <Trans>
+                  This amount is not necessarily free cash or a recommended
+                  transfer. Use Savings Sweep for transfer advice.
+                </Trans>
+              </Text>
+            </>
           )}
           {backing.percent != null && (
             <progress
@@ -89,7 +98,7 @@ export function CashFlowBackingCallout({
           {backing.percent != null && (
             <Text>
               <PrivacyFilter>
-                <FinancialText>{backing.percent}%</FinancialText>
+                <FinancialText>{Math.min(backing.percent, 100)}%</FinancialText>
               </PrivacyFilter>{' '}
               <Trans>backed</Trans>
             </Text>
@@ -100,6 +109,10 @@ export function CashFlowBackingCallout({
             </Text>
           ))}
           <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
+            <Trans>
+              Negative sinking category balances are excluded from the positive
+              funding target.
+            </Trans>{' '}
             <Trans>
               Future scheduled transfers are excluded from cash already held.
             </Trans>

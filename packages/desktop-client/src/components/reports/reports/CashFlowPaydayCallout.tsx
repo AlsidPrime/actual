@@ -69,17 +69,6 @@ export function CashFlowPaydayCallout({ runway }: { runway: PaydayRunway }) {
               <Trans>Days until payday</Trans>: {runway.daysUntilPayday}
             </Text>
           )}
-          {runway.scheduleNames.length > 0 && (
-            <Text>
-              <Trans>Selected income</Trans>: {runway.scheduleNames.join(', ')}
-            </Text>
-          )}
-          {runway.expectedIncome != null && (
-            <Text>
-              <Trans>Expected scheduled income</Trans>:{' '}
-              {money(runway.expectedIncome)}
-            </Text>
-          )}
           {runway.currentCash != null && (
             <Text>
               <Trans>Actual Operating cash now</Trans>:{' '}
@@ -98,12 +87,6 @@ export function CashFlowPaydayCallout({ runway }: { runway: PaydayRunway }) {
               </Trans>
             </Text>
           )}
-          {runway.todayClosingCash != null && (
-            <Text>
-              <Trans>Today's projected closing Operating cash</Trans>:{' '}
-              {money(runway.todayClosingCash)}
-            </Text>
-          )}
           {runway.lowestCash != null && runway.lowestDate && (
             <Text>
               <Trans>
@@ -120,12 +103,35 @@ export function CashFlowPaydayCallout({ runway }: { runway: PaydayRunway }) {
               {money(runway.firstNegativeCash)}
             </Text>
           )}
-          {runway.paydayClosingCash != null && (
-            <Text>
-              <Trans>Payday closing Operating cash</Trans>:{' '}
-              {money(runway.paydayClosingCash)}
-            </Text>
-          )}
+          <details>
+            <summary>
+              <Trans>Payday forecast details</Trans>
+            </summary>
+            {runway.scheduleNames.length > 0 && (
+              <Text>
+                <Trans>Selected income</Trans>:{' '}
+                {runway.scheduleNames.join(', ')}
+              </Text>
+            )}
+            {runway.expectedIncome != null && (
+              <Text>
+                <Trans>Expected scheduled income</Trans>:{' '}
+                {money(runway.expectedIncome)}
+              </Text>
+            )}
+            {runway.todayClosingCash != null && (
+              <Text>
+                <Trans>Today's projected closing Operating cash</Trans>:{' '}
+                {money(runway.todayClosingCash)}
+              </Text>
+            )}
+            {runway.paydayClosingCash != null && (
+              <Text>
+                <Trans>Payday closing Operating cash</Trans>:{' '}
+                {money(runway.paydayClosingCash)}
+              </Text>
+            )}
+          </details>
           {runway.isConfigurationIncomplete && (
             <Text style={{ color: theme.warningText }}>
               <Trans>

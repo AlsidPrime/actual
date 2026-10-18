@@ -1,0 +1,73 @@
+- generic [ref=f2e89]:
+  - generic [ref=f2e92]:
+    - generic [ref=f2e93]:
+      - button "Cash Flow Calendar QA (2026-10-17)" [ref=f2e94]
+      - button "Unpin sidebar" [ref=f2e98]
+    - generic [ref=f2e101]:
+      - generic [ref=f2e102]:
+        - link "Budget" [ref=f2e104] [cursor=pointer]:
+          - /url: /budget
+        - link "Cash Flow" [ref=f2e110] [cursor=pointer]:
+          - /url: /cash-flow
+        - link "Reports" [ref=f2e116] [cursor=pointer]:
+          - /url: /reports
+        - link "Schedules" [ref=f2e122] [cursor=pointer]:
+          - /url: /schedules
+        - button "More" [ref=f2e129]
+      - generic [ref=f2e136]:
+        - link "All accounts 28,620.00" [ref=f2e140] [cursor=pointer]:
+          - /url: /accounts
+          - generic [ref=f2e143]:
+            - generic [ref=f2e144]: All accounts
+            - generic [ref=f2e145]: 28,620.00
+        - link "On budget 28,620.00" [ref=f2e151] [cursor=pointer]:
+          - /url: /accounts/onbudget
+          - generic [ref=f2e154]:
+            - generic [ref=f2e155]: On budget
+            - generic [ref=f2e156]: 28,620.00
+        - link "Operating Checking 1,420.00" [ref=f2e163] [cursor=pointer]:
+          - /url: /accounts/e1c0064a-06be-4b51-b73c-ec4f30598f63
+          - generic [ref=f2e166]:
+            - generic [ref=f2e167]: Operating Checking
+            - generic [ref=f2e168]: 1,420.00
+        - link "Secondary Operating 350.00" [ref=f2e173] [cursor=pointer]:
+          - /url: /accounts/56716c0b-b5eb-4ca6-9265-6fae78246bde
+          - generic [ref=f2e176]:
+            - generic [ref=f2e177]: Secondary Operating
+            - generic [ref=f2e178]: "350.00"
+        - link "Sinking Savings 8,850.00" [ref=f2e183] [cursor=pointer]:
+          - /url: /accounts/a184dc77-d567-40b9-99a0-3436aae41657
+          - generic [ref=f2e186]:
+            - generic [ref=f2e187]: Sinking Savings
+            - generic [ref=f2e188]: 8,850.00
+        - link "Long-Term Savings 18,000.00" [ref=f2e193] [cursor=pointer]:
+          - /url: /accounts/9bdf179e-f7d5-4054-9d08-15161a389fe7
+          - generic [ref=f2e196]:
+            - generic [ref=f2e197]: Long-Term Savings
+            - generic [ref=f2e198]: 18,000.00
+      - button "Add account" [ref=f2e201]
+  - generic [ref=f2e209]:
+    - generic [ref=f2e210]:
+      - button "4 uncategorized transactions" [ref=f2e211]
+      - button "Switch theme" [ref=f2e213]
+      - button "Enable privacy mode" [ref=f2e217]
+      - button "No server" [ref=f2e222]
+      - button "Help" [ref=f2e224]
+    - generic:
+      - generic:
+        - alert [ref=f2e227]:
+          - generic [ref=f2e228]:
+            - button "Close" [ref=f2e229]
+            - generic [ref=f2e232]:
+              - generic [ref=f2e233]: A new version of Actual is available!
+              - generic [ref=f2e234]:
+                - generic [ref=f2e235]: Version v26.10.0 of Actual was recently released.
+                - button "Open changelog" [ref=f2e238]
+        - alert:
+          - generic:
+            - button "Close"
+            - generic:
+              - generic: Welcome to Actual!
+              - generic:
+                - generic: New to Actual? Take a short tour to learn how budgeting works and find your way around.
+                - button "Take the tour"

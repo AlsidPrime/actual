@@ -1,0 +1,108 @@
+- generic [ref=f2e1]:
+  - generic [ref=f2e2383]:
+    - log
+    - log
+  - generic [ref=f2e5014]:
+    - generic [ref=f2e5017]:
+      - generic [ref=f2e5018]:
+        - button "QA Tracking Compatibility" [ref=f2e5605]
+        - button "Unpin sidebar" [ref=f2e5023]
+      - generic [ref=f2e5026]:
+        - generic [ref=f2e5027]:
+          - link "Budget" [ref=f2e5029] [cursor=pointer]:
+            - /url: /budget
+          - link "Cash Flow" [ref=f2e5035] [cursor=pointer]:
+            - /url: /cash-flow
+          - link "Reports" [ref=f2e5041] [cursor=pointer]:
+            - /url: /reports
+          - link "Schedules" [ref=f2e5047] [cursor=pointer]:
+            - /url: /schedules
+          - button "More" [ref=f2e5054]
+          - link "Payees" [ref=f2e5612] [cursor=pointer]:
+            - /url: /payees
+          - link "Rules" [ref=f2e5618] [cursor=pointer]:
+            - /url: /rules
+          - link "Tags" [ref=f2e5624] [cursor=pointer]:
+            - /url: /tags
+          - link "Settings" [ref=f2e5630] [cursor=pointer]:
+            - /url: /settings
+        - generic [ref=f2e5061]:
+          - link "All accounts 1,000.00" [ref=f2e5872] [cursor=pointer]:
+            - /url: /accounts
+            - generic [ref=f2e5068]:
+              - generic [ref=f2e5069]: All accounts
+              - generic [ref=f2e5070]: 1,000.00
+          - link "On budget 1,000.00" [ref=f2e5876] [cursor=pointer]:
+            - /url: /accounts/onbudget
+            - generic [ref=f2e5879]:
+              - generic [ref=f2e5880]: On budget
+              - generic [ref=f2e5881]: 1,000.00
+          - link "QA Tracking Checking 1,000.00" [ref=f2e5888] [cursor=pointer]:
+            - /url: /accounts/7fe32292-613c-4fc4-b03f-fc6a912dd949
+            - generic [ref=f2e5891]:
+              - generic [ref=f2e5892]: QA Tracking Checking
+              - generic [ref=f2e5893]: 1,000.00
+        - button "Add account" [ref=f2e5075]
+    - generic [ref=f2e5083]:
+      - generic [ref=f2e5092]:
+        - button "Switch theme" [ref=f2e5094]
+        - button "Enable privacy mode" [ref=f2e5099]
+        - button "No server" [ref=f2e5104]
+        - button "Help" [ref=f2e5106]
+      - generic:
+        - generic:
+          - alert [ref=f2e5109]:
+            - generic [ref=f2e5110]:
+              - button "Close" [ref=f2e5111]
+              - generic [ref=f2e5114]:
+                - generic [ref=f2e5115]: A new version of Actual is available!
+                - generic [ref=f2e5116]:
+                  - generic [ref=f2e5117]: Version v26.10.0 of Actual was recently released.
+                  - button "Open changelog" [ref=f2e5120]
+          - alert:
+            - generic:
+              - button "Close"
+              - generic:
+                - generic: Welcome to Actual!
+                - generic:
+                  - generic: New to Actual? Take a short tour to learn how budgeting works and find your way around.
+                  - button "Take the tour"
+      - generic [ref=f2e6020]:
+        - generic [ref=f2e6021]: Cash Flow Calendar
+        - main [ref=f2e6023]:
+          - generic [ref=f2e6024]:
+            - generic [ref=f2e6025]:
+              - button "Cash Flow Setup" [expanded] [ref=f2e6026]
+              - generic [ref=f2e6027]: "Operating accounts: 0 · Sinking Savings accounts: 0 · Budget Burn: Off · Burn categories: 0 · Sinking categories: 0"
+            - generic [ref=f2e6028]: Budget Burn and Sinking Savings advice require Envelope budgeting. Native scheduled cash forecasting remains available.
+            - generic [ref=f2e6029]: Select at least one Operating account in Cash Flow Setup to start forecasting.
+  - status [ref=f2e2177]
+  - generic "Cash Flow Setup" [ref=f2e6032]:
+    - button "Dismiss" [ref=f2e6034]
+    - dialog "Cash Flow Setup" [active] [ref=f2e6035]:
+      - generic [ref=f2e6036]:
+        - generic [ref=f2e6037]: Cash Flow Setup
+        - generic [ref=f2e6038]: Select Operating accounts for day-to-day spending. Sinking Savings accounts back sinking categories and do not count as ordinary spending cash. Leave long-term and emergency savings unselected. Select debt and credit accounts only in the Debt and credit accounts section.
+        - button "Operating accounts" [ref=f2e6039]
+        - generic [ref=f2e6045]:
+          - generic [ref=f2e6046]:
+            - button "Hide unchecked" [ref=f2e6047]
+            - generic [ref=f2e6053]:
+              - button "Select All" [ref=f2e6055]
+              - button "Unselect All" [ref=f2e6059]
+          - list [ref=f2e6062]:
+            - listitem [ref=f2e6063]:
+              - checkbox "On Budget" [ref=f2e6064]
+              - generic [ref=f2e6065]: On Budget
+            - listitem [ref=f2e6066]:
+              - checkbox "QA Tracking Checking" [ref=f2e6067]
+              - generic [ref=f2e6068]: QA Tracking Checking
+        - button "Budget Burn disabled" [ref=f2e6069]
+        - generic [ref=f2e6070]:
+          - generic [ref=f2e6071]: Safety buffer
+          - textbox "Safety buffer" [ref=f2e6072]: "0.00"
+        - generic [ref=f2e6073]:
+          - generic [ref=f2e6074]: Forecast horizon
+          - button "12 months" [ref=f2e6075]
+        - generic [ref=f2e6080]: Changes save automatically. Forecasts use end-of-day balances.
+    - button "Dismiss" [ref=f2e6082]

@@ -1,0 +1,168 @@
+- generic [ref=f4e1]:
+  - generic [ref=f4e13]:
+    - generic [ref=f4e16]:
+      - generic [ref=f4e17]:
+        - button "Cash Flow Calendar QA (2026-10-17)" [ref=f4e18]
+        - button "Unpin sidebar" [ref=f4e22]
+      - generic [ref=f4e25]:
+        - generic [ref=f4e26]:
+          - link "Budget" [ref=f4e28] [cursor=pointer]:
+            - /url: /budget
+          - link "Cash Flow" [ref=f4e34] [cursor=pointer]:
+            - /url: /cash-flow
+          - link "Reports" [ref=f4e40] [cursor=pointer]:
+            - /url: /reports
+          - link "Schedules" [ref=f4e46] [cursor=pointer]:
+            - /url: /schedules
+          - button "More" [ref=f4e53]
+        - generic [ref=f4e60]:
+          - link "All accounts 28,620.00" [ref=f4e1396] [cursor=pointer]:
+            - /url: /accounts
+            - generic [ref=f4e67]:
+              - generic [ref=f4e68]: All accounts
+              - generic [ref=f4e69]: 28,620.00
+          - link "On budget 28,620.00" [ref=f4e1397] [cursor=pointer]:
+            - /url: /accounts/onbudget
+            - generic [ref=f4e78]:
+              - generic [ref=f4e79]: On budget
+              - generic [ref=f4e80]: 28,620.00
+          - link "Operating Checking 1,420.00" [ref=f4e1398] [cursor=pointer]:
+            - /url: /accounts/e1c0064a-06be-4b51-b73c-ec4f30598f63
+            - generic [ref=f4e90]:
+              - generic [ref=f4e91]: Operating Checking
+              - generic [ref=f4e92]: 1,420.00
+          - link "Secondary Operating 350.00" [ref=f4e1399] [cursor=pointer]:
+            - /url: /accounts/56716c0b-b5eb-4ca6-9265-6fae78246bde
+            - generic [ref=f4e100]:
+              - generic [ref=f4e101]: Secondary Operating
+              - generic [ref=f4e102]: "350.00"
+          - link "Sinking Savings 8,850.00" [ref=f4e1400] [cursor=pointer]:
+            - /url: /accounts/a184dc77-d567-40b9-99a0-3436aae41657
+            - generic [ref=f4e110]:
+              - generic [ref=f4e111]: Sinking Savings
+              - generic [ref=f4e112]: 8,850.00
+          - link "Long-Term Savings 18,000.00" [ref=f4e1401] [cursor=pointer]:
+            - /url: /accounts/9bdf179e-f7d5-4054-9d08-15161a389fe7
+            - generic [ref=f4e120]:
+              - generic [ref=f4e121]: Long-Term Savings
+              - generic [ref=f4e122]: 18,000.00
+        - button "Add account" [ref=f4e125]
+    - generic [ref=f4e133]:
+      - generic [ref=f4e134]:
+        - button "4 uncategorized transactions" [ref=f4e135]
+        - button "Switch theme" [ref=f4e137]
+        - button "Enable privacy mode" [ref=f4e1402]
+        - button "No server" [ref=f4e146]
+        - button "Help" [ref=f4e148]
+      - generic:
+        - generic:
+          - alert [ref=f4e416]:
+            - generic [ref=f4e417]:
+              - button "Close" [ref=f4e418]
+              - generic [ref=f4e421]:
+                - generic [ref=f4e422]: A new version of Actual is available!
+                - generic [ref=f4e423]:
+                  - generic [ref=f4e424]: Version v26.10.0 of Actual was recently released.
+                  - button "Open changelog" [ref=f4e427]
+          - alert:
+            - generic:
+              - button "Close"
+              - generic:
+                - generic: Welcome to Actual!
+                - generic:
+                  - generic: New to Actual? Take a short tour to learn how budgeting works and find your way around.
+                  - button "Take the tour"
+      - generic [ref=f4e813]:
+        - generic [ref=f4e814]: Schedules
+        - main [ref=f4e817]:
+          - generic [ref=f4e820]:
+            - textbox "Filter schedules…" [ref=f4e823]: QA Manual due bill
+            - generic "Clear search term" [ref=f4e1406]:
+              - button [ref=f4e1407]
+          - generic [ref=f4e824]:
+            - generic [ref=f4e826]:
+              - generic [ref=f4e829]: Name
+              - generic [ref=f4e832]: Payee
+              - generic [ref=f4e835]: Account
+              - generic [ref=f4e838]: Next date
+              - generic [ref=f4e841]: Status
+              - generic [ref=f4e844]: Amount
+              - generic [ref=f4e847]: Recurring
+            - generic [ref=f4e899] [cursor=pointer]:
+              - generic [ref=f4e902]: QA Manual due bill
+              - generic "QA Manual Bill" [ref=f4e908]
+              - generic [ref=f4e909]: Operating Checking
+              - generic [ref=f4e912]: 10/17/2026
+              - generic [ref=f4e915]: Missed
+              - generic "60.00" [ref=f4e923]
+              - button "Menu" [ref=f4e932]
+          - generic [ref=f4e1391]:
+            - generic [ref=f4e1392]:
+              - button "Find schedules" [ref=f4e1393]
+              - button "Change upcoming length" [ref=f4e1394]
+            - button "Add new schedule" [ref=f4e1395]
+  - generic [ref=f4e1412]:
+    - button "Dismiss" [ref=f4e1414]
+    - dialog "Modal dialog" [ref=f4e1415]:
+      - generic [ref=f4e1417]:
+        - 'heading "Schedule: QA Manual Bill Close" [level=1] [ref=f4e1418]':
+          - generic [ref=f4e1419]: "Schedule: QA Manual Bill"
+          - button "Close" [ref=f4e1423]
+        - generic [ref=f4e1426]:
+          - generic [ref=f4e1428]:
+            - generic [ref=f4e1429]: Schedule Name
+            - textbox "Schedule Name" [active] [ref=f4e1430]:
+              - /placeholder: nothing
+              - text: QA Manual due bill
+          - generic [ref=f4e1431]:
+            - generic [ref=f4e1432]:
+              - generic [ref=f4e1433]: Payee
+              - combobox [ref=f4e1435]:
+                - textbox "Payee" [ref=f4e1437]:
+                  - /placeholder: nothing
+                  - text: QA Manual Bill
+            - generic [ref=f4e1438]:
+              - generic [ref=f4e1439]: Account
+              - combobox [ref=f4e1441]:
+                - textbox "Account" [ref=f4e1443]:
+                  - /placeholder: nothing
+                  - text: Operating Checking
+            - generic [ref=f4e1444]:
+              - generic [ref=f4e1445]:
+                - generic [ref=f4e1446]: Amount
+                - button "is exactly" [ref=f4e1448]
+              - generic [ref=f4e1453]:
+                - button "Make positive" [ref=f4e1454]
+                - textbox "Amount" [ref=f4e1457]: "60.00"
+          - generic [ref=f4e1458]: Date
+          - generic [ref=f4e1460]:
+            - textbox [ref=f4e1463]: 10/17/2026
+            - generic [ref=f4e1464]:
+              - checkbox "Repeats" [ref=f4e1465]
+              - generic [ref=f4e1466]: Repeats
+          - generic [ref=f4e1467]:
+            - generic [ref=f4e1468]:
+              - generic [ref=f4e1469]: Upcoming length
+              - button "Upcoming length" [ref=f4e1470]:
+                - generic [ref=f4e1471]: Use global default
+              - generic [ref=f4e1475]: How far in advance this schedule appears as upcoming
+            - generic [ref=f4e1476]:
+              - generic [ref=f4e1477]:
+                - checkbox "Automatically add transaction" [ref=f4e1478]
+                - generic [ref=f4e1479]: Automatically add transaction
+              - generic [ref=f4e1480]: Automatically create transactions in the specified account
+          - button "Edit as rule" [ref=f4e1483]
+        - generic [ref=f4e1484]:
+          - generic [ref=f4e1485]:
+            - button "Linked transactions" [ref=f4e1486]
+            - button "Find matching transactions" [ref=f4e1487]
+          - generic [ref=f4e1488]:
+            - generic [ref=f4e1490]:
+              - generic [ref=f4e1493]: Date
+              - generic [ref=f4e1496]: Payee
+              - generic [ref=f4e1499]: Notes
+              - generic [ref=f4e1502]: Amount
+            - generic [ref=f4e1505]: No linked transactions
+        - generic [ref=f4e1508]:
+          - button "Cancel" [ref=f4e1509]
+          - button "Save" [ref=f4e1510]

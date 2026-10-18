@@ -1,0 +1,140 @@
+- generic [ref=f2e1]:
+  - generic [ref=f2e2383]:
+    - log
+    - log
+  - generic [ref=f2e5014]:
+    - generic [ref=f2e5017]:
+      - generic [ref=f2e5018]:
+        - button "QA Tracking Compatibility" [ref=f2e5605]
+        - button "Unpin sidebar" [ref=f2e5023]
+      - generic [ref=f2e5026]:
+        - generic [ref=f2e5027]:
+          - link "Budget" [ref=f2e5029] [cursor=pointer]:
+            - /url: /budget
+          - link "Cash Flow" [ref=f2e5035] [cursor=pointer]:
+            - /url: /cash-flow
+          - link "Reports" [ref=f2e5041] [cursor=pointer]:
+            - /url: /reports
+          - link "Schedules" [ref=f2e5047] [cursor=pointer]:
+            - /url: /schedules
+          - button "More" [ref=f2e5054]
+          - link "Payees" [ref=f2e5612] [cursor=pointer]:
+            - /url: /payees
+          - link "Rules" [ref=f2e5618] [cursor=pointer]:
+            - /url: /rules
+          - link "Tags" [ref=f2e5624] [cursor=pointer]:
+            - /url: /tags
+          - link "Settings" [ref=f2e5630] [cursor=pointer]:
+            - /url: /settings
+        - generic [ref=f2e5061]:
+          - link "All accounts 1,000.00" [ref=f2e5872] [cursor=pointer]:
+            - /url: /accounts
+            - generic [ref=f2e5068]:
+              - generic [ref=f2e5069]: All accounts
+              - generic [ref=f2e5070]: 1,000.00
+          - link "On budget 1,000.00" [ref=f2e5876] [cursor=pointer]:
+            - /url: /accounts/onbudget
+            - generic [ref=f2e5879]:
+              - generic [ref=f2e5880]: On budget
+              - generic [ref=f2e5881]: 1,000.00
+          - link "QA Tracking Checking 1,000.00" [ref=f2e5888] [cursor=pointer]:
+            - /url: /accounts/7fe32292-613c-4fc4-b03f-fc6a912dd949
+            - generic [ref=f2e5891]:
+              - generic [ref=f2e5892]: QA Tracking Checking
+              - generic [ref=f2e5893]: 1,000.00
+        - button "Add account" [ref=f2e5075]
+    - generic [ref=f2e5083]:
+      - generic [ref=f2e5092]:
+        - button "Switch theme" [ref=f2e5094]
+        - button "Enable privacy mode" [ref=f2e5099]
+        - button "No server" [ref=f2e5104]
+        - button "Help" [ref=f2e5106]
+      - generic [ref=f2e6645]:
+        - generic [ref=f2e6646]: Schedules
+        - main [ref=f2e6649]:
+          - textbox "Filter schedules…" [ref=f2e6655]
+          - generic [ref=f2e6656]:
+            - generic [ref=f2e6658]:
+              - generic [ref=f2e6661]: Name
+              - generic [ref=f2e6664]: Payee
+              - generic [ref=f2e6667]: Account
+              - generic [ref=f2e6670]: Next date
+              - generic [ref=f2e6673]: Status
+              - generic [ref=f2e6676]: Amount
+              - generic [ref=f2e6679]: Recurring
+            - generic [ref=f2e6686]: No schedules
+          - generic [ref=f2e6689]:
+            - generic [ref=f2e6690]:
+              - button "Find schedules" [ref=f2e6691]
+              - button "Change upcoming length" [ref=f2e6692]
+            - button "Add new schedule" [ref=f2e6693]
+  - status [ref=f2e2177]
+  - generic [aria-hidden] [ref=f2e6644]: 1,000
+  - generic [ref=f2e6709]:
+    - button "Dismiss" [ref=f2e6711]
+    - dialog "Modal dialog" [ref=f2e6712]:
+      - generic [ref=f2e6714]:
+        - 'heading "Schedule: QA Tracking Bill Payee Close" [level=1] [ref=f2e6834]':
+          - generic [ref=f2e6716]: "Schedule: QA Tracking Bill Payee"
+          - button "Close" [ref=f2e6720]
+        - generic [ref=f2e6723]:
+          - generic [ref=f2e6725]:
+            - generic [ref=f2e6726]: Schedule Name
+            - textbox "Schedule Name" [ref=f2e6727]:
+              - /placeholder: nothing
+              - text: QA Tracking bill
+          - generic [ref=f2e6728]:
+            - generic [ref=f2e6729]:
+              - generic [ref=f2e6730]: Payee
+              - combobox [ref=f2e6732]:
+                - textbox "Payee" [ref=f2e6734]:
+                  - /placeholder: nothing
+                  - text: QA Tracking Bill Payee
+            - generic [ref=f2e6735]:
+              - generic [ref=f2e6736]: Account
+              - combobox [ref=f2e6738]:
+                - textbox "Account" [ref=f2e6740]:
+                  - /placeholder: nothing
+                  - text: QA Tracking Checking
+            - generic [ref=f2e6741]:
+              - generic [ref=f2e6742]:
+                - generic [ref=f2e6743]: Amount
+                - button "is approximately" [ref=f2e6745]
+              - generic [ref=f2e6750]:
+                - button "Make positive" [ref=f2e6751]
+                - textbox "Amount" [ref=f2e6754]: "100.00"
+          - generic [ref=f2e6755]: Date
+          - generic [ref=f2e6757]:
+            - generic [ref=f2e6758]:
+              - textbox [ref=f2e6836]: 10/17/2026
+              - generic [ref=f2e6761]:
+                - generic [ref=f2e6762]: Upcoming dates
+                - generic [ref=f2e6763]: 10/17/2026 Saturday
+            - generic [ref=f2e6767]:
+              - checkbox "Repeats" [active] [ref=f2e6768]
+              - generic [ref=f2e6769]: Repeats
+          - generic [ref=f2e6770]:
+            - generic [ref=f2e6771]:
+              - generic [ref=f2e6772]: Upcoming length
+              - button "Upcoming length" [ref=f2e6773]:
+                - generic [ref=f2e6774]: Use global default
+              - generic [ref=f2e6778]: How far in advance this schedule appears as upcoming
+            - generic [ref=f2e6779]:
+              - generic [ref=f2e6780]:
+                - checkbox "Automatically add transaction" [ref=f2e6781]
+                - generic [ref=f2e6782]: Automatically add transaction
+              - generic [ref=f2e6783]: Automatically create transactions in the specified account
+        - generic [ref=f2e6784]:
+          - generic [ref=f2e6785]:
+            - generic [ref=f2e6786]: "These transactions match this schedule:"
+            - generic [ref=f2e6788]: Select transactions to link on save
+          - generic [ref=f2e6789]:
+            - generic [ref=f2e6791]:
+              - generic [ref=f2e6794]: Date
+              - generic [ref=f2e6797]: Payee
+              - generic [ref=f2e6800]: Notes
+              - generic [ref=f2e6803]: Amount
+            - generic [ref=f2e6806]: No matching transactions
+        - generic [ref=f2e6809]:
+          - button "Cancel" [ref=f2e6810]
+          - button "Add" [ref=f2e6811]

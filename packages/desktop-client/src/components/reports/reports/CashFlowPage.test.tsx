@@ -418,6 +418,12 @@ describe('Cash Flow page', () => {
       expect(
         screen.queryByText('Cash survives until payday'),
       ).not.toBeInTheDocument();
+      expect(
+        screen.getByText(/No Operating shortfall among scheduled transactions/),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(/No Operating shortfall among modeled transactions/),
+      ).not.toBeInTheDocument();
     },
   );
 
@@ -479,7 +485,7 @@ describe('Cash Flow page', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows a safe Cash Flow Risk summary and no scheduled inflow', () => {
+  it('shows a scheduled-only Cash Flow Risk summary without payday', () => {
     fixture.rawConfig = JSON.stringify({
       ...DEFAULT_CASH_FLOW_CONFIG,
       operatingAccountIds: ['checking'],
@@ -490,16 +496,73 @@ describe('Cash Flow page', () => {
       document.querySelector('article[aria-current="date"]'),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/No Operating cash shortfall projected through/),
+      screen.getByText(
+        /No Operating shortfall among scheduled transactions through/,
+      ),
     ).toBeInTheDocument();
     expect(
       screen.getByText(/Lowest projected Operating cash/),
     ).toBeInTheDocument();
+    expect(screen.getByText(/No payday schedule selected/)).toBeInTheDocument();
+  });
+
+  it('warns about positive cash below the buffer in Tracking Budget', () => {
+    fixture.budgetType = 'tracking';
+    fixture.operatingBalance = 100000;
+    fixture.futureOperatingBalance = 90000;
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+      safetyBuffer: 95000,
+    });
+    renderRoute();
     expect(
-      screen.getByText(
-        'No future Operating inflow is scheduled within the forecast horizon.',
-      ),
+      screen.getByText(/Operating cash falls below the safety buffer/),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Lowest projected Operating cash/),
+    ).toHaveTextContent('900.00');
+    expect(
+      screen.getByText(/Unplanned variable spending is excluded/),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/No Operating shortfall among modeled/),
+    ).not.toBeInTheDocument();
+  });
+
+  it('saves a valid buffer edit before Setup closes with Escape', async () => {
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+    });
+    renderRoute();
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Cash Flow Setup' }),
+    );
+    const input = screen.getByRole('textbox', { name: 'Safety buffer' });
+    await userEvent.clear(input);
+    await userEvent.type(input, '950');
+    await userEvent.keyboard('{Escape}');
+    expect(JSON.parse(fixture.savedConfig ?? '{}')).toMatchObject({
+      safetyBuffer: 95000,
+    });
+  });
+
+  it('does not save an incomplete buffer edit as zero', async () => {
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+      safetyBuffer: 95000,
+    });
+    renderRoute();
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Cash Flow Setup' }),
+    );
+    const input = screen.getByRole('textbox', { name: 'Safety buffer' });
+    await userEvent.clear(input);
+    await userEvent.type(input, '-');
+    await userEvent.keyboard('{Escape}');
+    expect(fixture.savedConfig).toBeUndefined();
   });
 
   it('shows the first future cash shortfall and projected amount', () => {
@@ -637,6 +700,28 @@ describe('Cash Flow page', () => {
         element.getAttribute('aria-label') ?? element.getAttribute('title'),
       ).not.toMatch(/\d/);
     }
+  });
+
+  it('keeps a masked debt amount out of the accessible name', () => {
+    fixture.privacyMode = true;
+    fixture.withReserve = true;
+    fixture.scheduledFunding = 200;
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+      debtAccountIds: ['savings'],
+    });
+    renderRoute();
+    const debtCallout = screen.getByText(
+      'Scheduled debt service',
+    ).parentElement;
+    expect(debtCallout).toHaveTextContent('-2.00');
+    const privateAmount = debtCallout?.querySelector('[role="img"]');
+    expect(privateAmount).toHaveAttribute('aria-label', 'Private value hidden');
+    expect(privateAmount?.firstElementChild).toHaveAttribute(
+      'aria-hidden',
+      'true',
+    );
   });
 
   it('redacts every advisor amount in privacy mode', async () => {
@@ -1113,7 +1198,10 @@ describe('Cash Flow page', () => {
       expect(
         await screen.findByText('Failed to load Budget Automation plans.'),
       ).toBeInTheDocument();
-      expect(screen.queryByText('Cash Flow Risk')).not.toBeInTheDocument();
+      expect(screen.getByText('Cash Flow Risk')).toBeInTheDocument();
+      expect(
+        screen.getByText(/Budget Burn data is incomplete/),
+      ).toBeInTheDocument();
       expect(
         document.querySelector('article[aria-current="date"]'),
       ).not.toBeInTheDocument();

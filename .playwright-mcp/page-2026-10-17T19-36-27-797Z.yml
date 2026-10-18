@@ -1,0 +1,84 @@
+- generic [ref=f3e480]:
+  - generic [ref=f3e483]:
+    - generic [ref=f3e484]:
+      - button "Cash Flow Calendar QA (2026-10-17)" [ref=f3e485]
+      - button "Unpin sidebar" [ref=f3e489]
+    - generic [ref=f3e492]:
+      - generic [ref=f3e493]:
+        - link "Budget" [ref=f3e495] [cursor=pointer]:
+          - /url: /budget
+        - link "Cash Flow" [ref=f3e501] [cursor=pointer]:
+          - /url: /cash-flow
+        - link "Reports" [ref=f3e507] [cursor=pointer]:
+          - /url: /reports
+        - link "Schedules" [ref=f3e513] [cursor=pointer]:
+          - /url: /schedules
+        - button "More" [ref=f3e520]
+      - generic [ref=f3e527]:
+        - link "All accounts 31,120.00" [ref=f3e2105] [cursor=pointer]:
+          - /url: /accounts
+          - generic [ref=f3e534]:
+            - generic [ref=f3e535]: All accounts
+            - generic [ref=f3e536]: 31,120.00
+        - link "On budget 28,620.00" [ref=f3e542] [cursor=pointer]:
+          - /url: /accounts/onbudget
+          - generic [ref=f3e545]:
+            - generic [ref=f3e546]: On budget
+            - generic [ref=f3e547]: 28,620.00
+        - link "Operating Checking 1,520.00" [ref=f3e554] [cursor=pointer]:
+          - /url: /accounts/e1c0064a-06be-4b51-b73c-ec4f30598f63
+          - generic [ref=f3e557]:
+            - generic [ref=f3e558]: Operating Checking
+            - generic [ref=f3e559]: 1,520.00
+        - link "Secondary Operating 250.00" [ref=f3e564] [cursor=pointer]:
+          - /url: /accounts/56716c0b-b5eb-4ca6-9265-6fae78246bde
+          - generic [ref=f3e567]:
+            - generic [ref=f3e568]: Secondary Operating
+            - generic [ref=f3e569]: "250.00"
+        - link "Sinking Savings 8,850.00" [ref=f3e574] [cursor=pointer]:
+          - /url: /accounts/a184dc77-d567-40b9-99a0-3436aae41657
+          - generic [ref=f3e577]:
+            - generic [ref=f3e578]: Sinking Savings
+            - generic [ref=f3e579]: 8,850.00
+        - link "Long-Term Savings 18,000.00" [ref=f3e584] [cursor=pointer]:
+          - /url: /accounts/9bdf179e-f7d5-4054-9d08-15161a389fe7
+          - generic [ref=f3e587]:
+            - generic [ref=f3e588]: Long-Term Savings
+            - generic [ref=f3e589]: 18,000.00
+        - link "Off budget 2,500.00" [ref=f3e2106] [cursor=pointer]:
+          - /url: /accounts/offbudget
+          - generic [ref=f3e596]:
+            - generic [ref=f3e597]: Off budget
+            - generic [ref=f3e598]: 2,500.00
+        - link "QA Test Loan -2,500.00" [ref=f3e605] [cursor=pointer]:
+          - /url: /accounts/b4478df3-7c62-45e7-b489-86d4e1ae4944
+          - generic [ref=f3e608]:
+            - generic [ref=f3e609]: QA Test Loan
+            - generic [ref=f3e610]: "-2,500.00"
+      - button "Add account" [active] [ref=f3e613]
+  - generic [ref=f3e621]:
+    - generic [ref=f3e630]:
+      - button "4 uncategorized transactions" [ref=f3e631]
+      - button "Switch theme" [ref=f3e633]
+      - button "Enable privacy mode" [ref=f3e1958]
+      - button "No server" [ref=f3e643]
+      - button "Help" [ref=f3e645]
+    - generic [ref=f3e2107]:
+      - generic [ref=f3e2108]:
+        - generic [ref=f3e2110]:
+          - button "Edit account name" [ref=f3e2115]
+          - button "0.00" [ref=f3e2119]
+        - generic [ref=f3e2124]:
+          - button "Add New" [ref=f3e2125]
+          - button "Filter" [ref=f3e2133]
+          - textbox "Search" [ref=f3e2139]
+          - button "Expand split transactions" [ref=f3e2140]
+          - button "Account menu" [ref=f3e2145]
+      - generic [ref=f3e2151]:
+        - button "Date" [ref=f3e2156]
+        - button "Payee" [ref=f3e2160]
+        - button "Notes" [ref=f3e2164]
+        - button "Category" [ref=f3e2168]
+        - button "Payment" [ref=f3e2172]
+        - button "Deposit" [ref=f3e2176]
+        - button "✓" [ref=f3e2181]

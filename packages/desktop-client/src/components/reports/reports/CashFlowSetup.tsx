@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Dialog, DialogTrigger } from 'react-aria-components';
 import { Trans, useTranslation } from 'react-i18next';
 
@@ -19,6 +19,7 @@ import { Checkbox } from '#components/forms';
 import { AccountSelector } from '#components/reports/AccountSelector';
 import { CategorySelector } from '#components/reports/CategorySelector';
 import { FinancialInput } from '#components/util/FinancialInput';
+import { useFormat } from '#hooks/useFormat';
 
 import { selectAccountRole, selectCategoryRole } from './cashFlowConfig';
 import type { CashFlowCalendarConfig } from './cashFlowConfig';
@@ -50,6 +51,17 @@ export function CashFlowSetup({
   onChange: (config: CashFlowCalendarConfig) => void;
 }) {
   const { t } = useTranslation();
+  const format = useFormat();
+  const editedBuffer = useRef<string | null>(null);
+  function parseValidBuffer(value: string) {
+    if (!/\p{N}/u.test(value)) {
+      return null;
+    }
+    const parsed = format.fromEdit(value, null);
+    return parsed != null && Number.isFinite(parsed) && parsed >= 0
+      ? parsed
+      : null;
+  }
   const [section, setSection] = useState<SetupSection>('operating');
   const selectedCategories = expenseCategories.filter(category =>
     (section === 'burn'
@@ -237,9 +249,22 @@ export function CashFlowSetup({
                 id="cash-flow-safety-buffer"
                 aria-label={t('Safety buffer')}
                 value={config.safetyBuffer}
-                onUpdate={amount =>
-                  onChange({ ...config, safetyBuffer: Math.max(0, amount) })
-                }
+                onEditValue={text => {
+                  editedBuffer.current = text;
+                  const amount = parseValidBuffer(text);
+                  if (amount !== null) {
+                    onChange({ ...config, safetyBuffer: amount });
+                  }
+                }}
+                onUpdate={amount => {
+                  const edited = editedBuffer.current;
+                  const validAmount =
+                    edited === null ? amount : parseValidBuffer(edited);
+                  if (validAmount !== null) {
+                    onChange({ ...config, safetyBuffer: validAmount });
+                  }
+                  editedBuffer.current = null;
+                }}
                 style={{ width: 120 }}
               />
             </View>
@@ -266,7 +291,8 @@ export function CashFlowSetup({
             </View>
             <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
               <Trans>
-                Changes save automatically. Forecasts use end-of-day balances.
+                Valid safety buffer amounts save as you type. Other changes save
+                automatically. Forecasts use end-of-day balances.
               </Trans>
             </Text>
           </View>

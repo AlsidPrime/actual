@@ -15,9 +15,11 @@ import type { CashFlowRiskResult } from './cashFlowRisk';
 export function CashFlowRiskCallout({
   risk,
   endDate,
+  hasPaydaySelection,
 }: {
   risk: CashFlowRiskResult;
   endDate: string;
+  hasPaydaySelection: boolean;
 }) {
   const format = useFormat();
   const locale = useLocale();
@@ -26,7 +28,9 @@ export function CashFlowRiskCallout({
       ? theme.errorText
       : risk.status === 'warning'
         ? theme.warningText
-        : theme.reportsNumberPositive;
+        : risk.status === 'safe'
+          ? theme.reportsNumberPositive
+          : theme.pageTextLight;
 
   return (
     <View
@@ -43,19 +47,30 @@ export function CashFlowRiskCallout({
       <Text style={{ fontWeight: 600 }}>
         {risk.status === 'danger' ? (
           <Trans>Operating cash is projected below zero today.</Trans>
-        ) : risk.status === 'warning' && risk.firstNegativeDate ? (
+        ) : risk.firstNegativeDate ? (
           <>
             <Trans>Operating cash shortfall projected</Trans>{' '}
             {monthUtils.format(risk.firstNegativeDate, 'PP', locale)}.
           </>
+        ) : risk.firstBelowBufferDate ? (
+          <>
+            <Trans>Operating cash falls below the safety buffer</Trans>{' '}
+            {monthUtils.format(risk.firstBelowBufferDate, 'PP', locale)}.
+          </>
+        ) : risk.coverage === 'complete' ? (
+          <Trans>
+            No Operating shortfall among modeled transactions and spending.
+          </Trans>
         ) : (
           <>
-            <Trans>No Operating cash shortfall projected through</Trans>{' '}
+            <Trans>
+              No Operating shortfall among scheduled transactions through
+            </Trans>{' '}
             {monthUtils.format(endDate, 'PP', locale)}.
           </>
         )}
       </Text>
-      {risk.status === 'warning' && risk.firstNegativeBalance !== null && (
+      {risk.firstNegativeBalance !== null && (
         <Text>
           <Trans>Projected Operating cash on that date</Trans>:{' '}
           <PrivacyFilter>
@@ -65,6 +80,23 @@ export function CashFlowRiskCallout({
           </PrivacyFilter>
         </Text>
       )}
+      {risk.firstNegativeDate === null &&
+        risk.firstBelowBufferBalance !== null && (
+          <Text style={{ color: theme.warningText }}>
+            <Trans>Projected cash on that date</Trans>:{' '}
+            <PrivacyFilter>
+              <FinancialText>
+                {format(risk.firstBelowBufferBalance, 'financial')}
+              </FinancialText>
+            </PrivacyFilter>{' '}
+            · <Trans>Safety buffer</Trans>:{' '}
+            <PrivacyFilter>
+              <FinancialText>
+                {format(risk.safetyBuffer, 'financial')}
+              </FinancialText>
+            </PrivacyFilter>
+          </Text>
+        )}
       <Text>
         <Trans>Lowest projected Operating cash</Trans>:{' '}
         <PrivacyFilter>
@@ -75,7 +107,29 @@ export function CashFlowRiskCallout({
         <Trans>on</Trans>{' '}
         {monthUtils.format(risk.lowestBalanceDate, 'PP', locale)}.
       </Text>
-      {risk.nextOperatingInflow ? (
+      {risk.coverage !== 'complete' && (
+        <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
+          {risk.coverage === 'incomplete' ? (
+            <Trans>
+              Budget Burn data is incomplete. Unplanned variable spending is
+              excluded from this scheduled forecast.
+            </Trans>
+          ) : (
+            <Trans>
+              Unplanned variable spending is excluded from this scheduled
+              forecast.
+            </Trans>
+          )}
+        </Text>
+      )}
+      {!hasPaydaySelection && (
+        <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
+          <Trans>
+            No payday schedule selected; a future payday is not verified.
+          </Trans>
+        </Text>
+      )}
+      {risk.nextOperatingInflow && (
         <Text>
           <Trans>Next forecasted Operating inflow</Trans>:{' '}
           {monthUtils.format(risk.nextOperatingInflow.date, 'PP', locale)} ·{' '}
@@ -84,12 +138,6 @@ export function CashFlowRiskCallout({
               {format(risk.nextOperatingInflow.amount, 'financial')}
             </FinancialText>
           </PrivacyFilter>
-        </Text>
-      ) : (
-        <Text>
-          <Trans>
-            No future Operating inflow is scheduled within the forecast horizon.
-          </Trans>
         </Text>
       )}
     </View>

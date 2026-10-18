@@ -413,6 +413,7 @@ export function CashFlowPage() {
   const budgetBurn =
     needsBurn &&
     budgetData &&
+    !budgetError &&
     automationPlans &&
     !automationError &&
     forecastData
@@ -440,16 +441,17 @@ export function CashFlowPage() {
         })
       : null;
   const isCalendarReady = !needsBurn || (budgetBurn != null && !budgetError);
-  const risk =
-    forecastData && (!needsBurn || budgetBurn)
-      ? calculateCashFlowRisk({
-          forecastData,
-          budgetBurn,
-          operatingAccountIds,
-          today,
-          endDate,
-        })
-      : null;
+  const risk = forecastData
+    ? calculateCashFlowRisk({
+        forecastData,
+        budgetBurn,
+        isBurnRequired: needsBurn,
+        safetyBuffer: config.safetyBuffer,
+        operatingAccountIds,
+        today,
+        endDate,
+      })
+    : null;
   const runway =
     !schedulesLoading && !schedulesError && !payeesLoading && payeesById != null
       ? calculatePaydayRunway({
@@ -586,73 +588,37 @@ export function CashFlowPage() {
                 <Trans>Failed to load Budget Automation plans.</Trans>
               </Text>
             )}
-            {risk && <CashFlowRiskCallout risk={risk} endDate={endDate} />}
-            {runway && forecastData && (
-              <CashFlowPaydayCallout runway={runway} />
-            )}
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+              {runway && forecastData && (
+                <View style={{ flex: '1 1 330px', minWidth: 0 }}>
+                  <CashFlowPaydayCallout runway={runway} />
+                </View>
+              )}
+              {risk && (
+                <View style={{ flex: '1 1 330px', minWidth: 0 }}>
+                  <CashFlowRiskCallout
+                    risk={risk}
+                    endDate={endDate}
+                    hasPaydaySelection={config.paydayScheduleIds.length > 0}
+                  />
+                </View>
+              )}
+            </View>
             {schedulesError && (
               <Text style={{ color: theme.errorText }}>
                 <Trans>Failed to load schedules.</Trans>
               </Text>
             )}
-            {!schedulesLoading && !schedulesError && (
-              <CashFlowAttention
-                {...attention}
-                accountNames={accountNames}
-                payeeNames={payeeNames}
-              />
-            )}
-            {backing && <CashFlowBackingCallout backing={backing} />}
-            {forecastData && (
-              <CashFlowDebtCallout
-                payments={debtPayments}
-                hasDebtAccounts={debtAccountIds.length > 0}
-              />
-            )}
-            {isEnvelope && advisor && (
-              <SweepCallout
-                advisor={advisor}
-                safetyBuffer={config.safetyBuffer}
-              />
-            )}
-            {isEnvelope &&
-              !advisor &&
-              !forecast.isPending &&
-              (needsReserve || !isCalendarReady) &&
-              !budgetError &&
-              !automationError && <LoadingIndicator />}
-            {needsBurn && automationPlans && !automationError && (
-              <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
-                {hasFundedFallback ? (
-                  <Trans>
-                    Fixed Budget Automations provide spending plans independent
-                    of envelope funding. Categories without a usable fixed
-                    automation use funded-budget amounts; future months without
-                    a positive budget repeat the current monthly budget.
-                  </Trans>
-                ) : (
-                  <Trans>
-                    Budget Burn uses fixed Budget Automation plans independent
-                    of envelope funding.
-                  </Trans>
-                )}
-              </Text>
-            )}
-            <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
-              <Trans>
-                Manual: Actual will not automatically add this transaction.
-              </Trans>{' '}
-              · <Trans>Negative: projected Operating cash is below zero.</Trans>
-              {budgetBurn && (
-                <>
-                  {' · '}
-                  <Trans>
-                    Budget Burn: expected variable spending not already
-                    represented by scheduled expenses.
-                  </Trans>
-                </>
+            {!schedulesLoading &&
+              !schedulesError &&
+              (attention.attention.length > 0 ||
+                attention.upcomingCount > 0) && (
+                <CashFlowAttention
+                  {...attention}
+                  accountNames={accountNames}
+                  payeeNames={payeeNames}
+                />
               )}
-            </Text>
             {isCalendarReady && (
               <CashFlowCalendarView
                 forecastData={forecastData}
@@ -666,6 +632,64 @@ export function CashFlowPage() {
                 enableDayDetails
               />
             )}
+            {backing && <CashFlowBackingCallout backing={backing} />}
+            {isEnvelope && advisor && (
+              <SweepCallout
+                advisor={advisor}
+                safetyBuffer={config.safetyBuffer}
+              />
+            )}
+            {isEnvelope &&
+              !advisor &&
+              !forecast.isPending &&
+              (needsReserve || !isCalendarReady) &&
+              !budgetError &&
+              !automationError && <LoadingIndicator />}
+            {forecastData && (
+              <CashFlowDebtCallout
+                payments={debtPayments}
+                hasDebtAccounts={debtAccountIds.length > 0}
+              />
+            )}
+            <details style={{ color: theme.pageTextLight, fontSize: 12 }}>
+              <summary>
+                <Trans>Forecast notes</Trans>
+              </summary>
+              {needsBurn && automationPlans && !automationError && (
+                <Text>
+                  {hasFundedFallback ? (
+                    <Trans>
+                      Fixed Budget Automations provide spending plans
+                      independent of envelope funding. Categories without a
+                      usable fixed automation use funded-budget amounts; future
+                      months without a positive budget repeat the current
+                      monthly budget.
+                    </Trans>
+                  ) : (
+                    <Trans>
+                      Budget Burn uses fixed Budget Automation plans independent
+                      of envelope funding.
+                    </Trans>
+                  )}
+                </Text>
+              )}
+              <Text>
+                <Trans>
+                  Manual: Actual will not automatically add this transaction.
+                </Trans>{' '}
+                ·{' '}
+                <Trans>Negative: projected Operating cash is below zero.</Trans>
+                {budgetBurn && (
+                  <>
+                    {' · '}
+                    <Trans>
+                      Budget Burn: expected variable spending not already
+                      represented by scheduled expenses.
+                    </Trans>
+                  </>
+                )}
+              </Text>
+            </details>
           </>
         )}
       </View>

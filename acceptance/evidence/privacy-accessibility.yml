@@ -1,0 +1,11 @@
+- generic [ref=f3e1336]:
+  - generic [ref=f3e1337]: Scheduled debt service
+  - generic [ref=f3e1338]:
+    - generic [ref=f3e1339]: Oct 22, 2026 · QA Synthetic loan payment · Operating Checking → QA Test Loan
+    - generic [ref=f3e1858]:
+      - generic [ref=f3e1859]: "-100.00"
+      - generic [aria-hidden]:
+        - generic: "*100*00"
+  - generic [ref=f3e1341]: These scheduled transfers are already included in Operating cash projections.
+  - link "Review debt schedules" [ref=f3e1342] [cursor=pointer]:
+    - /url: /schedules

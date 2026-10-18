@@ -1,0 +1,141 @@
+- generic [ref=f2e1]:
+  - generic [ref=f2e2383]:
+    - log
+    - log
+  - generic [ref=f2e5014]:
+    - generic [ref=f2e5017]:
+      - generic [ref=f2e5018]:
+        - button "QA Tracking Compatibility" [ref=f2e5605]
+        - button "Unpin sidebar" [ref=f2e5023]
+      - generic [ref=f2e5026]:
+        - generic [ref=f2e5027]:
+          - link "Budget" [ref=f2e5029] [cursor=pointer]:
+            - /url: /budget
+          - link "Cash Flow" [ref=f2e5035] [cursor=pointer]:
+            - /url: /cash-flow
+          - link "Reports" [ref=f2e5041] [cursor=pointer]:
+            - /url: /reports
+          - link "Schedules" [ref=f2e5047] [cursor=pointer]:
+            - /url: /schedules
+          - button "More" [ref=f2e5054]
+          - link "Payees" [ref=f2e5612] [cursor=pointer]:
+            - /url: /payees
+          - link "Rules" [ref=f2e5618] [cursor=pointer]:
+            - /url: /rules
+          - link "Tags" [ref=f2e5624] [cursor=pointer]:
+            - /url: /tags
+          - link "Settings" [ref=f2e5630] [cursor=pointer]:
+            - /url: /settings
+        - link "All accounts 0.00" [ref=f2e5065] [cursor=pointer]:
+          - /url: /accounts
+          - generic [ref=f2e5068]:
+            - generic [ref=f2e5069]: All accounts
+            - generic [ref=f2e5070]: "0.00"
+        - button "Add account" [ref=f2e5075]
+    - generic [ref=f2e5083]:
+      - generic [ref=f2e5092]:
+        - button "Switch theme" [ref=f2e5094]
+        - button "Enable privacy mode" [ref=f2e5099]
+        - button "No server" [ref=f2e5104]
+        - button "Help" [ref=f2e5106]
+      - generic:
+        - generic:
+          - alert [ref=f2e5109]:
+            - generic [ref=f2e5110]:
+              - button "Close" [ref=f2e5111]
+              - generic [ref=f2e5114]:
+                - generic [ref=f2e5115]: A new version of Actual is available!
+                - generic [ref=f2e5116]:
+                  - generic [ref=f2e5117]: Version v26.10.0 of Actual was recently released.
+                  - button "Open changelog" [ref=f2e5120]
+          - alert:
+            - generic:
+              - button "Close"
+              - generic:
+                - generic: Welcome to Actual!
+                - generic:
+                  - generic: New to Actual? Take a short tour to learn how budgeting works and find your way around.
+                  - button "Take the tour"
+      - generic [ref=f2e5635]:
+        - generic [ref=f2e5636]: Settings
+        - main [ref=f2e5639]:
+          - generic [ref=f2e5640]:
+            - generic [ref=f2e5642]:
+              - generic [ref=f2e5643]:
+                - strong [ref=f2e5644]: Actual
+                - text: is a super fast privacy-focused app for managing your finances.
+              - generic [ref=f2e5645]:
+                - generic [ref=f2e5646]: "Client version: v26.9.0"
+                - generic [ref=f2e5647]: "Server version: N/A"
+                - 'link "New version available: v26.10.0" [ref=f2e5648] [cursor=pointer]':
+                  - /url: https://actualbudget.org/docs/releases
+                - link "Release Notes" [ref=f2e5650] [cursor=pointer]:
+                  - /url: https://actualbudget.org/docs/releases
+              - generic [ref=f2e5652]:
+                - checkbox "Display a notification when updates are available" [checked] [ref=f2e5653]
+                - generic [ref=f2e5654]: Display a notification when updates are available
+            - generic [ref=f2e5655]:
+              - generic [ref=f2e5657]:
+                - strong [ref=f2e5658]: Themes
+                - text: change the user interface colors.
+              - generic [ref=f2e5661]:
+                - generic [ref=f2e5662]: Theme
+                - button "Dark" [ref=f2e5665]
+            - generic [ref=f2e5670]:
+              - generic [ref=f2e5672]:
+                - strong [ref=f2e5673]: Formatting
+                - text: does not affect how budget data is stored, and can be changed at any time.
+              - generic [ref=f2e5674]:
+                - generic [ref=f2e5675]:
+                  - generic [ref=f2e5676]: Numbers
+                  - generic [ref=f2e5677]:
+                    - button "1,000.33" [ref=f2e5678]
+                    - generic [ref=f2e5683]:
+                      - checkbox "Hide decimal places" [ref=f2e5684]
+                      - generic [ref=f2e5685]: Hide decimal places
+                - generic [ref=f2e5686]:
+                  - generic [ref=f2e5687]: Dates
+                  - button "MM/DD/YYYY" [ref=f2e5689]
+                - generic [ref=f2e5694]:
+                  - generic [ref=f2e5695]: First day of the week
+                  - button "Sunday" [ref=f2e5697]
+            - generic [ref=f2e5702]:
+              - generic [ref=f2e5704]:
+                - strong [ref=f2e5705]: Language
+                - text: is the display language of all text. Please note that no warranty is provided for the accuracy or completeness of non-English translations. If you encounter a translation error, feel free to make a suggestion on
+                - link "Weblate" [ref=f2e5706] [cursor=pointer]:
+                  - /url: https://hosted.weblate.org/projects/actualbudget/actual/
+                - text: .
+              - button "System default" [ref=f2e5707]
+            - generic [ref=f2e5712]:
+              - generic [ref=f2e5714]:
+                - strong [ref=f2e5715]: End-to-end encryption
+                - text: is not available when running without a server. Budget files are always kept unencrypted locally, and encryption is only applied when sending data to a server.
+                - link "Learn more" [ref=f2e5716] [cursor=pointer]:
+                  - /url: https://actualbudget.org/docs/getting-started/sync/#end-to-end-encryption
+              - button "Enable encryption" [disabled] [ref=f2e5717]
+            - generic [ref=f2e5718]:
+              - generic [ref=f2e5719]:
+                - generic [ref=f2e5720]:
+                  - strong [ref=f2e5721]: Envelope budgeting
+                  - text: (recommended) digitally mimics physical envelope budgeting system by allocating funds into virtual envelopes for different expenses. It helps track spending and ensure you don't overspend in any category.
+                  - link "Learn more" [ref=f2e5722] [cursor=pointer]:
+                    - /url: https://actualbudget.org/docs/getting-started/envelope-budgeting
+                - generic [ref=f2e5723]:
+                  - text: With
+                  - strong [ref=f2e5724]: tracking budgeting
+                  - text: ", category balances reset each month, and funds are managed using a \"Saved\" metric instead of \"To Be Budgeted.\" Income is forecasted to plan future spending, rather than relying on current available funds."
+                  - link "Learn more" [ref=f2e5725] [cursor=pointer]:
+                    - /url: https://actualbudget.org/docs/getting-started/tracking-budget
+              - button "Switch to envelope budgeting" [active] [ref=f2e5737] [cursor=pointer]
+            - generic [ref=f2e5728]:
+              - generic [ref=f2e5730]:
+                - strong [ref=f2e5731]: Export
+                - text: your data as a zip file containing
+                - code [ref=f2e5732]: db.sqlite
+                - text: and
+                - code [ref=f2e5733]: metadata.json
+                - text: files. It can be imported into another Actual instance by closing an open file (if any), then clicking the "Import file" button, then choosing "Actual."
+              - button "Export data" [ref=f2e5734]
+            - generic [ref=f2e5736] [cursor=pointer]: Show advanced settings
+  - status [ref=f2e2177]

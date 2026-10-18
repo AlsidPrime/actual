@@ -1,0 +1,105 @@
+- generic [ref=e45]:
+  - generic [ref=e48]:
+    - generic [ref=e49]:
+      - button "Test Budget" [ref=e50]
+      - button "Unpin sidebar" [ref=e54]
+    - generic [ref=e57]:
+      - generic [ref=e58]:
+        - link "Budget" [ref=e60] [cursor=pointer]:
+          - /url: /budget
+        - link "Cash Flow" [active] [ref=e66] [cursor=pointer]:
+          - /url: /cash-flow
+        - link "Reports" [ref=e72] [cursor=pointer]:
+          - /url: /reports
+        - link "Schedules" [ref=e78] [cursor=pointer]:
+          - /url: /schedules
+        - button "More" [ref=e85]
+      - generic [ref=e92]:
+        - link "All accounts 43,047.96" [ref=e96] [cursor=pointer]:
+          - /url: /accounts
+          - generic [ref=e99]:
+            - generic [ref=e100]: All accounts
+            - generic [ref=e101]: 43,047.96
+        - link "On budget 11,168.07" [ref=e107] [cursor=pointer]:
+          - /url: /accounts/onbudget
+          - generic [ref=e110]:
+            - generic [ref=e111]: On budget
+            - generic [ref=e112]: 11,168.07
+        - link "Bank of America 4,673.11" [ref=e119] [cursor=pointer]:
+          - /url: /accounts/09d53ef2-3567-4c68-9ea4-b5abc0dca636
+          - generic [ref=e122]:
+            - generic [ref=e123]: Bank of America
+            - generic [ref=e124]: 4,673.11
+        - link "Ally Savings 5,217.09" [ref=e129] [cursor=pointer]:
+          - /url: /accounts/77b55f63-0be1-4559-9ab6-4f55c4de38bb
+          - generic [ref=e132]:
+            - generic [ref=e133]: Ally Savings
+            - generic [ref=e134]: 5,217.09
+        - link "Capital One Checking 381.20" [ref=e139] [cursor=pointer]:
+          - /url: /accounts/322667b0-353c-49af-9bac-d7581f658afa
+          - generic [ref=e142]:
+            - generic [ref=e143]: Capital One Checking
+            - generic [ref=e144]: "381.20"
+        - link "HSBC 896.67" [ref=e149] [cursor=pointer]:
+          - /url: /accounts/36e7527e-6129-4ff7-a18f-713b97b59acb
+          - generic [ref=e152]:
+            - generic [ref=e153]: HSBC
+            - generic [ref=e154]: "896.67"
+        - link "Off budget 31,879.89" [ref=e158] [cursor=pointer]:
+          - /url: /accounts/offbudget
+          - generic [ref=e161]:
+            - generic [ref=e162]: Off budget
+            - generic [ref=e163]: 31,879.89
+        - link "Vanguard 401k 2,798.90" [ref=e170] [cursor=pointer]:
+          - /url: /accounts/7e20d951-78ee-4654-b632-9823d7054794
+          - generic [ref=e173]:
+            - generic [ref=e174]: Vanguard 401k
+            - generic [ref=e175]: 2,798.90
+        - link "Mortgage -318,645.60" [ref=e180] [cursor=pointer]:
+          - /url: /accounts/c19b3681-aae4-43dd-9c44-5d5d2dc859bd
+          - generic [ref=e183]:
+            - generic [ref=e184]: Mortgage
+            - generic [ref=e185]: "-318,645.60"
+        - link "House Asset 345,400.00" [ref=e190] [cursor=pointer]:
+          - /url: /accounts/2860aa35-7c4b-46dc-8f82-b1d90aea2036
+          - generic [ref=e193]:
+            - generic [ref=e194]: House Asset
+            - generic [ref=e195]: 345,400.00
+        - link "Roth IRA 2,326.59" [ref=e200] [cursor=pointer]:
+          - /url: /accounts/42ab9f78-65a1-439b-af50-63a96c0c6f1b
+          - generic [ref=e203]:
+            - generic [ref=e204]: Roth IRA
+            - generic [ref=e205]: 2,326.59
+      - button "Add account" [ref=e208]
+  - generic [ref=e216]:
+    - generic [ref=e225]:
+      - button "Switch theme" [ref=e227]
+      - button "Enable privacy mode" [ref=e231]
+      - button "No server" [ref=e236]
+      - button "Help" [ref=e238]
+    - generic:
+      - generic:
+        - alert [ref=e241]:
+          - generic [ref=e242]:
+            - button "Close" [ref=e243]
+            - generic [ref=e246]:
+              - generic [ref=e247]: A new version of Actual is available!
+              - generic [ref=e248]:
+                - generic [ref=e249]: Version v26.10.0 of Actual was recently released.
+                - button "Open changelog" [ref=e252]
+        - alert:
+          - generic:
+            - button "Close"
+            - generic:
+              - generic: Welcome to Actual!
+              - generic:
+                - generic: New to Actual? Take a short tour to learn how budgeting works and find your way around.
+                - button "Take the tour"
+    - generic [ref=e1029]:
+      - generic [ref=e1030]: Cash Flow Calendar
+      - main [ref=e1032]:
+        - generic [ref=e1033]:
+          - generic [ref=e1034]:
+            - button "Cash Flow Setup" [ref=e1035]
+            - generic [ref=e1036]: "Operating accounts: 0 · Sinking Savings accounts: 0 · Budget Burn: Off · Burn categories: 0 · Sinking categories: 0"
+          - generic [ref=e1037]: Select at least one Operating account in Cash Flow Setup to start forecasting.

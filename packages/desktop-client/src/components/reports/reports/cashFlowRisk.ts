@@ -3,9 +3,13 @@ import type { ForecastResult } from '@actual-app/core/types/models/forecast';
 import type { BudgetBurnProjection } from './budgetBurn';
 
 export type CashFlowRiskResult = {
-  status: 'safe' | 'warning' | 'danger';
+  status: 'safe' | 'scheduled-only' | 'incomplete' | 'warning' | 'danger';
+  coverage: 'complete' | 'scheduled-only' | 'incomplete';
   firstNegativeDate: string | null;
   firstNegativeBalance: number | null;
+  firstBelowBufferDate: string | null;
+  firstBelowBufferBalance: number | null;
+  safetyBuffer: number;
   lowestBalance: number;
   lowestBalanceDate: string;
   nextOperatingInflow: { date: string; amount: number } | null;
@@ -14,12 +18,16 @@ export type CashFlowRiskResult = {
 export function calculateCashFlowRisk({
   forecastData,
   budgetBurn,
+  isBurnRequired = false,
+  safetyBuffer = 0,
   operatingAccountIds,
   today,
   endDate,
 }: {
   forecastData: ForecastResult | null;
   budgetBurn: BudgetBurnProjection | null;
+  isBurnRequired?: boolean;
+  safetyBuffer?: number;
   operatingAccountIds: string[];
   today: string;
   endDate: string;
@@ -69,6 +77,8 @@ export function calculateCashFlowRisk({
   );
   let firstNegativeDate: string | null = null;
   let firstNegativeBalance: number | null = null;
+  let firstBelowBufferDate: string | null = null;
+  let firstBelowBufferBalance: number | null = null;
   let lowestBalance = Infinity;
   let lowestBalanceDate = today;
   for (const [date, combinedBalance] of orderedBalances) {
@@ -79,6 +89,10 @@ export function calculateCashFlowRisk({
       firstNegativeDate = date;
       firstNegativeBalance = adjustedBalance;
     }
+    if (adjustedBalance < safetyBuffer && firstBelowBufferDate === null) {
+      firstBelowBufferDate = date;
+      firstBelowBufferBalance = adjustedBalance;
+    }
     if (adjustedBalance < lowestBalance) {
       lowestBalance = adjustedBalance;
       lowestBalanceDate = date;
@@ -88,15 +102,28 @@ export function calculateCashFlowRisk({
   const [nextInflowDate, nextInflowAmount] = [...operatingInflowByDate].sort(
     ([a], [b]) => a.localeCompare(b),
   )[0] ?? [null, null];
+  const coverage = budgetBurn
+    ? 'complete'
+    : isBurnRequired
+      ? 'incomplete'
+      : 'scheduled-only';
   return {
     status:
       firstNegativeDate === today
         ? 'danger'
         : firstNegativeDate !== null
           ? 'warning'
-          : 'safe',
+          : firstBelowBufferDate !== null
+            ? 'warning'
+            : coverage === 'complete'
+              ? 'safe'
+              : coverage,
+    coverage,
     firstNegativeDate,
     firstNegativeBalance,
+    firstBelowBufferDate,
+    firstBelowBufferBalance,
+    safetyBuffer,
     lowestBalance,
     lowestBalanceDate,
     nextOperatingInflow:

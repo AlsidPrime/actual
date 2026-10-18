@@ -1,0 +1,282 @@
+- generic [ref=f3e480]:
+  - generic [ref=f3e483]:
+    - generic [ref=f3e484]:
+      - button "Cash Flow Calendar QA (2026-10-17)" [ref=f3e485]
+      - button "Unpin sidebar" [ref=f3e489]
+    - generic [ref=f3e492]:
+      - generic [ref=f3e493]:
+        - link "Budget" [ref=f3e495] [cursor=pointer]:
+          - /url: /budget
+        - link "Cash Flow" [ref=f3e501] [cursor=pointer]:
+          - /url: /cash-flow
+        - link "Reports" [ref=f3e507] [cursor=pointer]:
+          - /url: /reports
+        - link "Schedules" [ref=f3e513] [cursor=pointer]:
+          - /url: /schedules
+        - button "More" [ref=f3e520]
+      - generic [ref=f3e527]:
+        - link "All accounts 26,120.00" [ref=f3e531] [cursor=pointer]:
+          - /url: /accounts
+          - generic [ref=f3e534]:
+            - generic [ref=f3e535]: All accounts
+            - generic [ref=f3e536]: 26,120.00
+        - link "On budget 28,620.00" [ref=f3e542] [cursor=pointer]:
+          - /url: /accounts/onbudget
+          - generic [ref=f3e545]:
+            - generic [ref=f3e546]: On budget
+            - generic [ref=f3e547]: 28,620.00
+        - link "Operating Checking 1,520.00" [ref=f3e554] [cursor=pointer]:
+          - /url: /accounts/e1c0064a-06be-4b51-b73c-ec4f30598f63
+          - generic [ref=f3e557]:
+            - generic [ref=f3e558]: Operating Checking
+            - generic [ref=f3e559]: 1,520.00
+        - link "Secondary Operating 250.00" [ref=f3e564] [cursor=pointer]:
+          - /url: /accounts/56716c0b-b5eb-4ca6-9265-6fae78246bde
+          - generic [ref=f3e567]:
+            - generic [ref=f3e568]: Secondary Operating
+            - generic [ref=f3e569]: "250.00"
+        - link "Sinking Savings 8,850.00" [ref=f3e574] [cursor=pointer]:
+          - /url: /accounts/a184dc77-d567-40b9-99a0-3436aae41657
+          - generic [ref=f3e577]:
+            - generic [ref=f3e578]: Sinking Savings
+            - generic [ref=f3e579]: 8,850.00
+        - link "Long-Term Savings 18,000.00" [ref=f3e584] [cursor=pointer]:
+          - /url: /accounts/9bdf179e-f7d5-4054-9d08-15161a389fe7
+          - generic [ref=f3e587]:
+            - generic [ref=f3e588]: Long-Term Savings
+            - generic [ref=f3e589]: 18,000.00
+        - link "Off budget -2,500.00" [ref=f3e593] [cursor=pointer]:
+          - /url: /accounts/offbudget
+          - generic [ref=f3e596]:
+            - generic [ref=f3e597]: Off budget
+            - generic [ref=f3e598]: "-2,500.00"
+        - link "QA Test Loan -2,500.00" [ref=f3e605] [cursor=pointer]:
+          - /url: /accounts/b4478df3-7c62-45e7-b489-86d4e1ae4944
+          - generic [ref=f3e608]:
+            - generic [ref=f3e609]: QA Test Loan
+            - generic [ref=f3e610]: "-2,500.00"
+      - button "Add account" [ref=f3e613]
+  - generic [ref=f3e621]:
+    - generic:
+      - generic "Choose the number of months shown at a time" [ref=f3e623]
+      - generic [ref=f3e630]:
+        - button "4 uncategorized transactions" [ref=f3e631]
+        - button "Switch theme" [ref=f3e633]
+        - button "Enable privacy mode" [ref=f3e638]
+        - button "No server" [ref=f3e643]
+        - button "Help" [ref=f3e645]
+    - generic [ref=f3e652]:
+      - generic [ref=f3e656]:
+        - button [ref=f3e657]:
+          - generic "Today" [ref=f3e658]
+        - button [ref=f3e661]:
+          - generic "Previous month" [ref=f3e662]
+        - generic [ref=f3e666]:
+          - text: May
+          - generic [ref=f3e667]: "2026"
+        - generic [ref=f3e668]: Jun
+        - generic [ref=f3e670]: Jul
+        - generic [ref=f3e672]: Aug
+        - generic [ref=f3e674]: Sep
+        - generic [ref=f3e676] [cursor=pointer]: Oct
+        - generic [ref=f3e678]: Nov
+        - generic [ref=f3e680]: Dec
+        - generic [ref=f3e683]:
+          - text: Jan
+          - generic [ref=f3e684]: "2027"
+        - generic [ref=f3e685]: Feb
+        - generic [ref=f3e687]: Mar
+        - button [ref=f3e689]:
+          - generic "Next month" [ref=f3e690]
+      - generic [ref=f3e693]:
+        - generic [ref=f3e697]:
+          - generic [ref=f3e699]:
+            - generic [ref=f3e700]:
+              - button "Collapse month summary" [ref=f3e702]
+              - generic [ref=f3e706]: September
+              - generic [ref=f3e707]:
+                - button "View notes" [ref=f3e711]
+                - button "Menu" [ref=f3e715]
+            - generic [ref=f3e718]:
+              - generic [ref=f3e719]:
+                - generic [ref=f3e720]: "0.00"
+                - generic [ref=f3e722]: "-0.00"
+                - generic [ref=f3e723]: "-0.00"
+                - generic [ref=f3e724]: "-0.00"
+              - generic [ref=f3e725]:
+                - generic [ref=f3e726]: Available funds
+                - generic [ref=f3e727]: Overspent in Aug
+                - generic [ref=f3e728]: Budgeted
+                - generic [ref=f3e729]: For next month
+            - generic [ref=f3e732]:
+              - generic [ref=f3e733]: "To Budget:"
+              - generic [ref=f3e734]: "0.00"
+          - generic [ref=f3e738]:
+            - generic [ref=f3e739]:
+              - button "Collapse month summary" [ref=f3e741]
+              - generic [ref=f3e745]: October
+              - generic [ref=f3e746]:
+                - button "View notes" [ref=f3e750]
+                - button "Menu" [ref=f3e754]
+            - generic [ref=f3e757]:
+              - generic [ref=f3e758]:
+                - generic [ref=f3e759]: "0.00"
+                - generic [ref=f3e761]: "-0.00"
+                - generic [ref=f3e762]: "-3,295.00"
+                - generic [ref=f3e763]: "-0.00"
+              - generic [ref=f3e764]:
+                - generic [ref=f3e765]: Available funds
+                - generic [ref=f3e766]: Overspent in Sep
+                - generic [ref=f3e767]: Budgeted
+                - generic [ref=f3e768]: For next month
+            - generic [ref=f3e771]:
+              - generic [ref=f3e772]: "Overbudgeted:"
+              - generic [ref=f3e773]: "-3,295.00"
+          - generic [ref=f3e777]:
+            - generic [ref=f3e778]:
+              - button "Collapse month summary" [ref=f3e780]
+              - generic [ref=f3e784]: November
+              - generic [ref=f3e785]:
+                - button "View notes" [ref=f3e789]
+                - button "Menu" [ref=f3e793]
+            - generic [ref=f3e796]:
+              - generic [ref=f3e797]:
+                - generic [ref=f3e798]: "-3,295.00"
+                - generic [ref=f3e800]: "-75.00"
+                - generic [ref=f3e801]: "-3,295.00"
+                - generic [ref=f3e802]: "-0.00"
+              - generic [ref=f3e803]:
+                - generic [ref=f3e804]: Available funds
+                - generic [ref=f3e805]: Overspent in Oct
+                - generic [ref=f3e806]: Budgeted
+                - generic [ref=f3e807]: For next month
+            - generic [ref=f3e810]:
+              - generic [ref=f3e811]: "Overbudgeted:"
+              - generic [ref=f3e812]: "-6,665.00"
+        - generic [ref=f3e815]:
+          - generic [ref=f3e816]:
+            - button "Expand" [ref=f3e817]
+            - generic [ref=f3e820]: Category
+            - button "Menu" [ref=f3e821]
+          - generic [ref=f3e825]:
+            - generic [ref=f3e826]:
+              - generic [ref=f3e827]: Budgeted
+              - generic [ref=f3e828]: 3,295.00
+            - generic [ref=f3e829]:
+              - generic [ref=f3e830]: Spent
+              - generic [ref=f3e831]: "-630.00"
+            - generic [ref=f3e832]:
+              - generic [ref=f3e833]: Balance
+              - generic [ref=f3e834]: 2,665.00
+        - generic [ref=f3e837]:
+          - generic [ref=f3e840]:
+            - generic [ref=f3e841]: Everyday spending
+            - generic [ref=f3e850]:
+              - generic [ref=f3e851]: "750.00"
+              - generic [ref=f3e854]: "-480.00"
+              - generic [ref=f3e857]: "270.00"
+          - generic [ref=f3e862]:
+            - generic [ref=f3e863]: Recreation / Miscellaneous
+            - generic [ref=f3e870]:
+              - generic [ref=f3e871]:
+                - button "View notes" [ref=f3e875]
+                - button [ref=f3e879]
+                - generic [ref=f3e882]: "120.00"
+              - generic [ref=f3e885]: "-80.00"
+              - button "40.00" [ref=f3e893]
+          - generic [ref=f3e898]:
+            - generic [ref=f3e899]: Fuel
+            - generic [ref=f3e906]:
+              - generic [ref=f3e907]:
+                - button "View notes" [ref=f3e911]
+                - button [ref=f3e915]
+                - generic [ref=f3e918]: "180.00"
+              - generic [ref=f3e921]: "-90.00"
+              - button "90.00" [ref=f3e929]
+          - generic [ref=f3e934]:
+            - generic [ref=f3e935]: Groceries
+            - generic [ref=f3e942]:
+              - generic [ref=f3e943]:
+                - button "View notes" [ref=f3e947]
+                - button [ref=f3e951]
+                - generic [ref=f3e954]: "450.00"
+              - generic [ref=f3e957]: "-310.00"
+              - button "140.00" [ref=f3e965]
+          - generic [ref=f3e970]:
+            - generic [ref=f3e971]: Sinking funds
+            - generic [ref=f3e980]:
+              - generic [ref=f3e981]: "325.00"
+              - generic [ref=f3e984]: "-150.00"
+              - generic [ref=f3e987]: "175.00"
+          - generic [ref=f3e992]:
+            - generic [ref=f3e993]: Christmas / annual sinking fund
+            - generic [ref=f3e1000]:
+              - generic [ref=f3e1001]:
+                - button "View notes" [ref=f3e1005]
+                - button [ref=f3e1009]
+                - generic [ref=f3e1012]: "150.00"
+              - generic [ref=f3e1015]: "0.00"
+              - button "150.00" [ref=f3e1023]
+          - generic [ref=f3e1028]:
+            - generic [ref=f3e1029]: Vehicle Maintenance sinking fund
+            - generic [ref=f3e1036]:
+              - generic [ref=f3e1037]:
+                - button "View notes" [ref=f3e1041]
+                - button [ref=f3e1045]
+                - generic [ref=f3e1048]: "100.00"
+              - generic [ref=f3e1051]: "0.00"
+              - button "100.00" [ref=f3e1059]
+          - generic [ref=f3e1064]:
+            - generic [ref=f3e1065]: Clothing sinking fund
+            - generic [ref=f3e1072]:
+              - generic [ref=f3e1073]:
+                - button "View notes" [ref=f3e1077]
+                - button [ref=f3e1081]
+                - generic [ref=f3e1084]: "75.00"
+              - generic [ref=f3e1087]: "-150.00"
+              - button "-75.00" [ref=f3e1095]
+          - generic [ref=f3e1100]:
+            - generic [ref=f3e1101]: Fixed bills
+            - generic [ref=f3e1110]:
+              - generic [ref=f3e1111]: 2,220.00
+              - generic [ref=f3e1114]: "0.00"
+              - generic [ref=f3e1117]: 2,220.00
+          - generic [ref=f3e1122]:
+            - generic [ref=f3e1123]: Insurance
+            - generic [ref=f3e1130]:
+              - generic [ref=f3e1131]:
+                - button "View notes" [ref=f3e1135]
+                - button [ref=f3e1139]
+                - generic [ref=f3e1142]: "120.00"
+              - generic [ref=f3e1145]: "0.00"
+              - button "120.00" [ref=f3e1153]
+          - generic [ref=f3e1158]:
+            - generic [ref=f3e1159]: Utilities
+            - generic [ref=f3e1166]:
+              - generic [ref=f3e1167]:
+                - button "View notes" [ref=f3e1171]
+                - button [ref=f3e1175]
+                - generic [ref=f3e1178]: "200.00"
+              - generic [ref=f3e1181]: "0.00"
+              - button "200.00" [ref=f3e1189]
+          - generic [ref=f3e1194]:
+            - generic [ref=f3e1195]: Rent
+            - generic [ref=f3e1202]:
+              - generic [ref=f3e1203]:
+                - button "View notes" [ref=f3e1207]
+                - button [ref=f3e1211]
+                - generic [ref=f3e1214]: 1,900.00
+              - generic [ref=f3e1217]: "0.00"
+              - button "1,900.00" [ref=f3e1225]
+          - generic [ref=f3e1230]:
+            - button "Add group" [ref=f3e1232]
+            - generic [ref=f3e1233]: Received
+          - generic [ref=f3e1237]:
+            - generic [ref=f3e1238]: Income
+            - generic [ref=f3e1246]: "0.00"
+          - generic [ref=f3e1252]:
+            - generic [ref=f3e1253]: Income
+            - button "0.00" [ref=f3e1264]
+          - generic [ref=f3e1268]:
+            - generic [ref=f3e1269]: Starting Balances
+            - button "0.00" [ref=f3e1280]

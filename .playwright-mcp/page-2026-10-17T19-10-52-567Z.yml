@@ -1,0 +1,334 @@
+- generic [ref=e1]:
+  - generic [ref=e45]:
+    - generic [ref=e48]:
+      - generic [ref=e49]:
+        - button "Test Budget" [ref=e50]
+        - button "Unpin sidebar" [ref=e54]
+      - generic [ref=e57]:
+        - generic [ref=e58]:
+          - link "Budget" [ref=e60] [cursor=pointer]:
+            - /url: /budget
+          - link "Cash Flow" [ref=e66] [cursor=pointer]:
+            - /url: /cash-flow
+          - link "Reports" [ref=e72] [cursor=pointer]:
+            - /url: /reports
+          - link "Schedules" [ref=e78] [cursor=pointer]:
+            - /url: /schedules
+          - button "More" [ref=e85]
+        - generic [ref=e92]:
+          - link "All accounts 43,047.96" [ref=e96] [cursor=pointer]:
+            - /url: /accounts
+            - generic [ref=e99]:
+              - generic [ref=e100]: All accounts
+              - generic [ref=e101]: 43,047.96
+          - link "On budget 11,168.07" [ref=e107] [cursor=pointer]:
+            - /url: /accounts/onbudget
+            - generic [ref=e110]:
+              - generic [ref=e111]: On budget
+              - generic [ref=e112]: 11,168.07
+          - link "Bank of America 4,673.11" [ref=e119] [cursor=pointer]:
+            - /url: /accounts/09d53ef2-3567-4c68-9ea4-b5abc0dca636
+            - generic [ref=e122]:
+              - generic [ref=e123]: Bank of America
+              - generic [ref=e124]: 4,673.11
+          - link "Ally Savings 5,217.09" [ref=e129] [cursor=pointer]:
+            - /url: /accounts/77b55f63-0be1-4559-9ab6-4f55c4de38bb
+            - generic [ref=e132]:
+              - generic [ref=e133]: Ally Savings
+              - generic [ref=e134]: 5,217.09
+          - link "Capital One Checking 381.20" [ref=e139] [cursor=pointer]:
+            - /url: /accounts/322667b0-353c-49af-9bac-d7581f658afa
+            - generic [ref=e142]:
+              - generic [ref=e143]: Capital One Checking
+              - generic [ref=e144]: "381.20"
+          - link "HSBC 896.67" [ref=e149] [cursor=pointer]:
+            - /url: /accounts/36e7527e-6129-4ff7-a18f-713b97b59acb
+            - generic [ref=e152]:
+              - generic [ref=e153]: HSBC
+              - generic [ref=e154]: "896.67"
+          - link "Off budget 31,879.89" [ref=e158] [cursor=pointer]:
+            - /url: /accounts/offbudget
+            - generic [ref=e161]:
+              - generic [ref=e162]: Off budget
+              - generic [ref=e163]: 31,879.89
+          - link "Vanguard 401k 2,798.90" [ref=e170] [cursor=pointer]:
+            - /url: /accounts/7e20d951-78ee-4654-b632-9823d7054794
+            - generic [ref=e173]:
+              - generic [ref=e174]: Vanguard 401k
+              - generic [ref=e175]: 2,798.90
+          - link "Mortgage -318,645.60" [ref=e180] [cursor=pointer]:
+            - /url: /accounts/c19b3681-aae4-43dd-9c44-5d5d2dc859bd
+            - generic [ref=e183]:
+              - generic [ref=e184]: Mortgage
+              - generic [ref=e185]: "-318,645.60"
+          - link "House Asset 345,400.00" [ref=e190] [cursor=pointer]:
+            - /url: /accounts/2860aa35-7c4b-46dc-8f82-b1d90aea2036
+            - generic [ref=e193]:
+              - generic [ref=e194]: House Asset
+              - generic [ref=e195]: 345,400.00
+          - link "Roth IRA 2,326.59" [ref=e200] [cursor=pointer]:
+            - /url: /accounts/42ab9f78-65a1-439b-af50-63a96c0c6f1b
+            - generic [ref=e203]:
+              - generic [ref=e204]: Roth IRA
+              - generic [ref=e205]: 2,326.59
+        - button "Add account" [ref=e208]
+    - generic [ref=e216]:
+      - generic [ref=e225]:
+        - button "Switch theme" [ref=e227]
+        - button "Enable privacy mode" [ref=e231]
+        - button "No server" [ref=e236]
+        - button "Help" [ref=e238]
+      - generic:
+        - generic:
+          - alert [ref=e241]:
+            - generic [ref=e242]:
+              - button "Close" [ref=e243]
+              - generic [ref=e246]:
+                - generic [ref=e247]: A new version of Actual is available!
+                - generic [ref=e248]:
+                  - generic [ref=e249]: Version v26.10.0 of Actual was recently released.
+                  - button "Open changelog" [ref=e252]
+          - alert:
+            - generic:
+              - button "Close"
+              - generic:
+                - generic: Welcome to Actual!
+                - generic:
+                  - generic: New to Actual? Take a short tour to learn how budgeting works and find your way around.
+                  - button "Take the tour"
+      - generic [ref=e1029]:
+        - generic [ref=e1030]: Cash Flow Calendar
+        - main [ref=e1032]:
+          - generic [ref=e1033]:
+            - generic [ref=e1034]:
+              - button "Cash Flow Setup" [expanded] [ref=e1035]
+              - generic [ref=e1036]: "Operating accounts: 1 · Sinking Savings accounts: 0 · Budget Burn: Off · Burn categories: 0 · Sinking categories: 0"
+            - generic [ref=e1115]:
+              - generic [ref=e1116]: Cash Flow Risk
+              - generic [ref=e1117]: No Operating cash shortfall projected through Sep 30, 2027.
+              - generic [ref=e1118]: "Lowest projected Operating cash: 381.20 on Oct 17, 2026."
+              - generic [ref=e1119]: No future Operating inflow is scheduled within the forecast horizon.
+            - generic [ref=e1120]:
+              - generic [ref=e1121]: Next Payday / Cash Runway
+              - generic [ref=e1122]: Select employment income in Payday schedules under Cash Flow Setup.
+            - generic [ref=e1123]:
+              - generic [ref=e1124]:
+                - generic [ref=e1125]: Needs Attention
+                - link "Review schedules" [ref=e1126] [cursor=pointer]:
+                  - /url: /schedules
+              - generic [ref=e1127]: No manual schedules need attention.
+              - generic [ref=e1128]: 0 upcoming manual schedules
+            - generic [ref=e1129]:
+              - generic [ref=e1130]: Sinking Savings backing
+              - generic [ref=e1131]: Select Sinking Savings accounts and sinking categories to see physical backing.
+            - generic [ref=e1132]:
+              - generic [ref=e1133]: Scheduled debt service
+              - generic [ref=e1134]: Select debt and credit accounts in Cash Flow Setup to show their scheduled Operating payments.
+              - generic [ref=e1135]: These scheduled transfers are already included in Operating cash projections.
+              - link "Review debt schedules" [ref=e1136] [cursor=pointer]:
+                - /url: /schedules
+            - generic [ref=e1137]: Configure Sinking Savings accounts and sinking categories to see savings advice.
+            - generic [ref=e1139]: "Manual: Actual will not automatically add this transaction. · Negative: projected Operating cash is below zero."
+            - generic [ref=e1140]:
+              - generic [ref=e1141]: Projected Operating cash is shown at the end of each day, after Budget Burn when enabled. Sinking Savings is excluded. Transactions within a day are not ordered.
+              - generic [ref=e1142]:
+                - generic [ref=e1143]:
+                  - button "Previous month" [disabled] [ref=e1144]
+                  - generic [ref=e1147]: October 2026
+                  - button "Next month" [ref=e1148]
+                - region "October 2026" [ref=e1152]:
+                  - generic [ref=e1153]:
+                    - generic [ref=e1154]: Sun
+                    - generic [ref=e1155]: Mon
+                    - generic [ref=e1156]: Tue
+                    - generic [ref=e1157]: Wed
+                    - generic [ref=e1158]: Thu
+                    - generic [ref=e1159]: Fri
+                    - generic [ref=e1160]: Sat
+                  - generic [ref=e1161]:
+                    - article "Sunday, September 27th, 2026" [ref=e1162]:
+                      - generic [ref=e1163]: "27"
+                    - article "Monday, September 28th, 2026" [ref=e1166]:
+                      - generic [ref=e1167]: "28"
+                    - article "Tuesday, September 29th, 2026" [ref=e1170]:
+                      - generic [ref=e1171]: "29"
+                    - article "Wednesday, September 30th, 2026" [ref=e1174]:
+                      - generic [ref=e1175]: "30"
+                    - article "Thursday, October 1st, 2026" [ref=e1178]:
+                      - button "Cash flow details for Oct 1, 2026" [ref=e1179]
+                      - generic [ref=e1180]: "1"
+                    - article "Friday, October 2nd, 2026" [ref=e1183]:
+                      - button "Cash flow details for Oct 2, 2026" [ref=e1184]
+                      - generic [ref=e1185]: "2"
+                    - article "Saturday, October 3rd, 2026" [ref=e1188]:
+                      - button "Cash flow details for Oct 3, 2026" [ref=e1189]
+                      - generic [ref=e1190]: "3"
+                    - article "Sunday, October 4th, 2026" [ref=e1193]:
+                      - button "Cash flow details for Oct 4, 2026" [ref=e1194]
+                      - generic [ref=e1195]: "4"
+                    - article "Monday, October 5th, 2026" [ref=e1198]:
+                      - button "Cash flow details for Oct 5, 2026" [ref=e1199]
+                      - generic [ref=e1200]: "5"
+                    - article "Tuesday, October 6th, 2026" [ref=e1203]:
+                      - button "Cash flow details for Oct 6, 2026" [ref=e1204]
+                      - generic [ref=e1205]: "6"
+                    - article "Wednesday, October 7th, 2026" [ref=e1208]:
+                      - button "Cash flow details for Oct 7, 2026" [ref=e1209]
+                      - generic [ref=e1210]: "7"
+                    - article "Thursday, October 8th, 2026" [ref=e1213]:
+                      - button "Cash flow details for Oct 8, 2026" [ref=e1214]
+                      - generic [ref=e1215]: "8"
+                    - article "Friday, October 9th, 2026" [ref=e1218]:
+                      - button "Cash flow details for Oct 9, 2026" [ref=e1219]
+                      - generic [ref=e1220]: "9"
+                    - article "Saturday, October 10th, 2026" [ref=e1223]:
+                      - button "Cash flow details for Oct 10, 2026" [ref=e1224]
+                      - generic [ref=e1225]: "10"
+                    - article "Sunday, October 11th, 2026" [ref=e1228]:
+                      - button "Cash flow details for Oct 11, 2026" [ref=e1229]
+                      - generic [ref=e1230]: "11"
+                    - article "Monday, October 12th, 2026" [ref=e1233]:
+                      - button "Cash flow details for Oct 12, 2026" [ref=e1234]
+                      - generic [ref=e1235]: "12"
+                    - article "Tuesday, October 13th, 2026" [ref=e1238]:
+                      - button "Cash flow details for Oct 13, 2026" [ref=e1239]
+                      - generic [ref=e1240]: "13"
+                    - article "Wednesday, October 14th, 2026" [ref=e1243]:
+                      - button "Cash flow details for Oct 14, 2026" [ref=e1244]
+                      - generic [ref=e1245]: "14"
+                    - article "Thursday, October 15th, 2026" [ref=e1248]:
+                      - button "Cash flow details for Oct 15, 2026" [ref=e1249]
+                      - generic [ref=e1250]: "15"
+                    - article "Friday, October 16th, 2026" [ref=e1253]:
+                      - button "Cash flow details for Oct 16, 2026" [ref=e1254]
+                      - generic [ref=e1255]: "16"
+                    - article "Saturday, October 17th, 2026" [ref=e1258]:
+                      - button "Cash flow details for Oct 17, 2026" [ref=e1259]
+                      - generic [ref=e1260]:
+                        - generic [ref=e1261]:
+                          - generic [ref=e1262]: "17"
+                          - generic [ref=e1263]: Today
+                        - generic [ref=e1264]: "381.20"
+                    - article "Sunday, October 18th, 2026" [ref=e1265]:
+                      - button "Cash flow details for Oct 18, 2026" [ref=e1266]
+                      - generic [ref=e1267]:
+                        - generic [ref=e1268]: "18"
+                        - generic [ref=e1270]: "381.20"
+                    - article "Monday, October 19th, 2026" [ref=e1271]:
+                      - button "Cash flow details for Oct 19, 2026" [ref=e1272]
+                      - generic [ref=e1273]:
+                        - generic [ref=e1274]: "19"
+                        - generic [ref=e1276]: "381.20"
+                    - article "Tuesday, October 20th, 2026" [ref=e1277]:
+                      - button "Cash flow details for Oct 20, 2026" [ref=e1278]
+                      - generic [ref=e1279]:
+                        - generic [ref=e1280]: "20"
+                        - generic [ref=e1282]: "381.20"
+                    - article "Wednesday, October 21st, 2026" [ref=e1283]:
+                      - button "Cash flow details for Oct 21, 2026" [ref=e1284]
+                      - generic [ref=e1285]:
+                        - generic [ref=e1286]: "21"
+                        - generic [ref=e1288]: "381.20"
+                    - article "Thursday, October 22nd, 2026" [ref=e1289]:
+                      - button "Cash flow details for Oct 22, 2026" [ref=e1290]
+                      - generic [ref=e1291]:
+                        - generic [ref=e1292]: "22"
+                        - generic [ref=e1294]: "381.20"
+                    - article "Friday, October 23rd, 2026" [ref=e1295]:
+                      - button "Cash flow details for Oct 23, 2026" [ref=e1296]
+                      - generic [ref=e1297]:
+                        - generic [ref=e1298]: "23"
+                        - generic [ref=e1300]: "381.20"
+                    - article "Saturday, October 24th, 2026" [ref=e1301]:
+                      - button "Cash flow details for Oct 24, 2026" [ref=e1302]
+                      - generic [ref=e1303]:
+                        - generic [ref=e1304]: "24"
+                        - generic [ref=e1306]: "381.20"
+                    - article "Sunday, October 25th, 2026" [ref=e1307]:
+                      - button "Cash flow details for Oct 25, 2026" [ref=e1308]
+                      - generic [ref=e1309]:
+                        - generic [ref=e1310]: "25"
+                        - generic [ref=e1312]: "381.20"
+                    - article "Monday, October 26th, 2026" [ref=e1313]:
+                      - button "Cash flow details for Oct 26, 2026" [ref=e1314]
+                      - generic [ref=e1315]:
+                        - generic [ref=e1316]: "26"
+                        - generic [ref=e1318]: "381.20"
+                    - article "Tuesday, October 27th, 2026" [ref=e1319]:
+                      - button "Cash flow details for Oct 27, 2026" [ref=e1320]
+                      - generic [ref=e1321]:
+                        - generic [ref=e1322]: "27"
+                        - generic [ref=e1324]: "381.20"
+                    - article "Wednesday, October 28th, 2026" [ref=e1325]:
+                      - button "Cash flow details for Oct 28, 2026" [ref=e1326]
+                      - generic [ref=e1327]:
+                        - generic [ref=e1328]: "28"
+                        - generic [ref=e1330]: "381.20"
+                    - article "Thursday, October 29th, 2026" [ref=e1331]:
+                      - button "Cash flow details for Oct 29, 2026" [ref=e1332]
+                      - generic [ref=e1333]:
+                        - generic [ref=e1334]: "29"
+                        - generic [ref=e1336]: "381.20"
+                    - article "Friday, October 30th, 2026" [ref=e1337]:
+                      - button "Cash flow details for Oct 30, 2026" [ref=e1338]
+                      - generic [ref=e1339]:
+                        - generic [ref=e1340]: "30"
+                        - generic [ref=e1342]: "381.20"
+                    - article "Saturday, October 31st, 2026" [ref=e1343]:
+                      - button "Cash flow details for Oct 31, 2026" [ref=e1344]
+                      - generic [ref=e1345]:
+                        - generic [ref=e1346]: "31"
+                        - generic [ref=e1348]: "381.20"
+  - generic "Cash Flow Setup" [ref=e1040]:
+    - button "Dismiss" [ref=e1042]
+    - dialog "Cash Flow Setup" [ref=e1043]:
+      - generic [ref=e1044]:
+        - generic [ref=e1045]: Cash Flow Setup
+        - generic [ref=e1046]: Select Operating accounts for day-to-day spending. Sinking Savings accounts back sinking categories and do not count as ordinary spending cash. Leave long-term and emergency savings unselected. Select debt and credit accounts only in the Debt and credit accounts section.
+        - button "Operating accounts" [ref=e1047]
+        - generic [ref=e1053]:
+          - generic [ref=e1054]:
+            - button "Hide unchecked" [ref=e1055]
+            - generic [ref=e1061]:
+              - button "Select All" [ref=e1063]
+              - button "Unselect All" [ref=e1067]
+          - list [ref=e1070]:
+            - listitem [ref=e1071]:
+              - checkbox "On Budget" [ref=e1072]
+              - generic [ref=e1073]: On Budget
+            - listitem [ref=e1074]:
+              - checkbox "Bank of America" [ref=e1075]
+              - generic [ref=e1076]: Bank of America
+            - listitem [ref=e1077]:
+              - checkbox "Ally Savings" [ref=e1078]
+              - generic [ref=e1079]: Ally Savings
+            - listitem [ref=e1080]:
+              - checkbox "Capital One Checking" [checked] [active] [ref=e1081]
+              - generic [ref=e1082]: Capital One Checking
+            - listitem [ref=e1083]:
+              - checkbox "HSBC" [ref=e1084]
+              - generic [ref=e1085]: HSBC
+            - listitem [ref=e1086]:
+              - checkbox "Off Budget" [ref=e1087]
+              - generic [ref=e1088]: Off Budget
+            - listitem [ref=e1089]:
+              - checkbox "Vanguard 401k" [ref=e1090]
+              - generic [ref=e1091]: Vanguard 401k
+            - listitem [ref=e1092]:
+              - checkbox "Mortgage" [ref=e1093]
+              - generic [ref=e1094]: Mortgage
+            - listitem [ref=e1095]:
+              - checkbox "House Asset" [ref=e1096]
+              - generic [ref=e1097]: House Asset
+            - listitem [ref=e1098]:
+              - checkbox "Roth IRA" [ref=e1099]
+              - generic [ref=e1100]: Roth IRA
+        - button "Budget Burn disabled" [ref=e1101]
+        - generic [ref=e1102]:
+          - generic [ref=e1103]: Safety buffer
+          - textbox "Safety buffer" [ref=e1104]: "0.00"
+        - generic [ref=e1105]:
+          - generic [ref=e1106]: Forecast horizon
+          - button "12 months" [ref=e1107]
+        - generic [ref=e1112]: Changes save automatically. Forecasts use end-of-day balances.
+    - button "Dismiss" [ref=e1114]

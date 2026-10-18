@@ -1,0 +1,42 @@
+- generic [ref=e1]:
+  - generic [ref=e6]:
+    - generic [ref=e14]:
+      - generic [ref=e15]:
+        - generic [ref=e19]: Welcome to Actual
+        - generic [ref=e20]: Your finances - made simple
+      - generic [ref=e21]: "Actual is a super fast, privacy-focused app for managing your finances. It is 100% free and open source: everything stays on your device, no data is collected, and there is nothing to sign up for."
+      - generic [ref=e23]:
+        - button "Start budgeting" [ref=e24]
+        - button "Try the demo" [ref=e25]
+        - button "Connect to a sync server" [ref=e26]
+      - generic [ref=e27]:
+        - generic [ref=e28]: Coming from another budgeting app?
+        - button "Import my budget" [ref=e29]
+        - generic [ref=e30]:
+          - text: New to budgeting? Take the
+          - link "guided tour" [ref=e31] [cursor=pointer]:
+            - /url: https://actualbudget.org/docs/tour/
+          - text: to learn how Actual works.
+    - generic [ref=e33]:
+      - generic [ref=e34]: Using this device only
+      - link "Set up sync" [ref=e35] [cursor=pointer]:
+        - /url: /config-server
+    - generic [ref=e36]: "App: v26.9.0 | Server: N/A"
+  - generic [ref=e39]:
+    - button "Dismiss" [ref=e41]
+    - dialog "Modal dialog" [active] [ref=e42]:
+      - generic [ref=e44]:
+        - heading "Import From Close" [level=1] [ref=e45]:
+          - generic [ref=e46]: Import From
+          - button "Close" [ref=e50]
+        - generic [ref=e53]:
+          - generic [ref=e54]: Select an app to import from, and we'll guide you through the process.
+          - button "YNAB4 The old unsupported desktop app" [ref=e55]:
+            - text: YNAB4
+            - generic [ref=e56]: The old unsupported desktop app
+          - button "nYNAB The newer web app" [ref=e57]:
+            - text: nYNAB
+            - generic [ref=e58]: The newer web app
+          - button "Actual Import a file exported from Actual" [ref=e60]:
+            - text: Actual
+            - generic [ref=e61]: Import a file exported from Actual

@@ -1,0 +1,221 @@
+- generic [ref=f2e1]:
+  - generic [ref=f2e2383]:
+    - log
+    - log
+  - generic [ref=f2e13]:
+    - generic [ref=f2e16]:
+      - generic [ref=f2e17]:
+        - button "Cash Flow Calendar QA (2026-10-17)" [ref=f2e18]
+        - button "Unpin sidebar" [ref=f2e22]
+      - generic [ref=f2e25]:
+        - generic [ref=f2e26]:
+          - link "Budget" [ref=f2e28] [cursor=pointer]:
+            - /url: /budget
+          - link "Cash Flow" [ref=f2e34] [cursor=pointer]:
+            - /url: /cash-flow
+          - link "Reports" [ref=f2e40] [cursor=pointer]:
+            - /url: /reports
+          - link "Schedules" [ref=f2e46] [cursor=pointer]:
+            - /url: /schedules
+          - button "More" [ref=f2e53]
+          - link "Payees" [ref=f2e3976] [cursor=pointer]:
+            - /url: /payees
+          - link "Rules" [ref=f2e3982] [cursor=pointer]:
+            - /url: /rules
+          - link "Tags" [ref=f2e3988] [cursor=pointer]:
+            - /url: /tags
+          - link "Settings" [ref=f2e3994] [cursor=pointer]:
+            - /url: /settings
+        - generic [ref=f2e60]:
+          - link "All accounts 26,120.00" [ref=f2e603] [cursor=pointer]:
+            - /url: /accounts
+            - generic [ref=f2e67]:
+              - generic [ref=f2e68]: All accounts
+              - generic [ref=f2e69]: 26,120.00
+          - link "On budget 28,620.00" [ref=f2e75] [cursor=pointer]:
+            - /url: /accounts/onbudget
+            - generic [ref=f2e78]:
+              - generic [ref=f2e79]: On budget
+              - generic [ref=f2e80]: 28,620.00
+          - link "Operating Checking 1,520.00" [ref=f2e87] [cursor=pointer]:
+            - /url: /accounts/e1c0064a-06be-4b51-b73c-ec4f30598f63
+            - generic [ref=f2e90]:
+              - generic [ref=f2e91]: Operating Checking
+              - generic [ref=f2e92]: 1,520.00
+          - link "Secondary Operating 250.00" [ref=f2e97] [cursor=pointer]:
+            - /url: /accounts/56716c0b-b5eb-4ca6-9265-6fae78246bde
+            - generic [ref=f2e100]:
+              - generic [ref=f2e101]: Secondary Operating
+              - generic [ref=f2e102]: "250.00"
+          - link "Sinking Savings 8,850.00" [ref=f2e107] [cursor=pointer]:
+            - /url: /accounts/a184dc77-d567-40b9-99a0-3436aae41657
+            - generic [ref=f2e110]:
+              - generic [ref=f2e111]: Sinking Savings
+              - generic [ref=f2e112]: 8,850.00
+          - link "Long-Term Savings 18,000.00" [ref=f2e117] [cursor=pointer]:
+            - /url: /accounts/9bdf179e-f7d5-4054-9d08-15161a389fe7
+            - generic [ref=f2e120]:
+              - generic [ref=f2e121]: Long-Term Savings
+              - generic [ref=f2e122]: 18,000.00
+          - link "Off budget -2,500.00" [ref=f2e607] [cursor=pointer]:
+            - /url: /accounts/offbudget
+            - generic [ref=f2e610]:
+              - generic [ref=f2e611]: Off budget
+              - generic [ref=f2e612]: "-2,500.00"
+          - link "QA Test Loan -2,500.00" [ref=f2e619] [cursor=pointer]:
+            - /url: /accounts/b4478df3-7c62-45e7-b489-86d4e1ae4944
+            - generic [ref=f2e622]:
+              - generic [ref=f2e623]: QA Test Loan
+              - generic [ref=f2e624]: "-2,500.00"
+        - button "Add account" [ref=f2e125]
+    - generic [ref=f2e133]:
+      - generic [ref=f2e134]:
+        - button "4 uncategorized transactions" [ref=f2e135]
+        - button "Switch theme" [ref=f2e137]
+        - button "Enable privacy mode" [ref=f2e3634]
+        - button "No server" [ref=f2e146]
+        - button "Help" [ref=f2e148]
+      - generic [ref=f2e4128]:
+        - generic [ref=f2e4129]:
+          - generic [ref=f2e4131]:
+            - generic [ref=f2e4134]:
+              - generic [ref=f2e4135]: Operating Checking
+              - generic [ref=f2e4136]:
+                - button "View notes" [ref=f2e4139]
+                - button "Edit account name" [ref=f2e4142]
+            - button "1,520.00" [ref=f2e4146]
+          - generic [ref=f2e4151]:
+            - button "Import" [ref=f2e4152]
+            - button "Add New" [ref=f2e4156]
+            - button "Filter" [ref=f2e4164]
+            - textbox "Search" [ref=f2e4170]
+            - button "Reconcile" [ref=f2e4173]
+            - button "Collapse split transactions" [ref=f2e4177]
+            - button "Account menu" [expanded] [ref=f2e4182]
+        - generic [ref=f2e4186]:
+          - generic [ref=f2e4188]:
+            - button "Date" [ref=f2e4193]
+            - button "Payee" [ref=f2e4197]
+            - button "Notes" [ref=f2e4201]
+            - button "Category" [ref=f2e4205]
+            - button "Payment" [ref=f2e4209]
+            - button "Deposit" [ref=f2e4213]
+            - button "✓" [ref=f2e4218]
+          - generic [ref=f2e4225]:
+            - generic [ref=f2e4228]:
+              - generic [ref=f2e4231]: 10/24/2026
+              - generic [ref=f2e4235]:
+                - button "See schedule details" [ref=f2e4236]
+                - button "See transfer account" [ref=f2e4240]
+                - generic [ref=f2e4243]: Sinking Savings
+              - generic [ref=f2e4245]: QA Sinking reimbursement to Operating
+              - generic [ref=f2e4249]: Upcoming
+              - generic "120.00" [ref=f2e4255]
+            - generic [ref=f2e4267]:
+              - generic [ref=f2e4270]: 10/24/2026
+              - generic [ref=f2e4274]:
+                - button "See schedule details" [ref=f2e4275]
+                - generic [ref=f2e4279]: QA Manual Bill
+              - generic [ref=f2e4281]: QA Manual upcoming bill
+              - generic [ref=f2e4285]: Upcoming
+              - generic "90.00" [ref=f2e4289]
+            - generic [ref=f2e4303]:
+              - generic [ref=f2e4306]: 10/23/2026
+              - generic [ref=f2e4310]:
+                - button "See schedule details" [ref=f2e4311]
+                - generic [ref=f2e4315]: QA Utility Company
+              - generic [ref=f2e4317]: QA Utilities — automatic
+              - generic [ref=f2e4321]: Upcoming
+              - generic "200.00" [ref=f2e4325]
+            - generic [ref=f2e4339]:
+              - generic [ref=f2e4342]: 10/22/2026
+              - generic [ref=f2e4346]:
+                - button "See schedule details" [ref=f2e4347]
+                - button "See transfer account" [ref=f2e4351]
+                - generic [ref=f2e4354]: QA Test Loan
+              - generic [ref=f2e4356]: QA Synthetic loan payment
+              - generic [ref=f2e4360]: Upcoming
+              - generic "100.00" [ref=f2e4364]
+            - generic [ref=f2e4378]:
+              - generic [ref=f2e4381]: 10/20/2026
+              - generic [ref=f2e4385]:
+                - button "See schedule details" [ref=f2e4386]
+                - generic [ref=f2e4390]: QA Landlord
+              - generic [ref=f2e4392]: QA Rent — automatic
+              - generic [ref=f2e4396]: Upcoming
+              - generic "1,900.00" [ref=f2e4400]
+            - generic [ref=f2e4414]:
+              - generic [ref=f2e4417]: 10/19/2026
+              - generic [ref=f2e4421]:
+                - button "See schedule details" [ref=f2e4422]
+                - button "See transfer account" [ref=f2e4426]
+                - generic [ref=f2e4429]: Sinking Savings
+              - generic [ref=f2e4431]: QA Operating to Sinking transfer
+              - generic [ref=f2e4435]: Upcoming
+              - generic "150.00" [ref=f2e4439]
+            - generic [ref=f2e4453]:
+              - generic [ref=f2e4456]: 10/18/2026
+              - generic [ref=f2e4460]:
+                - button "See schedule details" [ref=f2e4461]
+                - button "See transfer account" [ref=f2e4465]
+                - generic [ref=f2e4468]: Secondary Operating
+              - generic [ref=f2e4470]: QA Operating to Operating transfer
+              - generic [ref=f2e4474]: Upcoming
+              - generic "100.00" [ref=f2e4478]
+            - generic [ref=f2e4492]:
+              - generic [ref=f2e4495]: 10/17/2026
+              - generic [ref=f2e4499]:
+                - button "See schedule details" [ref=f2e4500]
+                - generic [ref=f2e4504]: QA Manual Bill
+              - generic [ref=f2e4506]: QA Manual due bill
+              - generic [ref=f2e4510]: Due
+              - generic "60.00" [ref=f2e4514]
+            - generic [ref=f2e4527]:
+              - generic [ref=f2e4530]: 10/15/2026
+              - generic [ref=f2e4534]:
+                - button "See schedule details" [ref=f2e4535]
+                - generic [ref=f2e4539]: QA Manual Bill
+              - generic [ref=f2e4541]: QA Manual missed bill
+              - generic [ref=f2e4545]: Missed
+              - generic "75.00" [ref=f2e4549]
+            - generic [ref=f2e4562]:
+              - generic [ref=f2e4565]: 10/16/2026
+              - generic [ref=f2e4568]: QA Grocery Store
+              - generic [ref=f2e4574]: Groceries
+              - generic "80.00" [ref=f2e4577]
+              - generic [ref=f2e4583] [cursor=pointer]
+            - generic [ref=f2e4590]:
+              - generic [ref=f2e4593]: 10/15/2026
+              - generic [ref=f2e4596]: QA Recreation
+              - generic [ref=f2e4602]: Recreation / Miscellaneous
+              - generic "80.00" [ref=f2e4605]
+              - generic [ref=f2e4611] [cursor=pointer]
+            - generic [ref=f2e4618]:
+              - generic [ref=f2e4621]: 10/12/2026
+              - generic [ref=f2e4624]: QA Fuel Station
+              - generic [ref=f2e4630]: Fuel
+              - generic "90.00" [ref=f2e4633]
+              - generic [ref=f2e4639] [cursor=pointer]
+            - generic [ref=f2e4646]:
+              - generic [ref=f2e4649]: 10/09/2026
+              - generic [ref=f2e4652]: QA Grocery Store
+              - generic [ref=f2e4658]: Groceries
+              - generic "230.00" [ref=f2e4661]
+              - generic [ref=f2e4667] [cursor=pointer]
+            - generic [ref=f2e4674]:
+              - generic [ref=f2e4677]: 09/27/2026
+              - generic [ref=f2e4682]: Synthetic opening balance
+              - generic [ref=f2e4686]: Categorize
+              - generic "2,000.00" [ref=f2e4691]
+              - generic [ref=f2e4695] [cursor=pointer]
+  - status [ref=f2e2177]
+  - generic [ref=f2e4731]:
+    - button "Dismiss" [ref=f2e4733]
+    - dialog "Account menu" [ref=f2e4734]:
+      - menu [active] [ref=f2e4735]:
+        - button "Show balance chart" [ref=f2e4736]
+        - button "Manage table columns" [ref=f2e4738]
+        - button "Hide reconciled transactions" [ref=f2e4740]
+        - button "Export" [ref=f2e4742]
+        - button "Close account" [ref=f2e4744]
+    - button "Dismiss" [ref=f2e4747]

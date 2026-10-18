@@ -1,0 +1,120 @@
+- generic [ref=e1]:
+  - generic [ref=e89]:
+    - generic [ref=e92]:
+      - generic [ref=e93]:
+        - button "Cash Flow Calendar QA (2026-10-17)" [ref=e94]
+        - button "Unpin sidebar" [ref=e98]
+      - generic [ref=e101]:
+        - generic [ref=e102]:
+          - link "Budget" [ref=e104] [cursor=pointer]:
+            - /url: /budget
+          - link "Cash Flow" [ref=e110] [cursor=pointer]:
+            - /url: /cash-flow
+          - link "Reports" [ref=e116] [cursor=pointer]:
+            - /url: /reports
+          - link "Schedules" [ref=e122] [cursor=pointer]:
+            - /url: /schedules
+          - button "More" [ref=e129]
+        - generic [ref=e136]:
+          - link "All accounts 28,620.00" [ref=e140] [cursor=pointer]:
+            - /url: /accounts
+            - generic [ref=e143]:
+              - generic [ref=e144]: All accounts
+              - generic [ref=e145]: 28,620.00
+          - link "On budget 28,620.00" [ref=e151] [cursor=pointer]:
+            - /url: /accounts/onbudget
+            - generic [ref=e154]:
+              - generic [ref=e155]: On budget
+              - generic [ref=e156]: 28,620.00
+          - link "Operating Checking 1,520.00" [ref=e163] [cursor=pointer]:
+            - /url: /accounts/e1c0064a-06be-4b51-b73c-ec4f30598f63
+            - generic [ref=e166]:
+              - generic [ref=e167]: Operating Checking
+              - generic [ref=e168]: 1,520.00
+          - link "Secondary Operating 250.00" [ref=e173] [cursor=pointer]:
+            - /url: /accounts/56716c0b-b5eb-4ca6-9265-6fae78246bde
+            - generic [ref=e176]:
+              - generic [ref=e177]: Secondary Operating
+              - generic [ref=e178]: "250.00"
+          - link "Sinking Savings 8,850.00" [ref=e183] [cursor=pointer]:
+            - /url: /accounts/a184dc77-d567-40b9-99a0-3436aae41657
+            - generic [ref=e186]:
+              - generic [ref=e187]: Sinking Savings
+              - generic [ref=e188]: 8,850.00
+          - link "Long-Term Savings 18,000.00" [ref=e193] [cursor=pointer]:
+            - /url: /accounts/9bdf179e-f7d5-4054-9d08-15161a389fe7
+            - generic [ref=e196]:
+              - generic [ref=e197]: Long-Term Savings
+              - generic [ref=e198]: 18,000.00
+        - button "Add account" [ref=e201]
+    - generic [ref=e209]:
+      - generic [ref=e218]:
+        - button "4 uncategorized transactions" [ref=e219]
+        - button "Switch theme" [ref=e221]
+        - button "Enable privacy mode" [ref=e225]
+        - button "No server" [ref=e230]
+        - button "Help" [ref=e232]
+      - generic:
+        - generic:
+          - alert [ref=e235]:
+            - generic [ref=e236]:
+              - button "Close" [ref=e237]
+              - generic [ref=e240]:
+                - generic [ref=e241]: A new version of Actual is available!
+                - generic [ref=e242]:
+                  - generic [ref=e243]: Version v26.10.0 of Actual was recently released.
+                  - button "Open changelog" [ref=e246]
+          - alert:
+            - generic:
+              - button "Close"
+              - generic:
+                - generic: Welcome to Actual!
+                - generic:
+                  - generic: New to Actual? Take a short tour to learn how budgeting works and find your way around.
+                  - button "Take the tour"
+      - generic [ref=e885]:
+        - generic [ref=e886]: Cash Flow Calendar
+        - main [ref=e888]:
+          - generic [ref=e889]:
+            - generic [ref=e890]:
+              - button "Cash Flow Setup" [expanded] [ref=e891]
+              - generic [ref=e892]: "Operating accounts: 0 · Sinking Savings accounts: 0 · Budget Burn: Off · Burn categories: 0 · Sinking categories: 0"
+            - generic [ref=e893]: Select at least one Operating account in Cash Flow Setup to start forecasting.
+  - generic "Cash Flow Setup" [ref=e896]:
+    - button "Dismiss" [ref=e898]
+    - dialog "Cash Flow Setup" [active] [ref=e899]:
+      - generic [ref=e900]:
+        - generic [ref=e901]: Cash Flow Setup
+        - generic [ref=e902]: Select Operating accounts for day-to-day spending. Sinking Savings accounts back sinking categories and do not count as ordinary spending cash. Leave long-term and emergency savings unselected. Select debt and credit accounts only in the Debt and credit accounts section.
+        - button "Operating accounts" [ref=e903]
+        - generic [ref=e909]:
+          - generic [ref=e910]:
+            - button "Hide unchecked" [ref=e911]
+            - generic [ref=e917]:
+              - button "Select All" [ref=e919]
+              - button "Unselect All" [ref=e923]
+          - list [ref=e926]:
+            - listitem [ref=e927]:
+              - checkbox "On Budget" [ref=e928]
+              - generic [ref=e929]: On Budget
+            - listitem [ref=e930]:
+              - checkbox "Operating Checking" [ref=e931]
+              - generic [ref=e932]: Operating Checking
+            - listitem [ref=e933]:
+              - checkbox "Secondary Operating" [ref=e934]
+              - generic [ref=e935]: Secondary Operating
+            - listitem [ref=e936]:
+              - checkbox "Sinking Savings" [ref=e937]
+              - generic [ref=e938]: Sinking Savings
+            - listitem [ref=e939]:
+              - checkbox "Long-Term Savings" [ref=e940]
+              - generic [ref=e941]: Long-Term Savings
+        - button "Budget Burn disabled" [ref=e942]
+        - generic [ref=e943]:
+          - generic [ref=e944]: Safety buffer
+          - textbox "Safety buffer" [ref=e945]: "0.00"
+        - generic [ref=e946]:
+          - generic [ref=e947]: Forecast horizon
+          - button "12 months" [ref=e948]
+        - generic [ref=e953]: Changes save automatically. Forecasts use end-of-day balances.
+    - button "Dismiss" [ref=e955]

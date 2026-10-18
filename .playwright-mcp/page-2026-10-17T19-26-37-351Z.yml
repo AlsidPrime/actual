@@ -1,0 +1,226 @@
+- generic [ref=f2e1]:
+  - generic [ref=f2e2383]:
+    - log
+    - log
+  - generic [ref=f2e5014]:
+    - generic [ref=f2e5017]:
+      - generic [ref=f2e5018]:
+        - textbox [active] [ref=f2e5604]: My Finances
+        - button "Unpin sidebar" [ref=f2e5023]
+      - generic [ref=f2e5026]:
+        - generic [ref=f2e5027]:
+          - link "Budget" [ref=f2e5029] [cursor=pointer]:
+            - /url: /budget
+          - link "Cash Flow" [ref=f2e5035] [cursor=pointer]:
+            - /url: /cash-flow
+          - link "Reports" [ref=f2e5041] [cursor=pointer]:
+            - /url: /reports
+          - link "Schedules" [ref=f2e5047] [cursor=pointer]:
+            - /url: /schedules
+          - button "More" [ref=f2e5054]
+        - link "All accounts 0.00" [ref=f2e5065] [cursor=pointer]:
+          - /url: /accounts
+          - generic [ref=f2e5068]:
+            - generic [ref=f2e5069]: All accounts
+            - generic [ref=f2e5070]: "0.00"
+        - button "Add account" [ref=f2e5075]
+    - generic [ref=f2e5083]:
+      - generic:
+        - generic "Choose the number of months shown at a time" [ref=f2e5085]
+        - generic [ref=f2e5092]:
+          - button "Switch theme" [ref=f2e5094]
+          - button "Enable privacy mode" [ref=f2e5099]
+          - button "No server" [ref=f2e5104]
+          - button "Help" [ref=f2e5106]
+      - generic:
+        - generic:
+          - alert [ref=f2e5109]:
+            - generic [ref=f2e5110]:
+              - button "Close" [ref=f2e5111]
+              - generic [ref=f2e5114]:
+                - generic [ref=f2e5115]: A new version of Actual is available!
+                - generic [ref=f2e5116]:
+                  - generic [ref=f2e5117]: Version v26.10.0 of Actual was recently released.
+                  - button "Open changelog" [ref=f2e5120]
+          - alert:
+            - generic:
+              - button "Close"
+              - generic:
+                - generic: Welcome to Actual!
+                - generic:
+                  - generic: New to Actual? Take a short tour to learn how budgeting works and find your way around.
+                  - button "Take the tour"
+      - generic [ref=f2e5126]:
+        - generic [ref=f2e5130]:
+          - button [ref=f2e5131]:
+            - generic "Today" [ref=f2e5132]
+          - button [ref=f2e5135]:
+            - generic "Previous month" [ref=f2e5136]
+          - generic [ref=f2e5140]:
+            - text: May
+            - generic [ref=f2e5141]: "2026"
+          - generic [ref=f2e5142]: Jun
+          - generic [ref=f2e5144]: Jul
+          - generic [ref=f2e5146]: Aug
+          - generic [ref=f2e5148]: Sep
+          - generic [ref=f2e5150] [cursor=pointer]: Oct
+          - generic [ref=f2e5152]: Nov
+          - generic [ref=f2e5154]: Dec
+          - generic [ref=f2e5157]:
+            - text: Jan
+            - generic [ref=f2e5158]: "2027"
+          - generic [ref=f2e5159]: Feb
+          - generic [ref=f2e5161]: Mar
+          - button [ref=f2e5163]:
+            - generic "Next month" [ref=f2e5164]
+        - generic [ref=f2e5167]:
+          - generic [ref=f2e5171]:
+            - generic [ref=f2e5173]:
+              - generic [ref=f2e5174]:
+                - button "Collapse month summary" [ref=f2e5176]
+                - generic [ref=f2e5180]: September
+                - generic [ref=f2e5181]:
+                  - button "View notes" [ref=f2e5185]
+                  - button "Menu" [ref=f2e5189]
+              - generic [ref=f2e5192]:
+                - generic [ref=f2e5193]:
+                  - generic [ref=f2e5194]: "0.00"
+                  - generic [ref=f2e5196]: "-0.00"
+                  - generic [ref=f2e5197]: "-0.00"
+                  - generic [ref=f2e5198]: "-0.00"
+                - generic [ref=f2e5199]:
+                  - generic [ref=f2e5200]: Available funds
+                  - generic [ref=f2e5201]: Overspent in Aug
+                  - generic [ref=f2e5202]: Budgeted
+                  - generic [ref=f2e5203]: For next month
+              - generic [ref=f2e5206]:
+                - generic [ref=f2e5207]: "To Budget:"
+                - generic [ref=f2e5208]: "0.00"
+            - generic [ref=f2e5212]:
+              - generic [ref=f2e5213]:
+                - button "Collapse month summary" [ref=f2e5215]
+                - generic [ref=f2e5219]: October
+                - generic [ref=f2e5220]:
+                  - button "View notes" [ref=f2e5224]
+                  - button "Menu" [ref=f2e5228]
+              - generic [ref=f2e5231]:
+                - generic [ref=f2e5232]:
+                  - generic [ref=f2e5233]: "0.00"
+                  - generic [ref=f2e5235]: "-0.00"
+                  - generic [ref=f2e5236]: "-0.00"
+                  - generic [ref=f2e5237]: "-0.00"
+                - generic [ref=f2e5238]:
+                  - generic [ref=f2e5239]: Available funds
+                  - generic [ref=f2e5240]: Overspent in Sep
+                  - generic [ref=f2e5241]: Budgeted
+                  - generic [ref=f2e5242]: For next month
+              - generic [ref=f2e5245]:
+                - generic [ref=f2e5246]: "To Budget:"
+                - generic [ref=f2e5247]: "0.00"
+            - generic [ref=f2e5251]:
+              - generic [ref=f2e5252]:
+                - button "Collapse month summary" [ref=f2e5254]
+                - generic [ref=f2e5258]: November
+                - generic [ref=f2e5259]:
+                  - button "View notes" [ref=f2e5263]
+                  - button "Menu" [ref=f2e5267]
+              - generic [ref=f2e5270]:
+                - generic [ref=f2e5271]:
+                  - generic [ref=f2e5272]: "0.00"
+                  - generic [ref=f2e5274]: "-0.00"
+                  - generic [ref=f2e5275]: "-0.00"
+                  - generic [ref=f2e5276]: "-0.00"
+                - generic [ref=f2e5277]:
+                  - generic [ref=f2e5278]: Available funds
+                  - generic [ref=f2e5279]: Overspent in Oct
+                  - generic [ref=f2e5280]: Budgeted
+                  - generic [ref=f2e5281]: For next month
+              - generic [ref=f2e5284]:
+                - generic [ref=f2e5285]: "To Budget:"
+                - generic [ref=f2e5286]: "0.00"
+          - generic [ref=f2e5289]:
+            - generic [ref=f2e5290]:
+              - button "Expand" [ref=f2e5291]
+              - generic [ref=f2e5294]: Category
+              - button "Menu" [ref=f2e5295]
+            - generic [ref=f2e5299]:
+              - generic [ref=f2e5300]:
+                - generic [ref=f2e5301]: Budgeted
+                - generic [ref=f2e5302]: "-0.00"
+              - generic [ref=f2e5303]:
+                - generic [ref=f2e5304]: Spent
+                - generic [ref=f2e5305]: "0.00"
+              - generic [ref=f2e5306]:
+                - generic [ref=f2e5307]: Balance
+                - generic [ref=f2e5308]: "0.00"
+          - generic [ref=f2e5311]:
+            - generic [ref=f2e5314]:
+              - generic [ref=f2e5315]: Usual Expenses
+              - generic [ref=f2e5324]:
+                - generic [ref=f2e5325]: "0.00"
+                - generic [ref=f2e5328]: "0.00"
+                - generic [ref=f2e5331]: "0.00"
+            - generic [ref=f2e5336]:
+              - generic [ref=f2e5337]: Food
+              - generic [ref=f2e5344]:
+                - generic [ref=f2e5345]:
+                  - button "View notes" [ref=f2e5349]
+                  - button [ref=f2e5353]
+                  - generic [ref=f2e5356]: "0.00"
+                - generic [ref=f2e5359]: "0.00"
+                - button "0.00" [ref=f2e5367]
+            - generic [ref=f2e5372]:
+              - generic [ref=f2e5373]: General
+              - generic [ref=f2e5380]:
+                - generic [ref=f2e5381]:
+                  - button "View notes" [ref=f2e5385]
+                  - button [ref=f2e5389]
+                  - generic [ref=f2e5392]: "0.00"
+                - generic [ref=f2e5395]: "0.00"
+                - button "0.00" [ref=f2e5403]
+            - generic [ref=f2e5408]:
+              - generic [ref=f2e5409]: Bills
+              - generic [ref=f2e5416]:
+                - generic [ref=f2e5417]:
+                  - button "View notes" [ref=f2e5421]
+                  - button [ref=f2e5425]
+                  - generic [ref=f2e5428]: "0.00"
+                - generic [ref=f2e5431]: "0.00"
+                - button "0.00" [ref=f2e5439]
+            - generic [ref=f2e5444]:
+              - generic [ref=f2e5445]: Bills (Flexible)
+              - generic [ref=f2e5452]:
+                - generic [ref=f2e5453]:
+                  - button "View notes" [ref=f2e5457]
+                  - button [ref=f2e5461]
+                  - generic [ref=f2e5464]: "0.00"
+                - generic [ref=f2e5467]: "0.00"
+                - button "0.00" [ref=f2e5475]
+            - generic [ref=f2e5480]:
+              - generic [ref=f2e5481]: Investments and Savings
+              - generic [ref=f2e5490]:
+                - generic [ref=f2e5491]: "0.00"
+                - generic [ref=f2e5494]: "0.00"
+                - generic [ref=f2e5497]: "0.00"
+            - generic [ref=f2e5502]:
+              - generic [ref=f2e5503]: Savings
+              - generic [ref=f2e5510]:
+                - generic [ref=f2e5511]:
+                  - button "View notes" [ref=f2e5515]
+                  - button [ref=f2e5519]
+                  - generic [ref=f2e5522]: "0.00"
+                - generic [ref=f2e5525]: "0.00"
+                - button "0.00" [ref=f2e5533]
+            - generic [ref=f2e5538]:
+              - button "Add group" [ref=f2e5540]
+              - generic [ref=f2e5541]: Received
+            - generic [ref=f2e5545]:
+              - generic [ref=f2e5546]: Income
+              - generic [ref=f2e5554]: "0.00"
+            - generic [ref=f2e5560]:
+              - generic [ref=f2e5561]: Income
+              - button "0.00" [ref=f2e5572]
+            - generic [ref=f2e5576]:
+              - generic [ref=f2e5577]: Starting Balances
+              - button "0.00" [ref=f2e5588]
+  - status [ref=f2e2177]

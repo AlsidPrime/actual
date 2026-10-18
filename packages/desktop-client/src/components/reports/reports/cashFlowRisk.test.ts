@@ -80,7 +80,7 @@ function risk(
 }
 
 describe('Cash Flow risk', () => {
-  it('returns safe with the lowest adjusted cash when no date is negative', () => {
+  it('returns scheduled-only with the lowest cash when Burn is absent', () => {
     expect(
       risk(
         forecast([
@@ -91,7 +91,7 @@ describe('Cash Flow risk', () => {
         ]),
       ),
     ).toMatchObject({
-      status: 'safe',
+      status: 'scheduled-only',
       firstNegativeDate: null,
       firstNegativeBalance: null,
       lowestBalance: 400,
@@ -185,7 +185,7 @@ describe('Cash Flow risk', () => {
         ]),
       ),
     ).toMatchObject({
-      status: 'safe',
+      status: 'scheduled-only',
       lowestBalance: 100,
       lowestBalanceDate: '2024-10-31',
       nextOperatingInflow: { date: '2024-11-01', amount: 500 },
@@ -246,7 +246,7 @@ describe('Cash Flow risk', () => {
         { operatingAccountIds: ['checking', 'cash'] },
       ),
     ).toMatchObject({
-      status: 'safe',
+      status: 'scheduled-only',
       lowestBalance: 1000,
       nextOperatingInflow: null,
     });
@@ -303,7 +303,73 @@ describe('Cash Flow risk', () => {
         ]),
         { budgetBurn: null },
       ),
-    ).toMatchObject({ status: 'safe', lowestBalance: 25 });
+    ).toMatchObject({ status: 'scheduled-only', lowestBalance: 25 });
+  });
+
+  it('warns when positive Operating cash falls below the configured buffer', () => {
+    expect(
+      risk(
+        forecast([
+          point(today, 'checking', 100000),
+          point('2024-10-31', 'checking', 90000),
+        ]),
+        { safetyBuffer: 95000 },
+      ),
+    ).toMatchObject({
+      status: 'warning',
+      lowestBalance: 90000,
+      firstBelowBufferDate: '2024-10-31',
+    });
+  });
+
+  it('does not claim complete safety without Budget Burn', () => {
+    expect(risk(forecast([point(today, 'checking', 100000)]))).toMatchObject({
+      status: 'scheduled-only',
+    });
+  });
+
+  it('treats cash exactly at the buffer as no violation', () => {
+    expect(
+      risk(forecast([point(today, 'checking', 95000)]), {
+        safetyBuffer: 95000,
+      }),
+    ).toMatchObject({
+      status: 'scheduled-only',
+      firstBelowBufferDate: null,
+    });
+  });
+
+  it('gives a negative shortfall precedence over a buffer breach', () => {
+    expect(
+      risk(forecast([point(today, 'checking', -100)]), {
+        safetyBuffer: 95000,
+      }),
+    ).toMatchObject({
+      status: 'danger',
+      firstNegativeBalance: -100,
+      firstBelowBufferBalance: -100,
+    });
+  });
+
+  it('marks a completed Burn forecast safe when its minimum meets the buffer', () => {
+    expect(
+      risk(forecast([point(today, 'checking', 100000)]), {
+        budgetBurn: burn([
+          { date: today, dailyBurn: 5000, cumulativeBurn: 5000 },
+        ]),
+        isBurnRequired: true,
+        safetyBuffer: 95000,
+      }),
+    ).toMatchObject({ status: 'safe', coverage: 'complete' });
+  });
+
+  it('still checks scheduled cash when required Burn data fails', () => {
+    expect(
+      risk(forecast([point(today, 'checking', 90000)]), {
+        isBurnRequired: true,
+        safetyBuffer: 95000,
+      }),
+    ).toMatchObject({ status: 'warning', coverage: 'incomplete' });
   });
 
   it('returns no risk summary without a selected forecast balance', () => {
