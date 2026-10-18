@@ -75,11 +75,12 @@ function About() {
       >
         <Text>
           <Trans>
-            Client version: {{ version: `v${window.Actual?.ACTUAL_VERSION}` }}
+            AP fork client version:{' '}
+            {{ version: `v${window.Actual?.ACTUAL_VERSION}` }}
           </Trans>
         </Text>
         <Text>
-          <Trans>Server version: {{ version }}</Trans>
+          <Trans>AP fork server version: {{ version }}</Trans>
         </Text>
 
         {notifyWhenUpdateIsAvailable && versionInfo?.isOutdated ? (
@@ -88,7 +89,9 @@ function About() {
             to="https://actualbudget.org/docs/releases"
             linkColor="purple"
           >
-            <Trans>New version available: {versionInfo.latestVersion}</Trans>
+            <Trans>
+              New upstream Actual version: {versionInfo.latestVersion}
+            </Trans>
           </Link>
         ) : (
           <Text style={{ color: theme.noticeText, fontWeight: 600 }}>

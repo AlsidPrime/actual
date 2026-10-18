@@ -120,7 +120,7 @@ export function FinancesApp() {
         addNotification({
           notification: {
             type: 'message',
-            title: t('A new version of Actual is available!'),
+            title: t('A new AP Actual build is available!'),
             message: t(
               'Click the button below to reload and apply the update.',
             ),
@@ -156,21 +156,15 @@ export function FinancesApp() {
           addNotification({
             notification: {
               type: 'message',
-              title: t('A new version of Actual is available!'),
-              message:
-                (import.meta.env.REACT_APP_IS_PIKAPODS ?? '').toLowerCase() ===
-                'true'
-                  ? t(
-                      'A new version of Actual is available! Your Pikapods instance will be automatically updated in the next few days - no action needed.',
-                    )
-                  : t(
-                      'Version {{latestVersion}} of Actual was recently released.',
-                      { latestVersion: versionInfo.latestVersion },
-                    ),
+              title: t('A newer upstream Actual release is available'),
+              message: t(
+                'Upstream Actual {{latestVersion}} is available. It needs to be incorporated into the AP fork before updating.',
+                { latestVersion: versionInfo.latestVersion },
+              ),
               sticky: true,
               id: 'update-notification',
               button: {
-                title: t('Open changelog'),
+                title: t('View upstream changelog'),
                 action: () => {
                   window.open('https://actualbudget.org/docs/releases');
                 },

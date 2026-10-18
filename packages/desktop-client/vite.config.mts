@@ -340,6 +340,9 @@ export default defineConfig(async ({ mode, command }) => {
         ? undefined
         : VitePWA({
             registerType: 'prompt',
+            // index.html already links site.webmanifest; avoid a second
+            // generated manifest with the workspace package name.
+            manifest: false,
             // TODO:  The plugin worker build is currently disabled due to issues with offline support. Fix this
             // strategies: 'injectManifest',
             // srcDir: 'service-worker',

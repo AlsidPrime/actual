@@ -3,6 +3,7 @@
 !data/.gitkeep
 /data2
 Actual-*
+!deployment/actual-ap/
 !actual-server.js
 **/xcuserdata/*
 export-2020-01-10.csv
@@ -122,3 +123,8 @@ actual.config.js
 
 # Interactive release acceptance screenshots and snapshots
 /acceptance/evidence/
+
+# Local Docker deployment configuration and runtime data
+/deployment/actual-ap/*.env
+/deployment/actual-ap/data/
+/deployment/actual-ap/backups/

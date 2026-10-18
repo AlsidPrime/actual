@@ -28,6 +28,11 @@ WORKDIR /app
 
 COPY packages/ ./packages/
 
+# Pin translation input so the browser build is repeatable and does not use
+# a developer's ignored locale directory or pull a moving branch at build time.
+RUN git clone https://github.com/actualbudget/translations.git packages/desktop-client/locale \
+    && git -C packages/desktop-client/locale checkout --detach 06fba798e090bd470788bfa328f574a36f6a841b
+
 # Increase memory limit for the build process to 8GB
 ENV NODE_OPTIONS=--max_old_space_size=8192
 
@@ -38,7 +43,8 @@ RUN git -c init.defaultBranch=master init -q \
     && git -c user.email=build@docker -c user.name=docker-build add -A \
     && git -c user.email=build@docker -c user.name=docker-build commit -qm build
 
-RUN yarn build:server
+RUN yarn lage build:browser --to=@actual-app/web \
+    && yarn workspace @actual-app/sync-server build
 
 # Focus the workspaces in production mode (including @actual-app/web you just built)
 RUN yarn workspaces focus @actual-app/sync-server --production

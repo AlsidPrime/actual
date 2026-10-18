@@ -1,0 +1,24 @@
+name: actual-ap
+
+services:
+  actual:
+    image: actual-ap:26.9.0-ap.1
+    build:
+      context: ../..
+      dockerfile: sync-server.Dockerfile
+    ports:
+      - target: 5006
+        published: ${ACTUAL_AP_PORT:-5010}
+        host_ip: 127.0.0.1
+        protocol: tcp
+    volumes:
+      - type: bind
+        source: ${ACTUAL_AP_DATA_DIR:?Set ACTUAL_AP_DATA_DIR to an absolute path outside this repository}
+        target: /data
+    healthcheck:
+      test: ['CMD', 'node', 'build/scripts/health-check.js']
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped

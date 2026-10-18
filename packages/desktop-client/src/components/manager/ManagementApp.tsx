@@ -56,7 +56,7 @@ function Version() {
       }}
     >
       <Trans>
-        App: v{{ appVersion: window.Actual.ACTUAL_VERSION }} | Server:{' '}
+        AP fork app: v{{ appVersion: window.Actual.ACTUAL_VERSION }} | Server:{' '}
         {{ serverVersion: version }}
       </Trans>
     </Text>

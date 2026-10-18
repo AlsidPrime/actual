@@ -1,6 +1,6 @@
 {
-  "name": "Actual",
-  "short_name": "Actual",
+  "name": "AP Actual Budget",
+  "short_name": "AP Actual",
   "description": "A local-first personal finance tool",
   "icons": [
     {
