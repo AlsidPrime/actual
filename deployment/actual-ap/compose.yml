@@ -2,7 +2,7 @@ name: actual-ap
 
 services:
   actual:
-    image: actual-ap:26.9.0-ap.1
+    image: ${ACTUAL_AP_IMAGE:-actual-ap:26.9.0-ap.1}
     build:
       context: ../..
       dockerfile: sync-server.Dockerfile

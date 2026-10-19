@@ -25,12 +25,32 @@ Tailscale identity alone does not replace application authentication.
 Copy `production.env.example` to a private `production.env` and
 `staging.env.example` to a private `staging.env`, then adjust absolute paths and
 ports. These files contain local paths and must stay outside Git. The only
-required setting is `ACTUAL_AP_DATA_DIR`; `ACTUAL_AP_PORT` defaults to 5010.
+required setting is `ACTUAL_AP_DATA_DIR`; `ACTUAL_AP_PORT` defaults to 5010 and
+`ACTUAL_AP_IMAGE` defaults to the current production image,
+`actual-ap:26.9.0-ap.1`. Set `ACTUAL_AP_IMAGE=actual-ap:26.9.0-ap.2-rc1` in the
+private staging env file before building staging. Distinct tags prevent a
+staging build from replacing the image used by production, even though the
+Compose projects have separate container names.
 Do not point either path at an existing Actual or household budget directory.
 
-Run all commands from the repository root, at a reviewed release commit:
+Run all commands in Windows PowerShell from the repository root, at a reviewed
+release commit. Inspect the resolved staging and production configurations
+before building; confirm the image tags differ, staging publishes only on
+`127.0.0.1:5011`, and the `/data` bind sources are separate:
 
 ```powershell
+$staging = docker compose --env-file deployment/actual-ap/staging.env -f deployment/actual-ap/compose.yml -p actual-ap-staging config --format json | ConvertFrom-Json
+if ($LASTEXITCODE -ne 0) { throw 'Staging Compose configuration failed' }
+$production = docker compose --env-file deployment/actual-ap/production.env -f deployment/actual-ap/compose.yml -p actual-ap config --format json | ConvertFrom-Json
+if ($LASTEXITCODE -ne 0) { throw 'Production Compose configuration failed' }
+$staging.services.actual | Select-Object image,ports,volumes | Format-List
+$production.services.actual | Select-Object image,ports,volumes | Format-List
+if ($staging.services.actual.image -ne 'actual-ap:26.9.0-ap.2-rc1') { throw 'Unexpected staging image tag' }
+if ($staging.services.actual.image -eq $production.services.actual.image) { throw 'Staging and production image tags must differ' }
+if ([string]$staging.services.actual.ports[0].published -ne '5011' -or $staging.services.actual.ports[0].host_ip -ne '127.0.0.1') { throw 'Unexpected staging port binding' }
+$stagingData = @($staging.services.actual.volumes | Where-Object target -eq '/data')
+$productionData = @($production.services.actual.volumes | Where-Object target -eq '/data')
+if ($stagingData.Count -ne 1 -or $productionData.Count -ne 1 -or $stagingData[0].source -eq $productionData[0].source) { throw 'Staging and production /data bind sources must differ' }
 docker compose --env-file deployment/actual-ap/staging.env -f deployment/actual-ap/compose.yml -p actual-ap-staging build
 docker compose --env-file deployment/actual-ap/staging.env -f deployment/actual-ap/compose.yml -p actual-ap-staging up -d --no-build
 docker compose --env-file deployment/actual-ap/staging.env -f deployment/actual-ap/compose.yml -p actual-ap-staging ps
@@ -39,11 +59,11 @@ Invoke-RestMethod http://127.0.0.1:5011/info
 ```
 
 Import only the synthetic QA archive from
-`data/cash-flow-qa/cash-flow-qa-2026-10-17.zip` into staging. The image tag is
-`actual-ap:26.9.0-ap.1`; the Compose project name isolates container names.
-The data path and port isolate staging from production. The path in the example
-env file is only a suggested location. Check `docker compose ... config` to
-confirm the resolved host binding and volume before starting.
+`data/cash-flow-qa/cash-flow-qa-2026-10-17.zip` into staging. The staging image
+tag is `actual-ap:26.9.0-ap.2-rc1`; the Compose project name isolates container
+names. The data path and port isolate staging from production. The path in the
+example env file is only a suggested location. Inspect the resolved `/data`
+sources and the existing container mounts before starting staging.
 
 Before production, use the **container** at the staging port (never the Vite
 server on 3001) to check the displayed client and `/info` server versions,
