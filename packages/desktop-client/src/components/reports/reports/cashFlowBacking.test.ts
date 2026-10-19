@@ -70,11 +70,30 @@ describe('Sinking Savings physical backing', () => {
     });
   });
 
-  it('handles zero targets, setup, and unavailable balances', () => {
+  it('distinguishes unfunded envelopes from physically held savings cash', () => {
     expect(
-      backing({ categories: [{ id: 'car', name: 'Car', balance: 0 }] }),
-    ).toMatchObject({ status: 'zero-target', percent: null });
+      backing({
+        categories: [{ id: 'car', name: 'Car', balance: 0 }],
+        balances: { savings: 1451 },
+      }),
+    ).toMatchObject({
+      status: 'unallocated',
+      target: 0,
+      backing: 1451,
+      excess: 1451,
+      percent: null,
+    });
+    expect(
+      backing({
+        categories: [{ id: 'car', name: 'Car', balance: 0 }],
+        balances: { savings: 0 },
+      }),
+    ).toMatchObject({ status: 'unallocated', target: 0, backing: 0 });
+  });
+
+  it('handles missing selection and unavailable balances', () => {
     expect(backing({ categories: [] }).status).toBe('setup');
+    expect(backing({ accountIds: [] }).status).toBe('setup');
     expect(backing({ balances: { savings: null } }).status).toBe('incomplete');
     expect(backing({ balances: { savings: Number.NaN } }).status).toBe(
       'incomplete',

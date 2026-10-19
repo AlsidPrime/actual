@@ -833,6 +833,79 @@ describe('Cash Flow page', () => {
     expect(screen.queryByText(/Safe to move/)).not.toBeInTheDocument();
   });
 
+  it.each([1451, 0])(
+    'shows zero allocated envelopes and %i cents of physical savings without a funded message',
+    async reserveBalance => {
+      fixture.withReserve = true;
+      fixture.withBurn = true;
+      fixture.reserveBalance = reserveBalance;
+      fixture.rawConfig = JSON.stringify({
+        ...DEFAULT_CASH_FLOW_CONFIG,
+        operatingAccountIds: ['checking'],
+        reserveAccountIds: ['savings'],
+        reserveCategoryIds: ['emergency'],
+        burnCategoryIds: ['groceries'],
+        budgetBurnEnabled: true,
+      });
+      vi.mocked(send).mockImplementation(async name =>
+        name === 'envelope-budget-month'
+          ? [
+              { name: 'leftover-emergency', value: 0 },
+              { name: 'leftover-groceries', value: 100 },
+              { name: 'budget-groceries', value: 100 },
+            ]
+          : [],
+      );
+      renderRoute();
+      expect(
+        await screen.findByText('No sinking funds allocated yet'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/Your Budget Automations may define savings goals/),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/Physical Sinking Savings cash/),
+      ).toHaveTextContent(reserveBalance === 1451 ? '14.51' : '0.00');
+      if (reserveBalance > 0) {
+        expect(
+          screen.getByText(
+            /Physical savings cash without envelope allocations/,
+          ),
+        ).toHaveTextContent('14.51');
+        expect(
+          screen.getByText(/This cash is not automatically available to spend/),
+        ).toBeInTheDocument();
+      }
+      expect(
+        screen.getByText('No funded sinking transfer is currently recommended'),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText('Sinking Savings is fully funded'),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText(/Safe to move/)).not.toBeInTheDocument();
+    },
+  );
+
+  it('withholds sweep advice when a selected sinking budget cell is missing', async () => {
+    fixture.withReserve = true;
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+      reserveAccountIds: ['savings'],
+      reserveCategoryIds: ['emergency'],
+    });
+    vi.mocked(send).mockImplementation(async () => []);
+    renderRoute();
+    expect(
+      await screen.findByText('Sinking Savings backing data is unavailable.'),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText('Sinking Savings advice is incomplete'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Safe to move/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/fully funded/)).not.toBeInTheDocument();
+  });
+
   it('shows funded Reserve savings with Operating cash below the buffer as a hold', async () => {
     fixture.withReserve = true;
     fixture.withBurn = true;

@@ -49,18 +49,28 @@ export function CashFlowBackingCallout({
               color:
                 backing.status === 'partial'
                   ? theme.warningText
-                  : theme.reportsNumberPositive,
+                  : backing.status === 'unallocated'
+                    ? theme.pageText
+                    : theme.reportsNumberPositive,
               fontWeight: 600,
             }}
           >
             {backing.status === 'partial' ? (
               <Trans>Partially backed</Trans>
-            ) : backing.status === 'zero-target' ? (
-              <Trans>No positive sinking category target</Trans>
+            ) : backing.status === 'unallocated' ? (
+              <Trans>No sinking funds allocated yet</Trans>
             ) : (
               <Trans>Fully backed</Trans>
             )}
           </Text>
+          {backing.status === 'unallocated' && (
+            <Text>
+              <Trans>
+                Your Budget Automations may define savings goals, but no money
+                has been earmarked in these envelopes.
+              </Trans>
+            </Text>
+          )}
           <Text>
             <Trans>Earmarked category balances</Trans>: {money(backing.target)}
           </Text>
@@ -76,13 +86,21 @@ export function CashFlowBackingCallout({
           {backing.excess > 0 && (
             <>
               <Text>
-                <Trans>Physical backing above selected category targets</Trans>:{' '}
-                {money(backing.excess)}
+                {backing.status === 'unallocated' ? (
+                  <Trans>
+                    Physical savings cash without envelope allocations
+                  </Trans>
+                ) : (
+                  <Trans>
+                    Physical backing above selected category targets
+                  </Trans>
+                )}
+                : {money(backing.excess)}
               </Text>
               <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
                 <Trans>
-                  This amount is not necessarily free cash or a recommended
-                  transfer. Use Savings Sweep for transfer advice.
+                  This cash is not automatically available to spend or a
+                  recommended transfer. Use Savings Sweep for transfer advice.
                 </Trans>
               </Text>
             </>

@@ -57,7 +57,9 @@ function SweepCallout({
           advisor.status === 'setup' ||
           advisor.status === 'incomplete'
         ? theme.warningText
-        : theme.reportsNumberPositive;
+        : advisor.status === 'unallocated'
+          ? theme.pageText
+          : theme.reportsNumberPositive;
   return (
     <View style={{ border: `1px solid ${color}`, padding: 14, gap: 6 }}>
       <Text style={{ color, fontWeight: 600, fontSize: 16 }}>
@@ -73,6 +75,8 @@ function SweepCallout({
           </>
         ) : advisor.status === 'incomplete' ? (
           <Trans>Sinking Savings advice is incomplete</Trans>
+        ) : advisor.status === 'unallocated' ? (
+          <Trans>No funded sinking transfer is currently recommended</Trans>
         ) : advisor.status === 'danger' ? (
           <Trans>Do not transfer to Sinking Savings</Trans>
         ) : advisor.status === 'hold' ? (
@@ -93,8 +97,15 @@ function SweepCallout({
       {advisor.status === 'incomplete' && (
         <Text>
           <Trans>
-            Enable Budget Burn and select variable spending categories before
-            relying on a savings transfer recommendation.
+            Check selected category balances and Budget Burn before relying on a
+            savings transfer recommendation.
+          </Trans>
+        </Text>
+      )}
+      {advisor.status === 'unallocated' && (
+        <Text>
+          <Trans>
+            No money has been earmarked in the selected sinking envelopes.
           </Trans>
         </Text>
       )}
@@ -120,7 +131,8 @@ function SweepCallout({
         </Text>
       )}
       {advisor.status === 'hold' &&
-        advisor.effectiveReserveFundingGap === 0 && (
+        advisor.effectiveReserveFundingGap === 0 &&
+        advisor.protectedTarget > 0 && (
           <Text>
             <Trans>
               Sinking Savings may be fully funded, but projected Operating cash
@@ -128,6 +140,14 @@ function SweepCallout({
             </Trans>
           </Text>
         )}
+      {advisor.status === 'hold' && advisor.protectedTarget === 0 && (
+        <Text>
+          <Trans>
+            No sinking funds are allocated, and projected Operating cash falls
+            below your safety buffer.
+          </Trans>
+        </Text>
+      )}
       {advisor.status === 'hold' && advisor.effectiveReserveFundingGap > 0 && (
         <Text>
           <PrivacyFilter>
@@ -159,7 +179,7 @@ function SweepCallout({
             {monthUtils.format(advisor.nextInflowDate, 'PP', locale)}.
           </Text>
         )}
-      {advisor.status !== 'setup' && (
+      {advisor.status !== 'setup' && advisor.status !== 'incomplete' && (
         <Text>
           <Trans>Sinking savings funding gap</Trans>:{' '}
           <PrivacyFilter>
@@ -179,14 +199,17 @@ function SweepCallout({
               </FinancialText>
             </PrivacyFilter>
           </Text>
-          <Text>
-            <Trans>Remaining funding need</Trans>:{' '}
-            <PrivacyFilter>
-              <FinancialText>
-                {format(advisor.effectiveReserveFundingGap, 'financial')}
-              </FinancialText>
-            </PrivacyFilter>
-          </Text>
+          {advisor.status !== 'unallocated' &&
+            advisor.status !== 'incomplete' && (
+              <Text>
+                <Trans>Remaining funding need</Trans>:{' '}
+                <PrivacyFilter>
+                  <FinancialText>
+                    {format(advisor.effectiveReserveFundingGap, 'financial')}
+                  </FinancialText>
+                </PrivacyFilter>
+              </Text>
+            )}
         </>
       )}
       {advisor.status !== 'setup' && (
@@ -385,6 +408,18 @@ export function CashFlowPage() {
       currentCells?.find(cell => cell.name.endsWith(`leftover-${categoryId}`))
         ?.value ?? 0,
     );
+  const reserveLeftoverFor = (categoryId: string) => {
+    if (
+      !selectedReserveCategories.some(category => category.id === categoryId)
+    ) {
+      return null;
+    }
+    const value = currentCells?.find(cell =>
+      cell.name.endsWith(`leftover-${categoryId}`),
+    )?.value;
+    const balance = value == null ? null : Number(value);
+    return balance != null && Number.isFinite(balance) ? balance : null;
+  };
   const monthBudgets: Record<string, Record<string, number>> = {};
   for (const item of budgetData ?? []) {
     monthBudgets[item.month] = {};
@@ -471,18 +506,13 @@ export function CashFlowPage() {
       : null;
   const backing = isEnvelope
     ? calculateSinkingBacking({
-        categories: selectedReserveCategories.map(category => {
-          const value = currentCells?.find(cell =>
-            cell.name.endsWith(`leftover-${category.id}`),
-          )?.value;
-          const balance = value == null ? null : Number(value);
-          return {
-            id: category.id,
-            name: category.name,
-            balance:
-              balance != null && Number.isFinite(balance) ? balance : null,
-          };
-        }),
+        categories: config.reserveCategoryIds.map(id => ({
+          id,
+          name:
+            selectedReserveCategories.find(category => category.id === id)
+              ?.name ?? id,
+          balance: reserveLeftoverFor(id),
+        })),
         accountIds: reserveAccountIds,
         balances: accountBalances,
       })
@@ -505,8 +535,8 @@ export function CashFlowPage() {
           isBudgetBurnComplete: budgetBurn != null,
           operatingAccountIds,
           reserveAccountIds,
-          reserveCategoryLeftovers: selectedReserveCategories.map(category =>
-            leftoverFor(category.id),
+          reserveCategoryLeftovers: config.reserveCategoryIds.map(id =>
+            reserveLeftoverFor(id),
           ),
           safetyBuffer: config.safetyBuffer,
           today,

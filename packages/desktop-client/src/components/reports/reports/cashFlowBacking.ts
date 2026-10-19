@@ -2,7 +2,7 @@ export type SinkingBacking = {
   status:
     | 'setup'
     | 'incomplete'
-    | 'zero-target'
+    | 'unallocated'
     | 'partial'
     | 'full'
     | 'excess';
@@ -68,7 +68,7 @@ export function calculateSinkingBacking({
   return {
     status:
       target === 0
-        ? 'zero-target'
+        ? 'unallocated'
         : shortfall > 0
           ? 'partial'
           : excess > 0

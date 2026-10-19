@@ -250,12 +250,22 @@ describe('Savings Sweep Advisor', () => {
   ])(
     'does not credit %s transfers',
     (_, operatingAccountIds, reserveAccountIds, source, destination) => {
+      const forecastData = forecastWithLegs([
+        { accountId: source, amount: -200 },
+        { accountId: destination, amount: 200 },
+      ]);
+      if (reserveAccountIds.includes('savings2')) {
+        forecastData.dataPoints.push({
+          date: today,
+          accountId: 'savings2',
+          accountName: 'Savings 2',
+          balance: 0,
+          transactions: [],
+        });
+      }
       expect(
         advisor({
-          forecastData: forecastWithLegs([
-            { accountId: source, amount: -200 },
-            { accountId: destination, amount: 200 },
-          ]),
+          forecastData,
           operatingAccountIds,
           reserveAccountIds,
         }),
@@ -304,6 +314,49 @@ describe('Savings Sweep Advisor', () => {
     expect(advisor({ isBudgetBurnComplete: true }).status).toBe('safe');
   });
 
+  it('does not recommend a transfer when selected envelopes have no funded balance', () => {
+    for (const reserveBalance of [1451, 0]) {
+      expect(
+        advisor({
+          forecastData: forecast(undefined, reserveBalance),
+          reserveCategoryLeftovers: [0, 0],
+        }),
+      ).toMatchObject({
+        status: 'unallocated',
+        protectedTarget: 0,
+        reserveAccountBalance: reserveBalance,
+        reserveFundingGap: 0,
+        safeToMove: 0,
+      });
+    }
+    expect(
+      advisor({
+        reserveCategoryLeftovers: [0],
+        forecastData: forecast([300, 300, 300, 800, 800], 1451),
+        safetyBuffer: 500,
+      }),
+    ).toMatchObject({ status: 'hold', protectedTarget: 0, safeToMove: 0 });
+  });
+
+  it('withholds advice when a selected category balance is unavailable', () => {
+    for (const unavailable of [null, Number.NaN]) {
+      expect(
+        advisor({ reserveCategoryLeftovers: [0, unavailable] }),
+      ).toMatchObject({ status: 'incomplete', safeToMove: 0 });
+    }
+  });
+
+  it('withholds advice when selected savings account forecast data is unavailable', () => {
+    const forecastData = forecast();
+    forecastData.dataPoints = forecastData.dataPoints.filter(
+      point => point.date !== today || point.accountId !== 'savings',
+    );
+    expect(advisor({ forecastData })).toMatchObject({
+      status: 'incomplete',
+      safeToMove: 0,
+    });
+  });
+
   it('prioritizes Operating buffer risk over fully funded Reserve savings', () => {
     expect(
       advisor({
@@ -326,7 +379,9 @@ describe('Savings Sweep Advisor', () => {
       advisor({ forecastData: forecast([100, -50, -100, 400, 300]) }),
     ).toMatchObject({ status: 'danger', minimumOperatingCash: -100 });
     expect(advisor({ reserveAccountIds: [] }).status).toBe('setup');
+    expect(advisor({ operatingAccountIds: [] }).status).toBe('setup');
     expect(advisor({ reserveCategoryLeftovers: [] }).status).toBe('setup');
+    expect(advisor({ forecastData: null }).status).toBe('setup');
   });
 
   it('uses the full remaining horizon when no replenishing inflow exists', () => {

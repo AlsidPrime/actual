@@ -3,7 +3,14 @@ import type { ForecastResult } from '@actual-app/core/types/models/forecast';
 import type { BudgetBurnProjection } from './budgetBurn';
 
 export type SweepAdvisorResult = {
-  status: 'setup' | 'incomplete' | 'funded' | 'safe' | 'hold' | 'danger';
+  status:
+    | 'setup'
+    | 'incomplete'
+    | 'unallocated'
+    | 'funded'
+    | 'safe'
+    | 'hold'
+    | 'danger';
   protectedTarget: number;
   reserveAccountBalance: number;
   reserveFundingGap: number;
@@ -81,20 +88,32 @@ export function calculateSweepAdvisor({
   isBudgetBurnComplete: boolean;
   operatingAccountIds: string[];
   reserveAccountIds: string[];
-  reserveCategoryLeftovers: number[];
+  reserveCategoryLeftovers: Array<number | null>;
   safetyBuffer: number;
   today: string;
   endDate: string;
 }): SweepAdvisorResult {
-  const protectedTarget = reserveCategoryLeftovers.reduce(
-    (sum, leftover) => sum + Math.max(0, leftover),
-    0,
+  const hasUnavailableCategoryData = reserveCategoryLeftovers.some(
+    leftover => leftover == null || !Number.isFinite(leftover),
   );
+  const protectedTarget = hasUnavailableCategoryData
+    ? 0
+    : reserveCategoryLeftovers.reduce<number>(
+        (sum, leftover) => sum + Math.max(0, leftover ?? 0),
+        0,
+      );
   const reserveIds = new Set(reserveAccountIds);
   const operatingIds = new Set(operatingAccountIds);
-  const reserveAccountBalance = (forecastData?.dataPoints ?? [])
-    .filter(point => point.date === today && reserveIds.has(point.accountId))
-    .reduce((sum, point) => sum + point.balance, 0);
+  const todayReservePoints = (forecastData?.dataPoints ?? []).filter(
+    point => point.date === today && reserveIds.has(point.accountId),
+  );
+  const hasUnavailableReserveBalance =
+    [...reserveIds].some(
+      id => !todayReservePoints.some(point => point.accountId === id),
+    ) || todayReservePoints.some(point => !Number.isFinite(point.balance));
+  const reserveAccountBalance = hasUnavailableReserveBalance
+    ? 0
+    : todayReservePoints.reduce((sum, point) => sum + point.balance, 0);
   const reserveFundingGap = Math.max(
     0,
     protectedTarget - reserveAccountBalance,
@@ -127,6 +146,12 @@ export function calculateSweepAdvisor({
     reserveCategoryLeftovers.length === 0
   ) {
     return { ...base, status: 'setup' };
+  }
+  if (hasUnavailableCategoryData) {
+    return { ...base, status: 'incomplete' };
+  }
+  if (hasUnavailableReserveBalance) {
+    return { ...base, status: 'incomplete' };
   }
 
   const operatingPoints = forecastData.dataPoints.filter(point =>
@@ -183,6 +208,9 @@ export function calculateSweepAdvisor({
   }
   if (!isBudgetBurnComplete) {
     return { ...result, status: 'incomplete' };
+  }
+  if (protectedTarget === 0) {
+    return { ...result, status: 'unallocated' };
   }
   if (effectiveReserveFundingGap === 0) {
     return { ...result, status: 'funded' };
