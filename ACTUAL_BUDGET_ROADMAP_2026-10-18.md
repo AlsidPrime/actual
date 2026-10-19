@@ -6,7 +6,7 @@
 **Current packaged release:** `26.9.0-ap.1`  
 **Working branch:** `feature/cash-flow-calendar-v2`
 
-> This is a *forward-looking product roadmap*, not a claim that proposed features exist. Keep `ACTUAL_BUDGET_PROJECT_STATUS.md` as the technical history and validation log. Never add private household financial data, receipts, credentials, keys, or backups to this public repository.
+> This is a _forward-looking product roadmap_, not a claim that proposed features exist. Keep `ACTUAL_BUDGET_PROJECT_STATUS.md` as the technical history and validation log. Never add private household financial data, receipts, credentials, keys, or backups to this public repository.
 
 ## Product mission
 
@@ -27,15 +27,15 @@ The broader product goal is **financial execution assistance**: reduce the need 
 
 ## Delivery sequence and status
 
-| Phase | Priority | Status | Outcome |
-| --- | --- | --- | --- |
-| 0. Cash Flow V2 and self-hosted release | Foundation | **Delivered and deployed** | Working calendar, risk, Budget Burn, Reserve backing, Savings Sweep, Payday/Runway, private mobile access, verified encrypted backup/restore and recovery |
-| 1. Real household onboarding | **Now** | **In progress** | Accurate accounts, opening balances, envelope categories, bank import workflow, scheduled income/bills, and a trusted daily Cash Flow view |
-| 2. Payday Assistant and spending guardrails | **Next** | **Design/validation pending** | Explicit, confidence-aware instructions that preserve savings instead of leaving it in chequing |
-| 3. Two-stage Savings Sweep | **Next after baseline** | **Not implemented in full** | Recommend safe sinking-fund transfers first, then truly surplus long-term savings; identify future safe transfer dates |
-| 4. Receipt & Bill Intelligence | **Planned V3** | **Investigation pending** | Capture images/PDFs, match existing transactions, OCR/AI categorize, and preview native splits for approval |
-| 5. Spending insights and low-friction habits | Later | **Not implemented** | Useful item-level/category trends, reminders, completion and reconciliation workflow |
-| 6. Upstream/release operations | Continuous | **Operational baseline working** | Small maintainable fork, pinned deployment automation, updates/rebases, synthetic regression and restore rehearsal |
+| Phase                                        | Priority                | Status                           | Outcome                                                                                                                                                   |
+| -------------------------------------------- | ----------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0. Cash Flow V2 and self-hosted release      | Foundation              | **Delivered and deployed**       | Working calendar, risk, Budget Burn, Reserve backing, Savings Sweep, Payday/Runway, private mobile access, verified encrypted backup/restore and recovery |
+| 1. Real household onboarding                 | **Now**                 | **In progress**                  | Accurate accounts, opening balances, envelope categories, bank import workflow, scheduled income/bills, and a trusted daily Cash Flow view                |
+| 2. Payday Assistant and spending guardrails  | **Next**                | **Design/validation pending**    | Explicit, confidence-aware instructions that preserve savings instead of leaving it in chequing                                                           |
+| 3. Two-stage Savings Sweep                   | **Next after baseline** | **Not implemented in full**      | Recommend safe sinking-fund transfers first, then truly surplus long-term savings; identify future safe transfer dates                                    |
+| 4. Receipt & Bill Intelligence               | **Planned V3**          | **Investigation pending**        | Capture images/PDFs, match existing transactions, OCR/AI categorize, and preview native splits for approval                                               |
+| 5. Spending insights and low-friction habits | Later                   | **Not implemented**              | Useful item-level/category trends, reminders, completion and reconciliation workflow                                                                      |
+| 6. Upstream/release operations               | Continuous              | **Operational baseline working** | Small maintainable fork, pinned deployment automation, updates/rebases, synthetic regression and restore rehearsal                                        |
 
 ### Phase 0 - Existing V2 capabilities (delivered)
 
@@ -66,12 +66,12 @@ The broader product goal is **financial execution assistance**: reduce the need 
 
 Build the smallest **read-only action-oriented layer** on top of existing V2 data, not a new ledger or budget engine:
 
-- Show **Move now / Hold / Recheck on [date]** with amount, recipient *role* (Sinking Savings or later Long-Term Savings), and plain-language reason. Distinguish current actual Operating cash from forecasted end-of-day and full-horizon minima.
+- Show **Move now / Hold / Recheck on [date]** with amount, recipient _role_ (Sinking Savings or later Long-Term Savings), and plain-language reason. Distinguish current actual Operating cash from forecasted end-of-day and full-horizon minima.
 - Explain impending obligations: upcoming scheduled bills, mortgage cadence, modeled discretionary spending, already scheduled transfers, and protected buffer. Do not present a transfer as safe if model coverage is incomplete.
-- Make a clear distinction between monthly sinking-fund *target*, amount actually assigned to envelopes, cash physically backing those envelopes, and safe cash presently available to transfer.
+- Make a clear distinction between monthly sinking-fund _target_, amount actually assigned to envelopes, cash physically backing those envelopes, and safe cash presently available to transfer.
 - Surface overspending guardrails for discretionary categories: remaining envelope amount, actual spending against plan, projected pace/Burn, and whether the intended savings commitment is being jeopardized. Provide direct but non-shaming actions such as "Pause dining spending" or "Recheck after payday."
 - Consider a lightweight payday review checklist/reminder and an explicit "reviewed" UI state **only** if it does not create a competing accounting state. Native confirmed transfers, not clicking "done", must drive cash balances.
-- Add *data freshness and confidence* UX before trusting action-level advice. Missing imports, card activity, uncategorized transactions, incomplete Burn, unknown upcoming payments, or outdated balances should downgrade recommendations rather than show false green safety.
+- Add _data freshness and confidence_ UX before trusting action-level advice. Missing imports, card activity, uncategorized transactions, incomplete Burn, unknown upcoming payments, or outdated balances should downgrade recommendations rather than show false green safety.
 
 **Exit gate:** In a synthetic payday scenario, user can tell exactly what to do or why to wait, with no extra manual financial arithmetic; changing a discretionary purchase meaningfully changes the advice or confidence state.
 
@@ -117,14 +117,14 @@ Build the smallest **read-only action-oriented layer** on top of existing V2 dat
 
 ## Agent assignment and implementation gates
 
-| Work | Primary owner | Gate before implementation |
-| --- | --- | --- |
-| Private household budget setup, transactions and manual financial validation | User + project coordinator | Keep real financial data private; no coding agent access |
-| Read-only Payday Assistant UI, future transfer-date UX, receipt capture and workflow debugging | Codex High, VS Code | Signed-off financial examples and current synthetic QA fixtures |
-| Audit of savings math, transfers, stale-data cases, credit-card effects, long-horizon safety | Jules Pro (independent review) | Explicit behavior matrix and no production data |
-| Investigation of native attachment/split/OCR architecture, optional local model service | Jules Pro (self-contained) | Scope and privacy boundary; investigation before dependencies |
-| Synthetic receipt/invoice test fixture generation, integration tests, deeper regression | Jules Pro or Codex as appropriate | No real receipts, account exports or secrets |
-| Release packaging, Windows debugging, manual phone and browser acceptance | Codex + user | Staging verified before deploying updates |
+| Work                                                                                           | Primary owner                     | Gate before implementation                                      |
+| ---------------------------------------------------------------------------------------------- | --------------------------------- | --------------------------------------------------------------- |
+| Private household budget setup, transactions and manual financial validation                   | User + project coordinator        | Keep real financial data private; no coding agent access        |
+| Read-only Payday Assistant UI, future transfer-date UX, receipt capture and workflow debugging | Codex High, VS Code               | Signed-off financial examples and current synthetic QA fixtures |
+| Audit of savings math, transfers, stale-data cases, credit-card effects, long-horizon safety   | Jules Pro (independent review)    | Explicit behavior matrix and no production data                 |
+| Investigation of native attachment/split/OCR architecture, optional local model service        | Jules Pro (self-contained)        | Scope and privacy boundary; investigation before dependencies   |
+| Synthetic receipt/invoice test fixture generation, integration tests, deeper regression        | Jules Pro or Codex as appropriate | No real receipts, account exports or secrets                    |
+| Release packaging, Windows debugging, manual phone and browser acceptance                      | Codex + user                      | Staging verified before deploying updates                       |
 
 ## Immediate next decisions
 
