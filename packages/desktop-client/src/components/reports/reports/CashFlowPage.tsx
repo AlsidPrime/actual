@@ -34,6 +34,7 @@ import { deriveScheduledDebtPayments } from './cashFlowDebt';
 import { CashFlowDebtCallout } from './CashFlowDebtCallout';
 import { calculatePaydayRunway } from './cashFlowPayday';
 import { CashFlowPaydayCallout } from './CashFlowPaydayCallout';
+import { CashFlowPaydayReview } from './CashFlowPaydayReview';
 import { calculateSweepAdvisor } from './cashFlowReserve';
 import type { SweepAdvisorResult } from './cashFlowReserve';
 import { calculateCashFlowRisk } from './cashFlowRisk';
@@ -44,6 +45,7 @@ import {
 } from './cashFlowSavingsPlan';
 import { CashFlowSetup } from './CashFlowSetup';
 import { deriveCashFlowAttention } from './deriveCashFlowAttention';
+import { derivePaydayReview } from './derivePaydayReview';
 import { SinkingSavingsPlanCallout } from './SinkingSavingsPlanCallout';
 
 function SweepCallout({
@@ -599,6 +601,19 @@ export function CashFlowPage() {
           endDate,
         })
       : null;
+  const paydayReview = derivePaydayReview({
+    runway,
+    risk,
+    savingsPlan,
+    advisor,
+    currentOperatingCash,
+    safetyBuffer: config.safetyBuffer,
+    hasOperatingAccounts: operatingAccountIds.length > 0,
+    hasReserveAccounts: reserveAccountIds.length > 0,
+    hasPaydaySelection: config.paydayScheduleIds.length > 0,
+    hasReserveCategories: selectedReserveCategories.length > 0,
+    isEnvelope,
+  });
 
   return (
     <Page
@@ -649,6 +664,13 @@ export function CashFlowPage() {
             </Trans>
           </Text>
         )}
+        <CashFlowPaydayReview
+          review={paydayReview}
+          runway={runway}
+          savingsPlan={savingsPlan}
+          advisor={advisor}
+          planMonth={planMonth}
+        />
         {operatingAccountIds.length === 0 ? (
           <View style={{ padding: 20, color: theme.pageTextLight }}>
             <Trans>
