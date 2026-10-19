@@ -1,9 +1,13 @@
 import { send } from '@actual-app/core/platform/client/connection';
-import type { Template } from '@actual-app/core/types/models/templates';
+import type {
+  LimitTemplate,
+  PeriodicTemplate,
+  Template,
+} from '@actual-app/core/types/models/templates';
 
 export type PlannedContribution =
   | { status: 'planned'; amount: number }
-  | { status: 'none' | 'unavailable'; amount: null };
+  | { status: 'none' | 'unsupported' | 'unavailable'; amount: null };
 
 export type SinkingAutomationPlans = Record<
   string,
@@ -34,6 +38,142 @@ function unavailable(): PlannedContribution {
   return { status: 'unavailable', amount: null };
 }
 
+function unsupported(): PlannedContribution {
+  return { status: 'unsupported', amount: null };
+}
+
+type BalanceCap = LimitTemplate | NonNullable<PeriodicTemplate['limit']>;
+
+function isValidMonth(value: string): boolean {
+  return /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
+}
+
+function isValidDate(value: string): boolean {
+  if (!/^\d{4}-(0[1-9]|1[0-2])-\d{2}$/.test(value)) {
+    return false;
+  }
+  const date = new Date(value);
+  return (
+    Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value
+  );
+}
+
+function isValidBalanceCap(cap: BalanceCap): boolean {
+  return (
+    Number.isFinite(cap.amount) &&
+    cap.amount >= 0 &&
+    (cap.period === 'monthly' ||
+      cap.period === 'daily' ||
+      (cap.period === 'weekly' &&
+        typeof cap.start === 'string' &&
+        isValidDate(cap.start)))
+  );
+}
+
+/** Only complete, standalone native funding rules can define a savings plan. */
+export function hasStandaloneSinkingContribution(
+  templates: Template[],
+): boolean {
+  let contributions = 0;
+  let balanceCaps = 0;
+  let goals = 0;
+  let refills = 0;
+
+  const areSupported = templates.every(template => {
+    if (template == null || typeof template !== 'object') {
+      return false;
+    }
+    if (template.directive === 'goal') {
+      goals += 1;
+      return (
+        template.type === 'goal' &&
+        Number.isFinite(template.amount) &&
+        template.amount >= 0
+      );
+    }
+    if (template.directive !== 'template') {
+      return false;
+    }
+    if (template.type === 'limit') {
+      if (template.priority !== null) {
+        return false;
+      }
+    } else if (
+      template.priority == null ||
+      !Number.isInteger(template.priority) ||
+      template.priority < 0
+    ) {
+      return false;
+    }
+    if (template.type === 'limit') {
+      balanceCaps += 1;
+      return isValidBalanceCap(template);
+    }
+    if (template.type === 'periodic' || template.type === 'simple') {
+      if (template.limit != null) {
+        balanceCaps += 1;
+        if (!isValidBalanceCap(template.limit)) {
+          return false;
+        }
+      }
+      if (template.type === 'simple') {
+        if (template.monthly == null) {
+          refills += 1;
+          contributions += 1;
+          return template.limit != null;
+        }
+        contributions += 1;
+        return Number.isFinite(template.monthly) && template.monthly >= 0;
+      }
+      contributions += 1;
+      return (
+        Number.isFinite(template.amount) &&
+        template.amount >= 0 &&
+        Number.isInteger(template.period?.amount) &&
+        template.period.amount > 0 &&
+        ['day', 'week', 'month', 'year'].includes(template.period.period) &&
+        (template.starting === '' || isValidDate(template.starting))
+      );
+    }
+    if (template.type === 'refill') {
+      refills += 1;
+      contributions += 1;
+      return true;
+    }
+    if (template.type === 'by' || template.type === 'spend') {
+      contributions += 1;
+      return (
+        Number.isFinite(template.amount) &&
+        template.amount >= 0 &&
+        isValidMonth(template.month) &&
+        (template.type === 'by'
+          ? template.from == null || isValidMonth(template.from)
+          : isValidMonth(template.from) && template.from <= template.month)
+      );
+    }
+    if (template.type === 'schedule') {
+      contributions += 1;
+      return (
+        Boolean(template.scheduleId?.trim() || template.name?.trim()) &&
+        (template.adjustment == null ||
+          (Number.isFinite(template.adjustment) &&
+            (template.adjustmentType === 'fixed' ||
+              template.adjustmentType === 'percent')))
+      );
+    }
+    return false;
+  });
+
+  return (
+    areSupported &&
+    contributions > 0 &&
+    goals <= 1 &&
+    balanceCaps <= 1 &&
+    (refills === 0 ||
+      (refills === 1 && contributions === 1 && balanceCaps === 1))
+  );
+}
+
 /** Read configured native rules and their month-specific dry-run results. */
 export async function loadSinkingAutomationPlans(
   categoryIds: readonly string[],
@@ -61,10 +201,7 @@ export async function loadSinkingAutomationPlans(
         const selected = definitions[categoryId];
         if (selected === undefined) {
           templates = [];
-        } else if (
-          Array.isArray(selected) &&
-          selected.every(template => template.directive !== 'error')
-        ) {
+        } else if (Array.isArray(selected)) {
           templates = selected;
         } else {
           return months.map(month => ({
@@ -94,10 +231,14 @@ export async function loadSinkingAutomationPlans(
             };
           }
           try {
+            if (!hasStandaloneSinkingContribution(templates)) {
+              return { month, categoryId, contribution: unsupported() };
+            }
             const result = await send('budget/dry-run-category-template', {
               month,
               categoryId,
               templates,
+              strict: true,
             });
             const isValid =
               result != null &&
@@ -185,19 +326,21 @@ export function buildSinkingSavingsPlan({
           : null,
     };
   });
-  const hasUnavailableContribution = rows.some(
-    row => row.contribution.status === 'unavailable',
+  const hasIncompleteContribution = rows.some(
+    row =>
+      row.contribution.status === 'unavailable' ||
+      row.contribution.status === 'unsupported',
   );
   const plannedRows = rows.filter(row => row.contribution.status === 'planned');
   const plannedTotal =
-    hasUnavailableContribution || plannedRows.length === 0
+    hasIncompleteContribution || plannedRows.length === 0
       ? null
       : plannedRows.reduce(
           (sum, row) => sum + (row.contribution.amount ?? 0),
           0,
         );
   const planningGap =
-    hasUnavailableContribution || plannedRows.length === 0
+    hasIncompleteContribution || plannedRows.length === 0
       ? null
       : sumKnown(plannedRows.map(row => row.planningGap));
   const physicalCash =
@@ -221,7 +364,7 @@ export function buildSinkingSavingsPlan({
     status:
       categories.length === 0
         ? 'setup'
-        : hasUnavailableContribution ||
+        : hasIncompleteContribution ||
             monthlyAllocationTotal == null ||
             currentEnvelopeTotal == null ||
             physicalCash == null

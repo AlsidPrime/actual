@@ -147,6 +147,27 @@ describe('dryRunCategoryTemplate', () => {
     expect(result.perTemplate).toEqual([10000]);
   });
 
+  it('returns a valid zero for a future Fixed Amount start in strict mode', async () => {
+    setupSheetMock({});
+    setupAqlForCategoryLookup(category);
+    const result = await dryRunCategoryTemplate({
+      month: '2026-11',
+      categoryId: category.id,
+      strict: true,
+      templates: [
+        {
+          type: 'periodic',
+          amount: 150,
+          period: { period: 'month', amount: 1 },
+          starting: '2027-01-01',
+          directive: 'template',
+          priority: 1,
+        },
+      ],
+    });
+    expect(result).toEqual({ budgeted: 0, perTemplate: [0] });
+  });
+
   it('uses native prior-month carryover for a Save by Date contribution', async () => {
     setupAqlForCategoryLookup(category);
     const templates: Template[] = [
@@ -172,6 +193,91 @@ describe('dryRunCategoryTemplate', () => {
     });
     expect(withCarryover.budgeted).toBeGreaterThan(0);
     expect(withCarryover.budgeted).toBeLessThan(withoutCarryover.budgeted);
+    expect(actions.setBudget).not.toHaveBeenCalled();
+  });
+
+  it('projects legacy Fixed Amount and a long-term Goal without counting the Goal as funding', async () => {
+    setupSheetMock({});
+    setupAqlForCategoryLookup(category);
+    const result = await dryRunCategoryTemplate({
+      month: '2026-11',
+      categoryId: category.id,
+      strict: true,
+      templates: [
+        { type: 'simple', monthly: 150, directive: 'template', priority: 1 },
+        { type: 'goal', amount: 2400, directive: 'goal' },
+      ],
+    });
+    expect(result).toEqual({ budgeted: 15000, perTemplate: [15000, 0] });
+    expect(actions.setBudget).not.toHaveBeenCalled();
+  });
+
+  it('uses native early-spending history for Save by Date with spending', async () => {
+    setupAqlForCategoryLookup(category);
+    const templates: Template[] = [
+      {
+        type: 'spend',
+        amount: 1200,
+        from: '2026-10',
+        month: '2026-12',
+        directive: 'template',
+        priority: 1,
+      },
+    ];
+    setupSheetMock({ 'leftover-cat-1': 30000, 'sum-amount-cat-1': -10000 });
+    const withEarlySpending = await dryRunCategoryTemplate({
+      month: '2026-11',
+      categoryId: category.id,
+      templates,
+      strict: true,
+    });
+    setupSheetMock({ 'leftover-cat-1': 30000, 'sum-amount-cat-1': 0 });
+    const withoutEarlySpending = await dryRunCategoryTemplate({
+      month: '2026-11',
+      categoryId: category.id,
+      templates,
+      strict: true,
+    });
+    expect(withEarlySpending.budgeted).toBe(40000);
+    expect(withoutEarlySpending.budgeted).toBe(45000);
+    expect(actions.setBudget).not.toHaveBeenCalled();
+  });
+
+  it('uses native balance and cap semantics for Refill and capped Fixed Amount', async () => {
+    setupSheetMock({ 'leftover-cat-1': 9000 });
+    setupAqlForCategoryLookup(category);
+    const cap: Template = {
+      type: 'limit',
+      amount: 150,
+      hold: true,
+      period: 'monthly',
+      directive: 'template',
+      priority: null,
+    };
+    const refill = await dryRunCategoryTemplate({
+      month: '2026-11',
+      categoryId: category.id,
+      templates: [cap, { type: 'refill', directive: 'template', priority: 1 }],
+      strict: true,
+    });
+    const fixedWithCap = await dryRunCategoryTemplate({
+      month: '2026-11',
+      categoryId: category.id,
+      templates: [
+        {
+          type: 'periodic',
+          amount: 100,
+          period: { period: 'month', amount: 1 },
+          starting: '2026-01-01',
+          directive: 'template',
+          priority: 1,
+        },
+        cap,
+      ],
+      strict: true,
+    });
+    expect(refill.budgeted).toBe(6000);
+    expect(fixedWithCap.budgeted).toBe(6000);
     expect(actions.setBudget).not.toHaveBeenCalled();
   });
 
@@ -216,7 +322,7 @@ describe('dryRunCategoryTemplate', () => {
     expect(result.perTemplate[2]).toBe(0); // cap row contributes nothing
   });
 
-  it('reports unavailable categories instead of returning a false zero', async () => {
+  it('preserves legacy zeros for missing categories and reports them in strict mode', async () => {
     setupSheetMock({});
     vi.mocked(aql.aqlQuery).mockImplementation(async (query: unknown) => {
       const queryStr = JSON.stringify(query);
@@ -239,32 +345,45 @@ describe('dryRunCategoryTemplate', () => {
         priority: 1,
       },
     ];
+    expect(
+      await dryRunCategoryTemplate({
+        month: '2024-01',
+        categoryId: 'missing',
+        templates,
+      }),
+    ).toEqual({ budgeted: 0, perTemplate: [0] });
     await expect(
       dryRunCategoryTemplate({
         month: '2024-01',
         categoryId: 'missing',
         templates,
+        strict: true,
       }),
     ).rejects.toThrow('Category missing is unavailable');
   });
 
-  it('reports invalid template projections instead of returning a false zero', async () => {
+  it('preserves legacy projection behavior and reports failures in strict mode', async () => {
     setupSheetMock({});
     setupAqlForCategoryLookup(category);
+    const request = {
+      month: '2024-06',
+      categoryId: category.id,
+      templates: [
+        {
+          type: 'by',
+          amount: 1200,
+          month: '2023-12',
+          directive: 'template',
+          priority: 1,
+        },
+      ] satisfies Template[],
+    };
+    expect(await dryRunCategoryTemplate(request)).toEqual({
+      budgeted: 0,
+      perTemplate: [0],
+    });
     await expect(
-      dryRunCategoryTemplate({
-        month: '2024-06',
-        categoryId: category.id,
-        templates: [
-          {
-            type: 'by',
-            amount: 1200,
-            month: '2023-12',
-            directive: 'template',
-            priority: 1,
-          },
-        ],
-      }),
+      dryRunCategoryTemplate({ ...request, strict: true }),
     ).rejects.toThrow(/Target month has passed/);
   });
 

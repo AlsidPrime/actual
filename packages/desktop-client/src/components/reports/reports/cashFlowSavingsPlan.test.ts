@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   buildSinkingSavingsPlan,
+  hasStandaloneSinkingContribution,
   loadSinkingAutomationPlans,
 } from './cashFlowSavingsPlan';
 
@@ -107,7 +108,7 @@ describe('native Sinking Savings automation plan', () => {
             name === 'budget/dry-run-category-template' &&
             args.categoryId === 'membership',
         )?.[1],
-    ).toMatchObject({ templates: templates.membership });
+    ).toMatchObject({ templates: templates.membership, strict: true });
     expect(
       vi
         .mocked(send)
@@ -170,6 +171,171 @@ describe('native Sinking Savings automation plan', () => {
       status: 'unavailable',
       amount: null,
     });
+  });
+
+  it('accepts complete standalone funding rules and compatible modifiers', () => {
+    const cap: Template = {
+      type: 'limit',
+      amount: 300,
+      hold: true,
+      period: 'monthly',
+      directive: 'template',
+      priority: null,
+    };
+    const refill: Template = {
+      type: 'refill',
+      directive: 'template',
+      priority: 1,
+    };
+    const spend: Template = {
+      type: 'spend',
+      amount: 1200,
+      from: '2026-10',
+      month: '2026-12',
+      directive: 'template',
+      priority: 1,
+    };
+    const goal: Template = {
+      type: 'goal',
+      amount: 2400,
+      directive: 'goal',
+    };
+    expect(hasStandaloneSinkingContribution(templates.vehicle)).toBe(true);
+    expect(
+      hasStandaloneSinkingContribution([
+        {
+          type: 'simple',
+          monthly: 150,
+          directive: 'template',
+          priority: 1,
+        },
+      ]),
+    ).toBe(true);
+    expect(hasStandaloneSinkingContribution(templates.christmas)).toBe(true);
+    expect(hasStandaloneSinkingContribution([spend])).toBe(true);
+    expect(hasStandaloneSinkingContribution(templates.membership)).toBe(true);
+    expect(hasStandaloneSinkingContribution([cap, refill])).toBe(true);
+    expect(
+      hasStandaloneSinkingContribution([
+        {
+          type: 'simple',
+          limit: {
+            amount: 300,
+            hold: true,
+            period: 'monthly',
+          },
+          directive: 'template',
+          priority: 1,
+        },
+      ]),
+    ).toBe(true);
+    expect(hasStandaloneSinkingContribution([...templates.vehicle, cap])).toBe(
+      true,
+    );
+    expect(
+      hasStandaloneSinkingContribution([
+        {
+          type: 'periodic',
+          amount: 150,
+          period: { period: 'month', amount: 1 },
+          starting: '2026-01-01',
+          directive: 'template',
+          priority: 1,
+          limit: { amount: 300, hold: true, period: 'monthly' },
+        },
+      ]),
+    ).toBe(true);
+    expect(hasStandaloneSinkingContribution([...templates.vehicle, goal])).toBe(
+      true,
+    );
+  });
+
+  it('marks goal-only, cap-only, funding-dependent, and mixed rules unsupported', async () => {
+    const goal: Template = {
+      type: 'goal',
+      amount: 2400,
+      directive: 'goal',
+    };
+    const cap: Template = {
+      type: 'limit',
+      amount: 300,
+      hold: true,
+      period: 'monthly',
+      directive: 'template',
+      priority: null,
+    };
+    const unsupported: Record<string, Template[]> = {
+      goal: [goal],
+      cap: [cap],
+      remainder: [
+        { type: 'remainder', weight: 1, directive: 'template', priority: null },
+      ],
+      percentage: [
+        {
+          type: 'percentage',
+          percent: 10,
+          previous: false,
+          category: 'all income',
+          directive: 'template',
+          priority: 1,
+        },
+      ],
+      copy: [{ type: 'copy', lookBack: 1, directive: 'template', priority: 1 }],
+      average: [
+        { type: 'average', numMonths: 3, directive: 'template', priority: 1 },
+      ],
+      mixed: [
+        ...templates.vehicle,
+        { type: 'remainder', weight: 1, directive: 'template', priority: null },
+      ],
+      mixedPercentage: [
+        ...templates.vehicle,
+        {
+          type: 'percentage',
+          percent: 10,
+          previous: false,
+          category: 'all income',
+          directive: 'template',
+          priority: 1,
+        },
+      ],
+      mixedRefill: [
+        ...templates.vehicle,
+        cap,
+        { type: 'refill', directive: 'template', priority: 1 },
+      ],
+      refillWithoutCap: [
+        { type: 'refill', directive: 'template', priority: 1 },
+      ],
+      invalidCap: [
+        { ...cap, period: 'weekly', start: 'invalid' },
+        { type: 'refill', directive: 'template', priority: 1 },
+      ],
+    };
+    vi.mocked(send).mockImplementation(async (name, categoryId) => {
+      if (name === 'budget/get-category-automations') {
+        return { [categoryId]: unsupported[categoryId] };
+      }
+      throw new Error(`Unexpected API call: ${name}`);
+    });
+    const categoryIds = Object.keys(unsupported);
+    const plans = await loadSinkingAutomationPlans(categoryIds, [november]);
+    for (const categoryId of categoryIds) {
+      expect(hasStandaloneSinkingContribution(unsupported[categoryId])).toBe(
+        false,
+      );
+      expect(plans[november][categoryId]).toEqual({
+        status: 'unsupported',
+        amount: null,
+      });
+    }
+    expect(
+      vi
+        .mocked(send)
+        .mock.calls.filter(
+          ([name]) => name === 'budget/dry-run-category-template',
+        ),
+    ).toHaveLength(0);
   });
 });
 

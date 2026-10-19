@@ -169,6 +169,34 @@ describe('runSchedule', () => {
     expect(result.remainder).toBe(0);
   });
 
+  it('projects a monthly contribution toward an annual December bill', async () => {
+    const template = {
+      type: 'schedule',
+      name: 'Annual membership',
+      directive: 'template',
+      priority: 0,
+    } as const;
+    mockSingleSchedule({
+      start: '2024-12-15',
+      amount: -120000,
+      frequency: 'yearly',
+    });
+    const result = await runSchedule(
+      [template],
+      '2024-01-01',
+      0,
+      0,
+      0,
+      0,
+      [],
+      defaultCategory,
+      defaultCurrency,
+    );
+    expect(result.errors).toHaveLength(0);
+    expect(result.to_budget).toBe(10000);
+    expect(result.perScheduleMonthly.get(template)).toBe(10000);
+  });
+
   it('returns a per-template monthly attribution map keyed by template', async () => {
     const template_lines = [
       {
@@ -436,6 +464,47 @@ describe('runSchedule', () => {
       defaultCurrency,
     );
     expect(result.to_budget).toBe(3100); // 31 days × $1
+  });
+
+  it('counts all three biweekly bill occurrences in a three-payment month', async () => {
+    const template = {
+      type: 'schedule',
+      name: 'Biweekly bill',
+      directive: 'template',
+      priority: 0,
+    } as const;
+    mockSingleSchedule({
+      start: '2024-03-01',
+      amount: -10000,
+      frequency: 'weekly',
+      interval: 2,
+    });
+
+    const march = await runSchedule(
+      [template],
+      '2024-03-01',
+      0,
+      0,
+      0,
+      0,
+      [],
+      defaultCategory,
+      defaultCurrency,
+    );
+    const april = await runSchedule(
+      [template],
+      '2024-04-01',
+      0,
+      0,
+      0,
+      0,
+      [],
+      defaultCategory,
+      defaultCurrency,
+    );
+    expect(march.to_budget).toBe(30000);
+    expect(march.perScheduleMonthly.get(template)).toBe(30000);
+    expect(april.to_budget).toBe(20000);
   });
 
   it('sorts sinking schedules by next due date so existing balance covers the earliest first', async () => {

@@ -362,10 +362,12 @@ export async function dryRunCategoryTemplate({
   month,
   categoryId,
   templates,
+  strict = false,
 }: {
   month: string;
   categoryId: CategoryEntity['id'];
   templates: Template[];
+  strict?: boolean;
 }): Promise<DryRunCategoryResult> {
   // The projection answers "how much do these templates demand" — it
   // skips the priority clamp so future months (where To Budget is empty)
@@ -374,7 +376,10 @@ export async function dryRunCategoryTemplate({
     q('categories').filter({ id: categoryId }).select('*'),
   );
   if (categoryData.length === 0) {
-    throw new Error(`Category ${categoryId} is unavailable`);
+    if (strict) {
+      throw new Error(`Category ${categoryId} is unavailable`);
+    }
+    return { budgeted: 0, perTemplate: templates.map(() => 0) };
   }
   const { contexts, errors } = await computeTemplates(
     month,
@@ -383,12 +388,15 @@ export async function dryRunCategoryTemplate({
     categoryData,
     true,
   );
-  if (errors.length > 0) {
+  if (strict && errors.length > 0) {
     throw new Error(errors.join('\n\n'));
   }
   const ctx = contexts.find(c => c.category.id === categoryId);
   if (!ctx) {
-    throw new Error(`Category ${categoryId} could not be projected`);
+    if (strict) {
+      throw new Error(`Category ${categoryId} could not be projected`);
+    }
+    return { budgeted: 0, perTemplate: templates.map(() => 0) };
   }
   const values = ctx.getValues();
   return {

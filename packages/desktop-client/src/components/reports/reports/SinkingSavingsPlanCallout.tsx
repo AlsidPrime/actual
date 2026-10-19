@@ -103,8 +103,9 @@ export function SinkingSavingsPlanCallout({
           {plan.status === 'incomplete' && (
             <Text style={{ color: theme.warningText }}>
               <Trans>
-                Some plan data is unavailable. Missing amounts are excluded from
-                totals and planning gaps.
+                Some plan data is unavailable or unsupported. Any affected
+                planned total or planning gap is shown as unavailable; available
+                budgeted and balance amounts remain visible.
               </Trans>
             </Text>
           )}
@@ -180,6 +181,8 @@ export function SinkingSavingsPlanCallout({
                     <Text>
                       {category.contribution.status === 'none' ? (
                         <Trans>No automation configured</Trans>
+                      ) : category.contribution.status === 'unsupported' ? (
+                        <Trans>Unsupported automation configuration</Trans>
                       ) : (
                         money(category.contribution.amount)
                       )}

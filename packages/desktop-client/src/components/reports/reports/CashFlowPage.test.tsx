@@ -1010,6 +1010,49 @@ describe('Cash Flow page', () => {
     }
   });
 
+  it('shows available allocations and balances while an unsupported plan is unavailable', async () => {
+    fixture.withReserve = true;
+    fixture.reserveBalance = 1451;
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+      reserveAccountIds: ['savings'],
+      reserveCategoryIds: ['emergency'],
+    });
+    vi.mocked(send).mockImplementation(async name => {
+      if (name === 'envelope-budget-month') {
+        return [
+          { name: 'budget-emergency', value: 5000 },
+          { name: 'leftover-emergency', value: 0 },
+        ];
+      }
+      if (name === 'budget/get-category-automations') {
+        return {
+          emergency: [{ type: 'goal', amount: 1000, directive: 'goal' }],
+        };
+      }
+      throw new Error(`Unexpected API call: ${name}`);
+    });
+    renderRoute();
+    const panel = screen.getByText('Sinking Savings Plan').parentElement
+      ?.parentElement;
+    await waitFor(() =>
+      expect(panel).toHaveTextContent(
+        'Some plan data is unavailable or unsupported.',
+      ),
+    );
+    expect(panel).toHaveTextContent('Unsupported automation configuration');
+    expect(panel).toHaveTextContent('50.00');
+    expect(panel).toHaveTextContent('14.51');
+    expect(
+      vi
+        .mocked(send)
+        .mock.calls.filter(
+          ([name]) => name === 'budget/dry-run-category-template',
+        ),
+    ).toHaveLength(0);
+  });
+
   it('withholds sweep advice when a selected sinking budget cell is missing', async () => {
     fixture.withReserve = true;
     fixture.rawConfig = JSON.stringify({
@@ -1025,6 +1068,11 @@ describe('Cash Flow page', () => {
     ).toBeInTheDocument();
     expect(
       await screen.findByText('Sinking Savings advice is incomplete'),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        /Any affected planned total or planning gap is shown as unavailable/,
+      ),
     ).toBeInTheDocument();
     expect(screen.queryByText(/Safe to move/)).not.toBeInTheDocument();
     expect(screen.queryByText(/fully funded/)).not.toBeInTheDocument();
