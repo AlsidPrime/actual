@@ -864,8 +864,14 @@ describe('Cash Flow page', () => {
         screen.getByText(/Your Budget Automations may define savings goals/),
       ).toBeInTheDocument();
       expect(
-        screen.getByText(/Physical Sinking Savings cash/),
-      ).toHaveTextContent(reserveBalance === 1451 ? '14.51' : '0.00');
+        screen
+          .getAllByText(/Physical Sinking Savings cash/)
+          .some(element =>
+            element.textContent?.includes(
+              reserveBalance === 1451 ? '14.51' : '0.00',
+            ),
+          ),
+      ).toBe(true);
       if (reserveBalance > 0) {
         expect(
           screen.getByText(
@@ -885,6 +891,124 @@ describe('Cash Flow page', () => {
       expect(screen.queryByText(/Safe to move/)).not.toBeInTheDocument();
     },
   );
+
+  it('shows native plan contributions for October and November without treating them as transfers', async () => {
+    fixture.withReserve = true;
+    fixture.reserveBalance = 1451;
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+      reserveAccountIds: ['savings'],
+      reserveCategoryIds: ['emergency'],
+    });
+    const currentMonth = monthUtils.currentMonth();
+    vi.mocked(send).mockImplementation(async (name, args) => {
+      if (name === 'envelope-budget-month') {
+        return [
+          {
+            name: 'budget-emergency',
+            value: args.month === currentMonth ? 5000 : 0,
+          },
+          { name: 'leftover-emergency', value: 0 },
+        ];
+      }
+      if (name === 'budget/get-category-automations') {
+        return {
+          emergency: [
+            {
+              directive: 'template',
+              type: 'by',
+              amount: 1200,
+              month: monthUtils.addMonths(currentMonth, 2),
+              priority: 1,
+            },
+          ],
+        };
+      }
+      if (name === 'budget/dry-run-category-template') {
+        const amount = args.month === currentMonth ? 10000 : 12000;
+        return { budgeted: amount, perTemplate: [amount] };
+      }
+      throw new Error(`Unexpected API call: ${name}`);
+    });
+    renderRoute();
+    const panel = screen.getByText('Sinking Savings Plan').parentElement
+      ?.parentElement;
+    await waitFor(() => expect(panel).toHaveTextContent('100.00'));
+    expect(panel).toHaveTextContent('50.00');
+    expect(panel).toHaveTextContent('14.51');
+    await userEvent.click(screen.getByRole('button', { name: /Next month ·/ }));
+    await waitFor(() => expect(panel).toHaveTextContent('120.00'));
+    expect(panel).toHaveTextContent('0.00');
+    expect(panel).toHaveTextContent('14.51');
+    expect(panel).toHaveTextContent('Neither amount is transfer headroom.');
+    expect(
+      screen.queryByText('Sinking Savings is fully funded'),
+    ).not.toBeInTheDocument();
+    expect(
+      vi
+        .mocked(send)
+        .mock.calls.every(([name]) =>
+          [
+            'envelope-budget-month',
+            'budget/get-category-automations',
+            'budget/dry-run-category-template',
+          ].includes(name),
+        ),
+    ).toBe(true);
+  });
+
+  it('masks Sinking Savings Plan amounts and leaves accessibility labels free of private values', async () => {
+    fixture.withReserve = true;
+    fixture.privacyMode = true;
+    fixture.reserveBalance = 1451;
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+      reserveAccountIds: ['savings'],
+      reserveCategoryIds: ['emergency'],
+    });
+    vi.mocked(send).mockImplementation(async name => {
+      if (name === 'envelope-budget-month') {
+        return [
+          { name: 'budget-emergency', value: 0 },
+          { name: 'leftover-emergency', value: 0 },
+        ];
+      }
+      if (name === 'budget/get-category-automations') {
+        return {
+          emergency: [
+            {
+              directive: 'template',
+              type: 'periodic',
+              amount: 150,
+              period: { period: 'month', amount: 1 },
+              starting: '2026-01-01',
+              priority: 1,
+            },
+          ],
+        };
+      }
+      if (name === 'budget/dry-run-category-template') {
+        return { budgeted: 15000, perTemplate: [15000] };
+      }
+      throw new Error(`Unexpected API call: ${name}`);
+    });
+    renderRoute();
+    const panel = screen.getByText('Sinking Savings Plan').parentElement
+      ?.parentElement;
+    await waitFor(() => expect(panel).toHaveTextContent('Emergency'));
+    expect(panel?.querySelector('[aria-hidden="true"]')).toBeInTheDocument();
+    expect(
+      panel?.querySelector('[role="img"][aria-label="Private value hidden"]'),
+    ).toBeInTheDocument();
+    for (const element of panel?.querySelectorAll('[aria-label],[title]') ??
+      []) {
+      expect(
+        element.getAttribute('aria-label') ?? element.getAttribute('title'),
+      ).not.toMatch(/150\.00|14\.51/);
+    }
+  });
 
   it('withholds sweep advice when a selected sinking budget cell is missing', async () => {
     fixture.withReserve = true;
@@ -1348,7 +1472,8 @@ describe('Cash Flow page', () => {
       vi
         .mocked(send)
         .mock.calls.filter(
-          ([name]) => name === 'budget/get-category-automations',
+          ([name, args]) =>
+            name === 'budget/get-category-automations' && args === 'groceries',
         ),
     ).toHaveLength(1);
     expect(
@@ -1375,7 +1500,8 @@ describe('Cash Flow page', () => {
       vi
         .mocked(send)
         .mock.calls.filter(
-          ([name]) => name === 'budget/get-category-automations',
+          ([name, args]) =>
+            name === 'budget/get-category-automations' && args === 'groceries',
         ),
     ).toHaveLength(1);
     act(() => onSync?.({ type: 'success', tables: ['categories'] }));
@@ -1384,7 +1510,9 @@ describe('Cash Flow page', () => {
         vi
           .mocked(send)
           .mock.calls.filter(
-            ([name]) => name === 'budget/get-category-automations',
+            ([name, args]) =>
+              name === 'budget/get-category-automations' &&
+              args === 'groceries',
           ),
       ).toHaveLength(2),
     );

@@ -374,17 +374,22 @@ export async function dryRunCategoryTemplate({
     q('categories').filter({ id: categoryId }).select('*'),
   );
   if (categoryData.length === 0) {
-    return { budgeted: 0, perTemplate: templates.map(() => 0) };
+    throw new Error(`Category ${categoryId} is unavailable`);
   }
-  const { contexts } = await computeTemplates(
+  const { contexts, errors } = await computeTemplates(
     month,
     true,
     { [categoryId]: templates },
     categoryData,
     true,
   );
+  if (errors.length > 0) {
+    throw new Error(errors.join('\n\n'));
+  }
   const ctx = contexts.find(c => c.category.id === categoryId);
-  if (!ctx) return { budgeted: 0, perTemplate: templates.map(() => 0) };
+  if (!ctx) {
+    throw new Error(`Category ${categoryId} could not be projected`);
+  }
   const values = ctx.getValues();
   return {
     budgeted: values.budgeted,

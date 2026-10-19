@@ -147,6 +147,34 @@ describe('dryRunCategoryTemplate', () => {
     expect(result.perTemplate).toEqual([10000]);
   });
 
+  it('uses native prior-month carryover for a Save by Date contribution', async () => {
+    setupAqlForCategoryLookup(category);
+    const templates: Template[] = [
+      {
+        directive: 'template',
+        type: 'by',
+        amount: 1200,
+        month: '2026-12',
+        priority: 1,
+      },
+    ];
+    setupSheetMock({ 'leftover-cat-1': 30000 });
+    const withCarryover = await dryRunCategoryTemplate({
+      month: '2026-11',
+      categoryId: category.id,
+      templates,
+    });
+    setupSheetMock({ 'leftover-cat-1': 0 });
+    const withoutCarryover = await dryRunCategoryTemplate({
+      month: '2026-11',
+      categoryId: category.id,
+      templates,
+    });
+    expect(withCarryover.budgeted).toBeGreaterThan(0);
+    expect(withCarryover.budgeted).toBeLessThan(withoutCarryover.budgeted);
+    expect(actions.setBudget).not.toHaveBeenCalled();
+  });
+
   it('clamps a periodic + percentage stack at the balance cap', async () => {
     setupSheetMock({ 'to-budget': 1_000_000, 'total-income': 100000 });
     setupAqlForCategoryLookup(category);
@@ -188,7 +216,7 @@ describe('dryRunCategoryTemplate', () => {
     expect(result.perTemplate[2]).toBe(0); // cap row contributes nothing
   });
 
-  it('returns zeros when the category lookup yields nothing', async () => {
+  it('reports unavailable categories instead of returning a false zero', async () => {
     setupSheetMock({});
     vi.mocked(aql.aqlQuery).mockImplementation(async (query: unknown) => {
       const queryStr = JSON.stringify(query);
@@ -211,12 +239,33 @@ describe('dryRunCategoryTemplate', () => {
         priority: 1,
       },
     ];
-    const result = await dryRunCategoryTemplate({
-      month: '2024-01',
-      categoryId: 'missing',
-      templates,
-    });
-    expect(result).toEqual({ budgeted: 0, perTemplate: [0] });
+    await expect(
+      dryRunCategoryTemplate({
+        month: '2024-01',
+        categoryId: 'missing',
+        templates,
+      }),
+    ).rejects.toThrow('Category missing is unavailable');
+  });
+
+  it('reports invalid template projections instead of returning a false zero', async () => {
+    setupSheetMock({});
+    setupAqlForCategoryLookup(category);
+    await expect(
+      dryRunCategoryTemplate({
+        month: '2024-06',
+        categoryId: category.id,
+        templates: [
+          {
+            type: 'by',
+            amount: 1200,
+            month: '2023-12',
+            directive: 'template',
+            priority: 1,
+          },
+        ],
+      }),
+    ).rejects.toThrow(/Target month has passed/);
   });
 
   it('shows full demand even when To Budget cannot cover it', async () => {

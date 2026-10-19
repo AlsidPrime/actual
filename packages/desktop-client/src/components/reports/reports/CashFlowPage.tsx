@@ -38,8 +38,13 @@ import { calculateSweepAdvisor } from './cashFlowReserve';
 import type { SweepAdvisorResult } from './cashFlowReserve';
 import { calculateCashFlowRisk } from './cashFlowRisk';
 import { CashFlowRiskCallout } from './CashFlowRiskCallout';
+import {
+  buildSinkingSavingsPlan,
+  loadSinkingAutomationPlans,
+} from './cashFlowSavingsPlan';
 import { CashFlowSetup } from './CashFlowSetup';
 import { deriveCashFlowAttention } from './deriveCashFlowAttention';
+import { SinkingSavingsPlanCallout } from './SinkingSavingsPlanCallout';
 
 function SweepCallout({
   advisor,
@@ -249,6 +254,9 @@ export function CashFlowPage() {
           void queryClient.invalidateQueries({
             queryKey: ['cash-flow-calendar-budget'],
           });
+          void queryClient.invalidateQueries({
+            queryKey: ['cash-flow-sinking-plan-automations'],
+          });
         }
         if (
           (event.type === 'success' || event.type === 'applied') &&
@@ -353,6 +361,11 @@ export function CashFlowPage() {
   );
   const today = monthUtils.currentDay();
   const currentMonth = monthUtils.currentMonth();
+  const nextMonth = monthUtils.addMonths(currentMonth, 1);
+  const [selectedPlanMonth, setSelectedPlanMonth] = useState<string | null>(
+    null,
+  );
+  const planMonth = selectedPlanMonth === nextMonth ? nextMonth : currentMonth;
   const endMonth = monthUtils.addMonths(
     currentMonth,
     config.forecastMonths - 1,
@@ -374,9 +387,17 @@ export function CashFlowPage() {
   const needsReserve = isEnvelope && selectedReserveCategories.length > 0;
   const monthsToLoad = needsBurn
     ? monthUtils.rangeInclusive(currentMonth, endMonth)
-    : [currentMonth];
+    : config.reserveCategoryIds.length > 0
+      ? [currentMonth, nextMonth]
+      : [currentMonth];
   const { data: budgetData, error: budgetError } = useQuery({
-    queryKey: ['cash-flow-calendar-budget', currentMonth, endMonth, needsBurn],
+    queryKey: [
+      'cash-flow-calendar-budget',
+      currentMonth,
+      endMonth,
+      needsBurn,
+      config.reserveCategoryIds.length > 0,
+    ],
     queryFn: () =>
       Promise.all(
         monthsToLoad.map(async month => ({
@@ -384,7 +405,26 @@ export function CashFlowPage() {
           cells: await send('envelope-budget-month', { month }),
         })),
       ),
-    enabled: operatingAccountIds.length > 0 && (needsBurn || needsReserve),
+    enabled:
+      operatingAccountIds.length > 0 &&
+      (needsBurn || (isEnvelope && config.reserveCategoryIds.length > 0)),
+  });
+  const { data: sinkingAutomationPlans, isPending: isPlanPending } = useQuery({
+    queryKey: [
+      'cash-flow-sinking-plan-automations',
+      currentMonth,
+      nextMonth,
+      selectedReserveCategories.map(category => category.id),
+    ],
+    queryFn: () =>
+      loadSinkingAutomationPlans(
+        selectedReserveCategories.map(category => category.id),
+        [currentMonth, nextMonth],
+      ),
+    enabled:
+      isEnvelope &&
+      operatingAccountIds.length > 0 &&
+      selectedReserveCategories.length > 0,
   });
   const { data: automationPlans, error: automationError } = useQuery({
     queryKey: [
@@ -515,6 +555,22 @@ export function CashFlowPage() {
         })),
         accountIds: reserveAccountIds,
         balances: accountBalances,
+      })
+    : null;
+  const savingsPlan = isEnvelope
+    ? buildSinkingSavingsPlan({
+        month: planMonth,
+        categories: config.reserveCategoryIds.map(id => ({
+          id,
+          name:
+            selectedReserveCategories.find(category => category.id === id)
+              ?.name ?? id,
+        })),
+        monthCells: budgetData?.find(item => item.month === planMonth)?.cells,
+        currentCells,
+        contributions: sinkingAutomationPlans?.[planMonth],
+        reserveAccountIds,
+        accountBalances,
       })
     : null;
   const debtPayments = deriveScheduledDebtPayments({
@@ -660,6 +716,20 @@ export function CashFlowPage() {
                 manualScheduleIds={manualScheduleIds}
                 operatingAccountIds={operatingAccountIds}
                 enableDayDetails
+              />
+            )}
+            {savingsPlan && (
+              <SinkingSavingsPlanCallout
+                plan={savingsPlan}
+                currentMonth={currentMonth}
+                nextMonth={nextMonth}
+                selectedMonth={planMonth}
+                onMonthChange={setSelectedPlanMonth}
+                isLoading={
+                  config.reserveCategoryIds.length > 0 &&
+                  ((budgetData == null && !budgetError) ||
+                    (selectedReserveCategories.length > 0 && isPlanPending))
+                }
               />
             )}
             {backing && <CashFlowBackingCallout backing={backing} />}
