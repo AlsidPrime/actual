@@ -1,9 +1,9 @@
 import { send } from '@actual-app/core/platform/client/connection';
+import { safeNumber } from '@actual-app/core/shared/util';
 import type { CategoryEntity } from '@actual-app/core/types/models';
 import type { Template } from '@actual-app/core/types/models/templates';
-import { safeNumber } from '@actual-app/core/shared/util';
 
-export interface PaydayChecklistItem {
+export type PaydayChecklistItem = {
   categoryId: string;
   categoryName: string;
   groupName: string;
@@ -14,12 +14,13 @@ export interface PaydayChecklistItem {
   status: 'needs-funding' | 'funded' | 'conditional' | 'unavailable';
 }
 
-export interface PaydayChecklistResult {
+export type PaydayChecklistResult = {
   month: string;
   availableToBudget: number;
   totalRemainingRequirements: number;
   items: PaydayChecklistItem[];
   error?: string;
+  isComplete: boolean;
 }
 
 export async function derivePaydayChecklist(
@@ -27,10 +28,11 @@ export async function derivePaydayChecklist(
   categories: CategoryEntity[],
   getBudgeted: (categoryId: string) => number,
   availableToBudget: number,
-  getGroupName: (groupId: string | null) => string
+  getGroupName: (groupId: string | null) => string,
 ): Promise<PaydayChecklistResult> {
   const items: PaydayChecklistItem[] = [];
   let totalRemainingRequirements = 0;
+  let isComplete = true;
 
   for (const category of categories) {
     if (category.is_income || category.hidden) {
@@ -38,20 +40,28 @@ export async function derivePaydayChecklist(
     }
 
     try {
-      const definitions = await send('budget/get-category-automations', category.id);
+      const definitions = await send(
+        'budget/get-category-automations',
+        category.id,
+      );
       const templates: Template[] = definitions?.[category.id] ?? [];
 
       if (templates.length === 0) {
         continue;
       }
 
+      // Check if it's purely a goal without a schedule or strict limit
+      // Actual native goal evaluation is quite complex, but we rely on the dry run
+      // To strictly match "strict: true"
       const result = await send('budget/dry-run-category-template', {
         month,
         categoryId: category.id,
         templates,
-      });
+        strict: true,
+      } as any); // Strict flag if available
 
       if (!Number.isFinite(result.budgeted)) {
+        isComplete = false;
         items.push({
           categoryId: category.id,
           categoryName: category.name,
@@ -60,14 +70,17 @@ export async function derivePaydayChecklist(
           budgetedAmount: getBudgeted(category.id),
           remainingAmount: 0,
           priority: null,
-          status: 'conditional'
+          status: 'conditional',
         });
         continue;
       }
 
       const plannedAmount = result.budgeted;
       const budgetedAmount = getBudgeted(category.id);
-      const remainingAmount = Math.max(0, safeNumber(plannedAmount - budgetedAmount));
+      const remainingAmount = Math.max(
+        0,
+        safeNumber(plannedAmount - budgetedAmount),
+      );
 
       let priority: number | null = null;
       let hasMixedPriorities = false;
@@ -102,8 +115,8 @@ export async function derivePaydayChecklist(
         priority,
         status,
       });
-
     } catch (e) {
+      isComplete = false;
       items.push({
         categoryId: category.id,
         categoryName: category.name,
@@ -112,7 +125,7 @@ export async function derivePaydayChecklist(
         budgetedAmount: getBudgeted(category.id),
         remainingAmount: 0,
         priority: null,
-        status: 'unavailable'
+        status: 'unavailable',
       });
     }
   }
@@ -133,5 +146,6 @@ export async function derivePaydayChecklist(
     availableToBudget,
     totalRemainingRequirements,
     items,
+    isComplete,
   };
 }
