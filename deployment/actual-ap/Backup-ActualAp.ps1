@@ -2,7 +2,7 @@
 [CmdletBinding()]
 param(
   [ValidateSet('Staging', 'Production')][string]$Environment = 'Staging',
-  [string]$LocalRoot = 'D:\ActualAPBackups',
+  [string]$LocalRoot = 'C:\ActualAP\backups',
   [string]$NasRoot = '\\LS720DE35\share\ActualAPBackups',
   [string]$OneDriveRoot = 'C:\Users\alsid\OneDrive\ActualAPBackups',
   [Parameter(Mandatory)][string]$RecipientsFile,
@@ -107,6 +107,13 @@ try {
   if (-not (Test-Path -LiteralPath $NasRoot -PathType Container)) { throw 'NAS backup root is unavailable' }
   if (-not (Test-Path -LiteralPath $OneDriveRoot -PathType Container)) { throw 'Personal OneDrive backup root is unavailable' }
   $lock = Enter-ActualApLock $context.Lock
+  $tools = @{}
+  foreach ($toolName in @('docker.exe', 'age.exe', 'tar.exe', 'robocopy.exe')) {
+    $command = Get-Command -Name $toolName -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $command) { throw "Required tool $toolName is unavailable in this task's PATH" }
+    $tools[$toolName] = $command.Source
+  }
+  Write-BackupLog "Prerequisites passed: PowerShell $($PSVersionTable.PSVersion) ($PSHOME); docker=$($tools['docker.exe']); age=$($tools['age.exe']); tar=$($tools['tar.exe']); robocopy=$($tools['robocopy.exe'])"
   Assert-ActualApCompose $context
   if (-not (Test-ActualRunning $context)) { throw 'Designated Actual service is not running' }
   $items = @(Get-ChildItem -LiteralPath $context.Data -Recurse -Force)
