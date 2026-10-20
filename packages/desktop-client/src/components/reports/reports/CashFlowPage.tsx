@@ -50,6 +50,7 @@ import { loadPaydayChecklist } from './derivePaydayChecklist';
 import { derivePaydayObligations } from './derivePaydayObligations';
 import { derivePaydayReview } from './derivePaydayReview';
 import { PaydayChecklist } from './PaydayChecklist';
+import { loadPaydayIncomeBudget } from './paydayIncomeBudget';
 import { SinkingSavingsPlanCallout } from './SinkingSavingsPlanCallout';
 
 function SweepCallout({
@@ -584,6 +585,22 @@ export function CashFlowPage() {
           endDate,
         })
       : null;
+  const paydayMonth = runway?.paydayDate?.slice(0, 7) ?? null;
+  const { data: paydayIncomeBudget } = useQuery({
+    queryKey: [
+      'cash-flow-payday-checklist',
+      'income-hold',
+      paydayMonth,
+      categoryData?.list
+        .filter(category => category.is_income)
+        .map(category => category.id),
+    ],
+    queryFn: () =>
+      paydayMonth && categoryData
+        ? loadPaydayIncomeBudget(paydayMonth, categoryData.list)
+        : null,
+    enabled: isEnvelope && paydayMonth != null && categoryData != null,
+  });
   const backing = isEnvelope
     ? calculateSinkingBacking({
         categories: config.reserveCategoryIds.map(id => ({
@@ -761,6 +778,7 @@ export function CashFlowPage() {
           checklist={paydayChecklist}
           obligations={paydayObligations}
           runway={runway}
+          incomeBudget={paydayIncomeBudget ?? null}
           risk={risk}
           today={today}
           isLoading={

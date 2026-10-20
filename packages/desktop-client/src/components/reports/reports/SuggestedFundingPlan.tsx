@@ -20,15 +20,18 @@ import type { CashFlowRiskResult } from './cashFlowRisk';
 import { derivePaydayAllocationSuggestions } from './derivePaydayAllocationSuggestions';
 import type { FundingMode } from './derivePaydayAllocationSuggestions';
 import type { PaydayChecklistResult } from './derivePaydayChecklist';
+import type { PaydayIncomeBudget } from './paydayIncomeBudget';
 
 export function SuggestedFundingPlan({
   checklist,
   runway,
+  incomeBudget,
   risk,
   today,
 }: {
   checklist: PaydayChecklistResult;
   runway: PaydayRunway | null;
+  incomeBudget: PaydayIncomeBudget | null;
   risk: CashFlowRiskResult | null;
   today: string;
 }) {
@@ -57,12 +60,16 @@ export function SuggestedFundingPlan({
     runway?.paydayDate,
     runway?.expectedIncome,
     runway?.budgetableIncome,
+    runway?.budgetableDeposits,
+    incomeBudget?.manualBuffered,
+    incomeBudget?.incomeCategoryHold,
   ]);
   const choices = choiceState.key === choiceKey ? choiceState.values : {};
   const plan = derivePaydayAllocationSuggestions({
     checklist,
     mode,
     runway,
+    incomeBudget,
     today,
     choices,
   });
@@ -176,6 +183,20 @@ export function SuggestedFundingPlan({
             income into an on-budget Operating account.
           </Trans>
         </Text>
+      ) : plan.reason === 'income' ? (
+        <Text style={{ color: theme.warningText }}>
+          <Trans>
+            Preview unavailable: the payday income category or native hold
+            setting cannot be verified. Review the scheduled deposit and Budget.
+          </Trans>
+        </Text>
+      ) : plan.reason === 'held' ? (
+        <Text style={{ color: theme.warningText }}>
+          <Trans>
+            This scheduled income is held for next month in Budget; it cannot
+            fund this month's categories.
+          </Trans>
+        </Text>
       ) : (
         <>
           <Text>
@@ -190,6 +211,12 @@ export function SuggestedFundingPlan({
             <Text>
               <Trans>Forecast income eligible for this budget preview</Trans>:{' '}
               {money(plan.previewIncome)}
+            </Text>
+          )}
+          {plan.deferredIncome > 0 && (
+            <Text style={{ color: theme.pageTextLight }}>
+              <Trans>Held for next month by native Budget settings</Trans>:{' '}
+              {money(plan.deferredIncome)}
             </Text>
           )}
           {plan.existingDeficit > 0 && (
@@ -331,9 +358,9 @@ export function SuggestedFundingPlan({
           {plan.status === 'partial' && (
             <Text style={{ color: theme.warningText }}>
               <Trans>
-                Conditional plan: some categories have no calculable target or
-                priority. Review the category details and rule-free categories
-                above. Unassigned money is not verified surplus.
+                Conditional plan: some targets or priorities need review, or an
+                equal-priority split is unfinished. Money not yet assigned in
+                this scenario is not verified surplus.
               </Trans>
             </Text>
           )}
@@ -351,7 +378,7 @@ export function SuggestedFundingPlan({
             {money(plan.totalSuggested)}
           </Text>
           <Text>
-            <Trans>Unallocated scenario amount</Trans>:{' '}
+            <Trans>Not yet assigned in this scenario</Trans>:{' '}
             {money(plan.unallocated ?? 0)}
           </Text>
         </>

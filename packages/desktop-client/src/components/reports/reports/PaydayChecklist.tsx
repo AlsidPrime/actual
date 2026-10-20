@@ -16,7 +16,8 @@ import { usePrivacyMode } from '#hooks/usePrivacyMode';
 import type { PaydayRunway } from './cashFlowPayday';
 import type { CashFlowRiskResult } from './cashFlowRisk';
 import type { PaydayChecklistResult } from './derivePaydayChecklist';
-import type { PaydayObligation } from './derivePaydayObligations';
+import type { PaydayObligationReview } from './derivePaydayObligations';
+import type { PaydayIncomeBudget } from './paydayIncomeBudget';
 import { SuggestedFundingPlan } from './SuggestedFundingPlan';
 
 export function PaydayChecklist({
@@ -28,17 +29,19 @@ export function PaydayChecklist({
   hasCategoryData,
   hasCategories,
   runway,
+  incomeBudget,
   risk,
   today,
 }: {
   month: string;
   checklist: PaydayChecklistResult | undefined;
-  obligations: PaydayObligation[] | null;
+  obligations: PaydayObligationReview | null;
   isLoading: boolean;
   isEnvelope: boolean;
   hasCategoryData: boolean;
   hasCategories: boolean;
   runway: PaydayRunway | null;
+  incomeBudget: PaydayIncomeBudget | null;
   risk: CashFlowRiskResult | null;
   today: string;
 }) {
@@ -226,11 +229,20 @@ export function PaydayChecklist({
             <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
               <Trans>Scheduled expense review is unavailable.</Trans>
             </Text>
-          ) : obligations.length > 0 ? (
+          ) : null}
+          {obligations != null && !obligations.isCoverageComplete && (
+            <Text style={{ color: theme.warningText }}>
+              <Trans>
+                Scheduled expense coverage is incomplete for this funding month.
+                Review Schedules for dates outside the forecast range.
+              </Trans>
+            </Text>
+          )}
+          {obligations != null && obligations.obligations.length > 0 && (
             <details>
               <summary>
                 <Trans>Scheduled expenses to review</Trans> (
-                {obligations.length})
+                {obligations.obligations.length})
               </summary>
               <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
                 <Trans>
@@ -238,12 +250,12 @@ export function PaydayChecklist({
                   check their category assignments and any Cover Schedule rules.
                 </Trans>
               </Text>
-              {obligations.slice(0, 5).map(item => (
+              {obligations.obligations.slice(0, 5).map(item => (
                 <Text key={`${item.scheduleId}:${item.date}`}>
                   {item.name} · {monthUtils.format(item.date, 'PP', locale)}
                 </Text>
               ))}
-              {obligations.length > 5 && (
+              {obligations.obligations.length > 5 && (
                 <Text>
                   <Trans>
                     Review the remaining scheduled expenses in Schedules.
@@ -251,7 +263,7 @@ export function PaydayChecklist({
                 </Text>
               )}
             </details>
-          ) : null}
+          )}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
             <Link to="/budget">
               <Trans>Review Budget</Trans>
@@ -271,6 +283,7 @@ export function PaydayChecklist({
             key={month}
             checklist={result}
             runway={runway}
+            incomeBudget={incomeBudget}
             risk={risk}
             today={today}
           />

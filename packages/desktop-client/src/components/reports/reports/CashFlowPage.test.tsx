@@ -50,6 +50,29 @@ const fixture = vi.hoisted(() => ({
   futureOperatingIncome: 0,
 }));
 
+function makePaydayRunway(overrides: Partial<PaydayRunway>): PaydayRunway {
+  return {
+    status: 'scheduled-only',
+    isConfigurationIncomplete: false,
+    isScheduledOnly: true,
+    currentCashWarning: null,
+    paydayDate: null,
+    daysUntilPayday: null,
+    scheduleNames: [],
+    expectedIncome: null,
+    budgetableIncome: null,
+    budgetableDeposits: null,
+    currentCash: null,
+    todayClosingCash: null,
+    lowestCash: null,
+    lowestDate: null,
+    firstNegativeDate: null,
+    firstNegativeCash: null,
+    paydayClosingCash: null,
+    ...overrides,
+  };
+}
+
 vi.mock('@actual-app/core/platform/client/connection', () => ({
   send: vi.fn(async (name: string) =>
     name === 'envelope-budget-month'
@@ -163,6 +186,12 @@ vi.mock('#hooks/useCategories', () => ({
           ],
           list: [
             {
+              id: 'salary',
+              name: 'Salary',
+              group: 'income',
+              is_income: true,
+            },
+            {
               id: 'emergency',
               name: 'Emergency',
               group: 'savings',
@@ -217,6 +246,7 @@ vi.mock('#hooks/useBalanceForecast', () => ({
                     ? [
                         {
                           amount: fixture.futureOperatingIncome,
+                          categoryId: 'salary',
                           isTransfer: false,
                           payee: 'Payday',
                           scheduleId: 'payday',
@@ -1110,16 +1140,20 @@ describe('Cash Flow page', () => {
               },
             ],
           }}
-          runway={
-            {
-              paydayDate: '2026-10-25',
-              expectedIncome: 100000,
-              budgetableIncome: 100000,
-              isConfigurationIncomplete: false,
-              status: 'incomplete',
-              currentCashWarning: null,
-            } as PaydayRunway
-          }
+          runway={makePaydayRunway({
+            paydayDate: '2026-10-25',
+            expectedIncome: 100000,
+            budgetableIncome: 100000,
+            budgetableDeposits: [{ amount: 100000, categoryId: 'salary' }],
+            isConfigurationIncomplete: false,
+            status: 'incomplete',
+            currentCashWarning: null,
+          })}
+          incomeBudget={{
+            month: '2026-10',
+            manualBuffered: 0,
+            incomeCategoryHold: { salary: false },
+          }}
           risk={null}
           today="2026-10-20"
         />
@@ -1169,16 +1203,20 @@ describe('Cash Flow page', () => {
               },
             ],
           }}
-          runway={
-            {
-              paydayDate: '2026-10-27',
-              expectedIncome: 100000,
-              budgetableIncome: 100000,
-              isConfigurationIncomplete: false,
-              status: 'scheduled-only',
-              currentCashWarning: null,
-            } as PaydayRunway
-          }
+          runway={makePaydayRunway({
+            paydayDate: '2026-10-27',
+            expectedIncome: 100000,
+            budgetableIncome: 100000,
+            budgetableDeposits: [{ amount: 100000, categoryId: 'salary' }],
+            isConfigurationIncomplete: false,
+            status: 'scheduled-only',
+            currentCashWarning: null,
+          })}
+          incomeBudget={{
+            month: '2026-10',
+            manualBuffered: 0,
+            incomeCategoryHold: { salary: true },
+          }}
           risk={null}
           today="2026-10-19"
         />
@@ -1192,6 +1230,53 @@ describe('Cash Flow page', () => {
     expect(panel).toHaveTextContent('Hypothetical allocation capacity: 700.00');
     expect(panel).toHaveTextContent('Covered by expected income: 300.00');
     expect(panel).toHaveTextContent('Total suggested allocations: 700.00');
+  });
+
+  it('explains why auto-held income cannot fund the payday month', async () => {
+    render(
+      <TestProviders>
+        <SuggestedFundingPlan
+          checklist={{
+            month: '2026-10',
+            availableToBudget: 0,
+            remainingTotal: 100000,
+            knownRemainingTotal: 100000,
+            isComplete: true,
+            withoutRules: [],
+            items: [
+              {
+                categoryId: 'housing',
+                categoryName: 'Housing',
+                priority: 1,
+                target: 100000,
+                allocated: 0,
+                remaining: 100000,
+                status: 'ready',
+              },
+            ],
+          }}
+          runway={makePaydayRunway({
+            paydayDate: '2026-10-27',
+            expectedIncome: 100000,
+            budgetableIncome: 100000,
+            budgetableDeposits: [{ amount: 100000, categoryId: 'salary' }],
+          })}
+          incomeBudget={{
+            month: '2026-10',
+            manualBuffered: 0,
+            incomeCategoryHold: { salary: true },
+          }}
+          risk={null}
+          today="2026-10-19"
+        />
+      </TestProviders>,
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Hypothetical next payday' }),
+    );
+    const panel = screen.getByText('Suggested Funding Plan').parentElement;
+    expect(panel).toHaveTextContent('held for next month');
+    expect(panel).not.toHaveTextContent('Hypothetical allocation capacity');
   });
 
   it('shows a fundable scheduled payday only in the explicit preview', async () => {
@@ -1215,7 +1300,13 @@ describe('Cash Flow page', () => {
       operatingAccountIds: ['checking'],
       paydayScheduleIds: ['payday'],
     });
-    vi.mocked(send).mockImplementation(async name => {
+    vi.mocked(send).mockImplementation(async (name, args) => {
+      if (name === 'get-cell') {
+        return {
+          name: 'native-income-hold',
+          value: args.name === 'buffered' ? 0 : false,
+        };
+      }
       if (name === 'envelope-budget-month') {
         return [
           { name: 'to-budget', value: 20000 },
@@ -1262,13 +1353,16 @@ describe('Cash Flow page', () => {
       ),
     );
     expect(panel).toHaveTextContent('Total suggested allocations: 600.00');
-    expect(panel).toHaveTextContent('Unallocated scenario amount: 600.00');
+    expect(panel).toHaveTextContent(
+      'Not yet assigned in this scenario: 600.00',
+    );
     expect(
       vi
         .mocked(send)
         .mock.calls.every(([name]) =>
           [
             'envelope-budget-month',
+            'get-cell',
             'budget/get-category-automations',
             'budget/dry-run-category-template',
           ].includes(name),
@@ -1431,6 +1525,7 @@ describe('Cash Flow page', () => {
         <SuggestedFundingPlan
           checklist={makeChecklist(10000)}
           runway={null}
+          incomeBudget={null}
           risk={null}
           today="2026-10-20"
         />
@@ -1438,6 +1533,8 @@ describe('Cash Flow page', () => {
     );
     const panel = screen.getByText('Suggested Funding Plan').parentElement;
     expect(panel).toHaveTextContent('Available for this priority group: 80.00');
+    expect(panel).toHaveTextContent('Conditional plan');
+    expect(panel).toHaveTextContent('Not yet assigned in this scenario: 80.00');
     const input = screen.getByLabelText(/Choice A/);
     await userEvent.clear(input);
     await userEvent.type(input, '30');
@@ -1448,6 +1545,7 @@ describe('Cash Flow page', () => {
         <SuggestedFundingPlan
           checklist={makeChecklist(9000)}
           runway={null}
+          incomeBudget={null}
           risk={null}
           today="2026-10-20"
         />
@@ -1486,8 +1584,9 @@ describe('Cash Flow page', () => {
                 ],
               }}
               runway={null}
+              incomeBudget={null}
               risk={null}
-              obligations={[]}
+              obligations={{ obligations: [], isCoverageComplete: true }}
               today="2026-10-20"
               isLoading={false}
               isEnvelope
@@ -1511,6 +1610,39 @@ describe('Cash Flow page', () => {
       cleanup();
       vi.unstubAllGlobals();
     }
+  });
+
+  it('warns when scheduled expense review ends before the funding month', () => {
+    render(
+      <MemoryRouter>
+        <TestProviders>
+          <PaydayChecklist
+            month="2026-11"
+            checklist={{
+              month: '2026-11',
+              availableToBudget: 0,
+              remainingTotal: 0,
+              knownRemainingTotal: 0,
+              isComplete: true,
+              withoutRules: [],
+              items: [],
+            }}
+            obligations={{ obligations: [], isCoverageComplete: false }}
+            runway={null}
+            incomeBudget={null}
+            risk={null}
+            today="2026-10-20"
+            isLoading={false}
+            isEnvelope
+            hasCategoryData
+            hasCategories
+          />
+        </TestProviders>
+      </MemoryRouter>,
+    );
+    expect(
+      screen.getByText(/Scheduled expense coverage is incomplete/),
+    ).toBeInTheDocument();
   });
 
   it('keeps the funding checklist incomplete until native budget cells arrive, then refreshes on a cell change', async () => {

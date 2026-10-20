@@ -38,6 +38,11 @@ export type PaydayRunway = {
   expectedIncome: number | null;
   /** Forecast income into selected on-budget Operating accounts only. */
   budgetableIncome: number | null;
+  /** Category of each eligible on-budget forecast deposit on this payday. */
+  budgetableDeposits: ReadonlyArray<{
+    amount: number;
+    categoryId?: string;
+  }> | null;
   currentCash: number | null;
   todayClosingCash: number | null;
   lowestCash: number | null;
@@ -86,6 +91,7 @@ export function calculatePaydayRunway({
     scheduleNames: [],
     expectedIncome: null,
     budgetableIncome: null,
+    budgetableDeposits: null,
     currentCash: null,
     todayClosingCash: null,
     lowestCash: null,
@@ -123,6 +129,10 @@ export function calculatePaydayRunway({
   const budgetableIds = new Set(budgetableAccountIds ?? []);
   const dates = new Map<string, Map<string, number>>();
   const budgetableByDate = new Map<string, number>();
+  const budgetableDepositsByDate = new Map<
+    string,
+    Array<{ amount: number; categoryId?: string }>
+  >();
   const nativeCash = new Map<string, number>();
   for (const point of forecastData.dataPoints) {
     if (
@@ -154,6 +164,12 @@ export function calculatePaydayRunway({
           point.date,
           (budgetableByDate.get(point.date) ?? 0) + transaction.amount,
         );
+        const deposits = budgetableDepositsByDate.get(point.date) ?? [];
+        deposits.push({
+          amount: transaction.amount,
+          categoryId: transaction.categoryId,
+        });
+        budgetableDepositsByDate.set(point.date, deposits);
       }
     }
   }
@@ -209,6 +225,9 @@ export function calculatePaydayRunway({
     ),
     budgetableIncome: budgetableAccountIds
       ? (budgetableByDate.get(paydayDate) ?? 0)
+      : null,
+    budgetableDeposits: budgetableAccountIds
+      ? (budgetableDepositsByDate.get(paydayDate) ?? [])
       : null,
     currentCash: currentOperatingCash,
     currentCashWarning,

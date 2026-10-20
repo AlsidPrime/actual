@@ -73,7 +73,24 @@ describe('payday scheduled obligation review', () => {
         operatingAccountIds: ['checking'],
         today: '2026-10-20',
       }),
-    ).toEqual([{ scheduleId: 'rent', name: 'Rent', date: '2026-11-05' }]);
+    ).toEqual({
+      obligations: [{ scheduleId: 'rent', name: 'Rent', date: '2026-11-05' }],
+      isCoverageComplete: true,
+    });
     expect(checklist.knownRemainingTotal).toBe(0);
+  });
+
+  it('keeps observed expenses but flags a funding month beyond the forecast horizon', () => {
+    expect(
+      derivePaydayObligations({
+        checklist,
+        forecast: { ...forecast, forecastEndDate: '2026-11-10' },
+        operatingAccountIds: ['checking'],
+        today: '2026-10-20',
+      }),
+    ).toEqual({
+      obligations: [{ scheduleId: 'rent', name: 'Rent', date: '2026-11-05' }],
+      isCoverageComplete: false,
+    });
   });
 });

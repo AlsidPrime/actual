@@ -3,6 +3,7 @@ import * as sheet from '#server/sheet';
 // @ts-strict-ignore
 import * as monthUtils from '#shared/months';
 
+import { setCategoryCarryover } from './actions';
 import { createAllBudgets } from './base';
 
 beforeEach(() => {
@@ -10,6 +11,44 @@ beforeEach(() => {
 });
 
 describe('Base budget', () => {
+  it('holds income category deposits out of this month and releases them next month', async () => {
+    await sheet.loadSpreadsheet(db);
+    await db.insertCategoryGroup({ id: 'expenses', name: 'Expenses' });
+    await db.insertCategoryGroup({
+      id: 'income',
+      name: 'Income',
+      is_income: 1,
+    });
+    const incomeId = await db.insertCategory({
+      name: 'Salary',
+      cat_group: 'income',
+      is_income: 1,
+    });
+    await db.insertAccount({ id: 'checking', name: 'Checking' });
+    const month = monthUtils.currentMonth();
+    const nextMonth = monthUtils.addMonths(month, 1);
+    await db.insertTransaction({
+      date: `${month}-15`,
+      amount: 10000,
+      account: 'checking',
+      category: incomeId,
+    });
+    await createAllBudgets();
+    await setCategoryCarryover({
+      startMonth: month,
+      category: incomeId,
+      flag: true,
+    });
+    await sheet.waitOnSpreadsheet();
+
+    expect(
+      sheet.getCellValue(monthUtils.sheetForMonth(month), 'to-budget'),
+    ).toBe(0);
+    expect(
+      sheet.getCellValue(monthUtils.sheetForMonth(nextMonth), 'to-budget'),
+    ).toBe(10000);
+  });
+
   it('Recomputes budget cells when account fields change', async () => {
     await sheet.loadSpreadsheet(db);
 

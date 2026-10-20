@@ -31,6 +31,7 @@ function forecast(
       scheduleId: string;
       amount: number;
       isTransfer?: boolean;
+      categoryId?: string;
     }>;
   }>,
 ): ForecastResult {
@@ -72,8 +73,8 @@ const days = [
     date: '2026-10-30',
     balance: 19000,
     transactions: [
-      { scheduleId: 'pay-a', amount: 10000 },
-      { scheduleId: 'pay-b', amount: 10000 },
+      { scheduleId: 'pay-a', amount: 10000, categoryId: 'salary' },
+      { scheduleId: 'pay-b', amount: 10000, categoryId: 'salary' },
     ],
   },
   { date: '2026-10-31', balance: 18000 },
@@ -108,8 +109,8 @@ describe('payday runway', () => {
       date: '2026-10-30',
       balance: 25000,
       transactions: [
-        { scheduleId: 'pay-a', amount: 10000 },
-        { scheduleId: 'pay-b', amount: 10000 },
+        { scheduleId: 'pay-a', amount: 10000, categoryId: 'salary' },
+        { scheduleId: 'pay-b', amount: 10000, categoryId: 'salary' },
       ],
     },
   ]);
@@ -138,6 +139,13 @@ describe('payday runway', () => {
       todayClosingCash: 4000,
       firstNegativeDate: null,
     });
+  });
+
+  it('preserves income categories for hold-aware previews without counting transfers', () => {
+    expect(calculate().budgetableDeposits).toEqual([
+      { amount: 10000, categoryId: 'salary' },
+      { amount: 10000, categoryId: 'salary' },
+    ]);
   });
 
   it('accepts two valid selected schedules as a complete payday configuration', () => {

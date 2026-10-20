@@ -8,6 +8,10 @@ export type PaydayObligation = {
   name: string;
   date: string;
 };
+export type PaydayObligationReview = {
+  obligations: PaydayObligation[];
+  isCoverageComplete: boolean;
+};
 
 /** Scheduled expenses to review, never extra inferred funding requirements. */
 export function derivePaydayObligations({
@@ -20,7 +24,7 @@ export function derivePaydayObligations({
   forecast: ForecastResult | null;
   operatingAccountIds: readonly string[];
   today: string;
-}): PaydayObligation[] | null {
+}): PaydayObligationReview | null {
   if (!forecast || operatingAccountIds.length === 0) {
     return null;
   }
@@ -56,7 +60,13 @@ export function derivePaydayObligations({
       });
     }
   }
-  return [...result.values()].sort(
-    (a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name),
-  );
+  return {
+    obligations: [...result.values()].sort(
+      (a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name),
+    ),
+    isCoverageComplete:
+      forecast.forecastStartDate <=
+        (today > `${checklist.month}-01` ? today : `${checklist.month}-01`) &&
+      forecast.forecastEndDate >= monthUtils.lastDayOfMonth(checklist.month),
+  };
 }

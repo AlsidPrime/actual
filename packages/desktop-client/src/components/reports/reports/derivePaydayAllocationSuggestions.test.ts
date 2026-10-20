@@ -7,6 +7,7 @@ import type {
   PaydayChecklistItem,
   PaydayChecklistResult,
 } from './derivePaydayChecklist';
+import type { PaydayIncomeBudget } from './paydayIncomeBudget';
 
 const today = '2026-10-20';
 const item = (
@@ -38,26 +39,40 @@ const checklist = (
   withoutRules: [],
 });
 const runway = {
+  status: 'scheduled-only',
   paydayDate: '2026-10-25',
+  daysUntilPayday: 5,
+  scheduleNames: ['Salary'],
   expectedIncome: 100000,
   budgetableIncome: 100000,
+  budgetableDeposits: [{ amount: 100000, categoryId: 'salary' }],
   isConfigurationIncomplete: false,
-} satisfies Pick<
-  PaydayRunway,
-  | 'paydayDate'
-  | 'expectedIncome'
-  | 'budgetableIncome'
-  | 'isConfigurationIncomplete'
->;
+  isScheduledOnly: true,
+  currentCashWarning: null,
+  currentCash: null,
+  todayClosingCash: null,
+  lowestCash: null,
+  lowestDate: null,
+  firstNegativeDate: null,
+  firstNegativeCash: null,
+  paydayClosingCash: null,
+} satisfies PaydayRunway;
+const incomeBudget: PaydayIncomeBudget = {
+  month: '2026-10',
+  manualBuffered: 0,
+  incomeCategoryHold: { salary: false },
+};
 function plan(
   budget: PaydayChecklistResult,
   mode: FundingMode = 'available',
   income: PaydayRunway | null = null,
+  hold: PaydayIncomeBudget | null = incomeBudget,
 ) {
   return derivePaydayAllocationSuggestions({
     checklist: budget,
     mode,
     runway: income,
+    incomeBudget: hold,
     today,
   });
 }
@@ -92,7 +107,7 @@ describe('payday allocation suggestions', () => {
     const result = plan(
       checklist(-30000, [item('first', 1, 90000)]),
       'payday-preview',
-      runway as PaydayRunway,
+      runway,
     );
     expect(result.deficitCovered).toBe(30000);
     expect(result.capacity).toBe(70000);
@@ -103,7 +118,7 @@ describe('payday allocation suggestions', () => {
     const result = plan(
       checklist(-120000, [item('first', 1, 50000)]),
       'payday-preview',
-      runway as PaydayRunway,
+      runway,
     );
     expect(result.deficitCovered).toBe(100000);
     expect(result.capacity).toBe(0);
@@ -128,6 +143,7 @@ describe('payday allocation suggestions', () => {
       remainingPool: 8000,
     });
     expect(result.unallocated).toBe(8000);
+    expect(result.status).toBe('partial');
   });
 
   it('keeps valid targets usable beside a Goal-only rule', () => {
@@ -187,6 +203,7 @@ describe('payday allocation suggestions', () => {
       checklist: budget,
       mode: 'available',
       runway: null,
+      incomeBudget,
       today,
       choices: { 'choice a': 3000, 'choice b': 4000 },
     });
@@ -200,36 +217,106 @@ describe('payday allocation suggestions', () => {
     expect(result.manualChoice?.remainingPool).toBe(1000);
     expect(result.totalSuggested).toBe(9000);
     expect(result.unallocated).toBe(1000);
+    expect(result.status).toBe('partial');
     const invalid = derivePaydayAllocationSuggestions({
       checklist: budget,
       mode: 'available',
       runway: null,
+      incomeBudget,
       today,
       choices: { 'choice a': 9000 },
     });
     expect(invalid.manualChoice?.error).toBe('exceeds');
     expect(invalid.totalSuggested).toBe(2000);
+    const resolved = derivePaydayAllocationSuggestions({
+      checklist: budget,
+      mode: 'available',
+      runway: null,
+      incomeBudget,
+      today,
+      choices: { 'choice a': 4000, 'choice b': 4000 },
+    });
+    expect(resolved.status).toBe('ready');
+    expect(resolved.unallocated).toBe(0);
+  });
+
+  it('respects native income hold in the payday month and releases it next month', () => {
+    const held = {
+      ...incomeBudget,
+      incomeCategoryHold: { salary: true },
+    };
+    const target = [item('first', 1, 200000)];
+    expect(
+      plan(checklist(5000, target), 'payday-preview', runway, held).reason,
+    ).toBe('held');
+    const nextMonth = plan(
+      checklist(5000, target, '2026-11'),
+      'payday-preview',
+      runway,
+      held,
+    );
+    expect(nextMonth.capacity).toBe(105000);
+    expect(nextMonth.deferredIncome).toBe(0);
+  });
+
+  it('uses native manual hold precedence over automatic income-category hold', () => {
+    const result = plan(
+      checklist(5000, [item('first', 1, 200000)]),
+      'payday-preview',
+      runway,
+      {
+        ...incomeBudget,
+        manualBuffered: 30000,
+        incomeCategoryHold: { salary: true },
+      },
+    );
+    expect(result.previewIncome).toBe(100000);
+    expect(result.capacity).toBe(105000);
+  });
+
+  it('excludes only held income when selected deposits mix income categories', () => {
+    const result = plan(
+      checklist(5000, [item('first', 1, 200000)]),
+      'payday-preview',
+      {
+        ...runway,
+        budgetableDeposits: [
+          { amount: 60000, categoryId: 'salary' },
+          { amount: 40000, categoryId: 'bonus' },
+        ],
+      },
+      {
+        ...incomeBudget,
+        incomeCategoryHold: { salary: true, bonus: false },
+      },
+    );
+    expect(result.capacity).toBe(45000);
+    expect(result.previewIncome).toBe(40000);
+    expect(result.deferredIncome).toBe(60000);
+  });
+
+  it('does not invent a preview when income categories or hold cells are unavailable', () => {
+    const budget = checklist(5000, [item('first', 1, 200000)]);
+    expect(plan(budget, 'payday-preview', runway, null).reason).toBe('income');
+    expect(
+      plan(budget, 'payday-preview', {
+        ...runway,
+        budgetableDeposits: [{ amount: 100000 }],
+      }).reason,
+    ).toBe('income');
   });
 
   it('keeps preview separate and carries one unposted payday into the next month', () => {
     const budget = checklist(5000, [item('first', 1, 200000)]);
     expect(plan(budget).capacity).toBe(5000);
+    expect(plan(budget, 'payday-preview', runway).capacity).toBe(105000);
     expect(
-      plan(budget, 'payday-preview', runway as PaydayRunway).capacity,
+      plan(checklist(5000, budget.items, '2026-11'), 'payday-preview', runway)
+        .capacity,
     ).toBe(105000);
     expect(
-      plan(
-        checklist(5000, budget.items, '2026-11'),
-        'payday-preview',
-        runway as PaydayRunway,
-      ).capacity,
-    ).toBe(105000);
-    expect(
-      plan(
-        checklist(5000, budget.items, '2026-09'),
-        'payday-preview',
-        runway as PaydayRunway,
-      ).reason,
+      plan(checklist(5000, budget.items, '2026-09'), 'payday-preview', runway)
+        .reason,
     ).toBe('month');
   });
 
@@ -237,7 +324,7 @@ describe('payday allocation suggestions', () => {
     const result = plan(
       checklist(-30000, [item('sinking', 1, 90000)], '2026-11'),
       'payday-preview',
-      runway as PaydayRunway,
+      runway,
     );
     expect(result.existingDeficit).toBe(30000);
     expect(result.deficitCovered).toBe(30000);
@@ -252,7 +339,7 @@ describe('payday allocation suggestions', () => {
       plan(budget, 'payday-preview', {
         ...runway,
         budgetableIncome: 0,
-      } as PaydayRunway).reason,
+      }).reason,
     ).toBe('account');
   });
 });

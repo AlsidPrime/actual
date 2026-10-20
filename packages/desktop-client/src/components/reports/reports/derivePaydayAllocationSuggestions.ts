@@ -5,6 +5,7 @@ import type {
   PaydayChecklistItem,
   PaydayChecklistResult,
 } from './derivePaydayChecklist';
+import type { PaydayIncomeBudget } from './paydayIncomeBudget';
 
 export type FundingMode = 'available' | 'payday-preview';
 export type WhatIfChoices = Readonly<Record<string, number>>;
@@ -18,9 +19,18 @@ export type PaydayAllocationSuggestion = {
 
 export type PaydayAllocationPlan = {
   status: 'ready' | 'partial' | 'unavailable';
-  reason: 'budget' | 'payday' | 'month' | 'account' | 'targets' | null;
+  reason:
+    | 'budget'
+    | 'payday'
+    | 'month'
+    | 'account'
+    | 'income'
+    | 'held'
+    | 'targets'
+    | null;
   capacity: number | null;
   previewIncome: number | null;
+  deferredIncome: number;
   existingDeficit: number;
   deficitCovered: number;
   suggestions: PaydayAllocationSuggestion[];
@@ -63,12 +73,14 @@ export function derivePaydayAllocationSuggestions({
   checklist,
   mode,
   runway,
+  incomeBudget,
   today,
   choices = {},
 }: {
   checklist: PaydayChecklistResult;
   mode: FundingMode;
   runway: PaydayRunway | null;
+  incomeBudget: PaydayIncomeBudget | null;
   today: string;
   choices?: WhatIfChoices;
 }): PaydayAllocationPlan {
@@ -77,6 +89,7 @@ export function derivePaydayAllocationSuggestions({
     reason: null,
     capacity: null,
     previewIncome: null,
+    deferredIncome: 0,
     existingDeficit: 0,
     deficitCovered: 0,
     suggestions: [],
@@ -91,6 +104,8 @@ export function derivePaydayAllocationSuggestions({
     return { ...base, reason: 'budget' };
   }
   const existingDeficit = Math.max(0, -available);
+  let previewIncome = 0;
+  let deferredIncome = 0;
   if (mode === 'payday-preview') {
     if (
       !runway ||
@@ -117,8 +132,49 @@ export function derivePaydayAllocationSuggestions({
     ) {
       return { ...base, reason: 'account', existingDeficit };
     }
+    if (
+      incomeBudget?.month !== paydayMonth ||
+      !isCents(incomeBudget.manualBuffered) ||
+      incomeBudget.manualBuffered < 0 ||
+      !runway.budgetableDeposits ||
+      runway.budgetableDeposits.length === 0
+    ) {
+      return { ...base, reason: 'income', existingDeficit };
+    }
+    let totalDeposits = 0;
+    for (const deposit of runway.budgetableDeposits) {
+      if (
+        !isCents(deposit.amount) ||
+        deposit.amount <= 0 ||
+        !deposit.categoryId ||
+        !Object.hasOwn(incomeBudget.incomeCategoryHold, deposit.categoryId) ||
+        typeof incomeBudget.incomeCategoryHold[deposit.categoryId] !== 'boolean'
+      ) {
+        return { ...base, reason: 'income', existingDeficit };
+      }
+      totalDeposits += deposit.amount;
+      if (
+        checklist.month === paydayMonth &&
+        incomeBudget.manualBuffered === 0 &&
+        incomeBudget.incomeCategoryHold[deposit.categoryId]
+      ) {
+        deferredIncome += deposit.amount;
+      } else {
+        previewIncome += deposit.amount;
+      }
+    }
+    if (
+      !isCents(totalDeposits) ||
+      totalDeposits !== runway.budgetableIncome ||
+      !isCents(previewIncome)
+    ) {
+      return { ...base, reason: 'income', existingDeficit };
+    }
+    if (previewIncome === 0) {
+      return { ...base, reason: 'held', existingDeficit };
+    }
   }
-  const income = mode === 'payday-preview' ? runway?.budgetableIncome : 0;
+  const income = previewIncome;
   if (!isCents(income) || !Number.isSafeInteger(available + income)) {
     return { ...base, reason: 'budget', existingDeficit };
   }
@@ -129,6 +185,7 @@ export function derivePaydayAllocationSuggestions({
     status: 'ready',
     capacity,
     previewIncome: mode === 'payday-preview' ? income : null,
+    deferredIncome,
     existingDeficit,
     deficitCovered,
     unallocated: capacity,
@@ -202,6 +259,9 @@ export function derivePaydayAllocationSuggestions({
               chosenTotal > remainingPool
             ? 'exceeds'
             : null;
+      if (error || chosenTotal < remainingPool) {
+        plan.status = 'partial';
+      }
       plan.manualChoice = {
         priority: priority ?? 0,
         pool: remainingPool,
