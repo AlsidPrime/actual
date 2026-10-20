@@ -1,5 +1,6 @@
 import { Trans } from 'react-i18next';
 
+import { useResponsive } from '@actual-app/components/hooks/useResponsive';
 import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
@@ -9,8 +10,12 @@ import { FinancialText } from '#components/FinancialText';
 import { PrivacyFilter } from '#components/PrivacyFilter';
 import { useFormat } from '#hooks/useFormat';
 import { useLocale } from '#hooks/useLocale';
+import { usePrivacyMode } from '#hooks/usePrivacyMode';
 
+import type { PaydayRunway } from './cashFlowPayday';
+import type { CashFlowRiskResult } from './cashFlowRisk';
 import type { PaydayChecklistResult } from './derivePaydayChecklist';
+import { SuggestedFundingPlan } from './SuggestedFundingPlan';
 
 export function PaydayChecklist({
   month,
@@ -19,6 +24,9 @@ export function PaydayChecklist({
   isEnvelope,
   hasCategoryData,
   hasCategories,
+  runway,
+  risk,
+  today,
 }: {
   month: string;
   checklist: PaydayChecklistResult | undefined;
@@ -26,12 +34,19 @@ export function PaydayChecklist({
   isEnvelope: boolean;
   hasCategoryData: boolean;
   hasCategories: boolean;
+  runway: PaydayRunway | null;
+  risk: CashFlowRiskResult | null;
+  today: string;
 }) {
   const format = useFormat();
   const locale = useLocale();
+  const isPrivate = usePrivacyMode();
+  const { isNarrowWidth } = useResponsive();
   const money = (amount: number | null) =>
     amount == null ? (
       <Trans>Unavailable</Trans>
+    ) : isPrivate && isNarrowWidth ? (
+      <Trans>Private value hidden</Trans>
     ) : (
       <PrivacyFilter>
         <FinancialText>{format(amount, 'financial')}</FinancialText>
@@ -176,6 +191,13 @@ export function PaydayChecklist({
               </View>
             </details>
           )}
+          <SuggestedFundingPlan
+            key={month}
+            checklist={result}
+            runway={runway}
+            risk={risk}
+            today={today}
+          />
         </>
       )}
     </View>

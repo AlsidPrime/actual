@@ -694,14 +694,18 @@ export function CashFlowPage() {
             </Trans>
           </Text>
         )}
-        <View
-          role="group"
+        <fieldset
           aria-labelledby="cash-flow-funding-month-label"
           style={{
+            display: 'flex',
             flexDirection: 'row',
             alignItems: 'center',
             flexWrap: 'wrap',
             gap: 10,
+            border: 0,
+            padding: 0,
+            margin: 0,
+            minWidth: 0,
           }}
         >
           <Text id="cash-flow-funding-month-label" style={{ fontWeight: 600 }}>
@@ -727,7 +731,7 @@ export function CashFlowPage() {
               {monthUtils.format(nextMonth, 'MMM yyyy', locale)}
             </Button>
           </View>
-        </View>
+        </fieldset>
         <CashFlowPaydayReview
           review={paydayReview}
           runway={runway}
@@ -738,6 +742,9 @@ export function CashFlowPage() {
         <PaydayChecklist
           month={planMonth}
           checklist={paydayChecklist}
+          runway={runway}
+          risk={risk}
+          today={today}
           isLoading={
             isChecklistFetching ||
             (isEnvelope && categoryData == null && !categoriesError)

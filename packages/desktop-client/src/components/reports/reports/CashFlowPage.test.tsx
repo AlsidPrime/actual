@@ -18,6 +18,9 @@ import { TestProviders } from '#mocks';
 
 import { DEFAULT_CASH_FLOW_CONFIG } from './cashFlowConfig';
 import { CashFlowPage } from './CashFlowPage';
+import type { PaydayRunway } from './cashFlowPayday';
+import { PaydayChecklist } from './PaydayChecklist';
+import { SuggestedFundingPlan } from './SuggestedFundingPlan';
 
 const fixture = vi.hoisted(() => ({
   rawConfig: undefined as string | undefined,
@@ -1035,6 +1038,8 @@ describe('Cash Flow page', () => {
       'article[aria-current="date"]',
     )?.textContent;
     await waitFor(() => expect(panel).toHaveTextContent('150.00'));
+    expect(panel).toHaveTextContent('Suggested Funding Plan');
+    expect(panel).toHaveTextContent('Total suggested allocations: 150.00');
     expect(panel).toHaveTextContent('Available to Budget');
     expect(panel).toHaveTextContent('Remaining target funding');
     expect(panel).toHaveTextContent(
@@ -1054,6 +1059,7 @@ describe('Cash Flow page', () => {
       document.querySelector('article[aria-current="date"]')?.textContent,
     ).toBe(calendarToday);
     expect(panel).toHaveTextContent('20.00');
+    expect(panel).toHaveTextContent('Total suggested allocations: 20.00');
     expect(panel).toHaveTextContent('Allocated: 100.00 · Target: 120.00');
     expect(panel).not.toHaveTextContent('150.00');
     expect(
@@ -1077,6 +1083,107 @@ describe('Cash Flow page', () => {
           ].includes(name),
         ),
     ).toBe(true);
+  });
+
+  it('requires an explicit preview selection and masks its monetary values', async () => {
+    fixture.privacyMode = true;
+    const month = '2026-10';
+    render(
+      <TestProviders>
+        <SuggestedFundingPlan
+          checklist={{
+            month,
+            availableToBudget: -30000,
+            remainingTotal: 90000,
+            isComplete: true,
+            items: [
+              {
+                categoryId: 'housing',
+                categoryName: 'Housing',
+                priority: 1,
+                target: 90000,
+                allocated: 0,
+                remaining: 90000,
+                status: 'ready',
+              },
+            ],
+          }}
+          runway={
+            {
+              paydayDate: '2026-10-25',
+              expectedIncome: 100000,
+              isConfigurationIncomplete: false,
+              status: 'incomplete',
+              currentCashWarning: null,
+            } as PaydayRunway
+          }
+          risk={null}
+          today="2026-10-20"
+        />
+      </TestProviders>,
+    );
+    const panel = screen.getByText('Suggested Funding Plan').parentElement;
+    expect(panel).toHaveTextContent('Available to Budget for allocation');
+    expect(panel).not.toHaveTextContent('Hypothetical allocation capacity');
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Next payday preview' }),
+    );
+    expect(panel).toHaveTextContent('Hypothetical allocation capacity');
+    expect(panel).toHaveTextContent('Total suggested allocations');
+    expect(
+      panel?.querySelectorAll('[aria-label="Private value hidden"]').length,
+    ).toBeGreaterThanOrEqual(5);
+    for (const element of panel?.querySelectorAll('[aria-label],[title]') ??
+      []) {
+      expect(
+        `${element.getAttribute('aria-label')} ${element.getAttribute('title')}`,
+      ).not.toMatch(/300\.00|700\.00|1,000\.00/);
+    }
+  });
+
+  it('hides checklist and plan amounts on a narrow screen in Privacy Mode', async () => {
+    fixture.privacyMode = true;
+    vi.stubGlobal('innerWidth', 400);
+    try {
+      render(
+        <TestProviders>
+          <PaydayChecklist
+            month="2026-10"
+            checklist={{
+              month: '2026-10',
+              availableToBudget: 12345,
+              remainingTotal: 5000,
+              isComplete: true,
+              items: [
+                {
+                  categoryId: 'housing',
+                  categoryName: 'Housing',
+                  priority: 1,
+                  target: 10000,
+                  allocated: 5000,
+                  remaining: 5000,
+                  status: 'ready',
+                },
+              ],
+            }}
+            runway={null}
+            risk={null}
+            today="2026-10-20"
+            isLoading={false}
+            isEnvelope
+            hasCategoryData
+            hasCategories
+          />
+        </TestProviders>,
+      );
+      const panel = screen.getByText('Payday Funding Checklist').parentElement;
+      await userEvent.click(screen.getByText('Category funding details'));
+      expect(panel).toHaveTextContent('Private value hidden');
+      expect(panel).not.toHaveTextContent(/123\.45|100\.00|73\.45|50\.00/);
+    } finally {
+      cleanup();
+      vi.unstubAllGlobals();
+    }
   });
 
   it('keeps the funding checklist incomplete until native budget cells arrive, then refreshes on a cell change', async () => {
