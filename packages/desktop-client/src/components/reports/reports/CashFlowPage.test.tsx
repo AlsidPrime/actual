@@ -3,7 +3,14 @@ import { MemoryRouter, Route, Routes } from 'react-router';
 import { listen, send } from '@actual-app/core/platform/client/connection';
 import * as monthUtils from '@actual-app/core/shared/months';
 import type { ScheduleStatusType } from '@actual-app/core/shared/schedules';
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -932,8 +939,7 @@ describe('Cash Flow page', () => {
       throw new Error(`Unexpected API call: ${name}`);
     });
     renderRoute();
-    const panel = screen.getByText('Sinking Savings Plan').parentElement
-      ?.parentElement;
+    const panel = screen.getByText('Sinking Savings Plan').parentElement;
     await waitFor(() => expect(panel).toHaveTextContent('100.00'));
     expect(panel).toHaveTextContent('50.00');
     expect(panel).toHaveTextContent('14.51');
@@ -1002,6 +1008,32 @@ describe('Cash Flow page', () => {
     });
     renderRoute();
     const panel = screen.getByText('Payday Funding Checklist').parentElement;
+    const reviewHeading = screen.getByText('Payday Review');
+    const review = reviewHeading.parentElement;
+    const savingsPlan = screen.getByText('Sinking Savings Plan').parentElement;
+    const selector = screen.getByRole('group', { name: 'Funding month' });
+    const currentButton = within(selector).getByRole('button', {
+      name: /Current month ·/,
+    });
+    const nextButton = within(selector).getByRole('button', {
+      name: /Next month ·/,
+    });
+    expect(selector).toHaveTextContent(
+      `Current month · ${monthUtils.format(currentMonth, 'MMM yyyy')}`,
+    );
+    expect(selector).toHaveTextContent(
+      `Next month · ${monthUtils.format(nextMonth, 'MMM yyyy')}`,
+    );
+    expect(currentButton).toHaveAttribute('aria-pressed', 'true');
+    expect(nextButton).toHaveAttribute('aria-pressed', 'false');
+    expect(
+      selector.compareDocumentPosition(reviewHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(savingsPlan?.querySelector('button')).not.toBeInTheDocument();
+    const calendarToday = document.querySelector(
+      'article[aria-current="date"]',
+    )?.textContent;
     await waitFor(() => expect(panel).toHaveTextContent('150.00'));
     expect(panel).toHaveTextContent('Available to Budget');
     expect(panel).toHaveTextContent('Remaining target funding');
@@ -1010,8 +1042,17 @@ describe('Cash Flow page', () => {
     );
     await userEvent.click(screen.getByText('Category funding details'));
     expect(panel).toHaveTextContent('Allocated: 50.00 · Target: 200.00');
-    await userEvent.click(screen.getByRole('button', { name: /Next month ·/ }));
+    await userEvent.click(nextButton);
     await waitFor(() => expect(panel).toHaveTextContent('40.00'));
+    expect(currentButton).toHaveAttribute('aria-pressed', 'false');
+    expect(nextButton).toHaveAttribute('aria-pressed', 'true');
+    expect(review).toHaveTextContent(monthUtils.format(nextMonth, 'MMMM yyyy'));
+    expect(savingsPlan).toHaveTextContent(
+      monthUtils.format(nextMonth, 'MMMM yyyy'),
+    );
+    expect(
+      document.querySelector('article[aria-current="date"]')?.textContent,
+    ).toBe(calendarToday);
     expect(panel).toHaveTextContent('20.00');
     expect(panel).toHaveTextContent('Allocated: 100.00 · Target: 120.00');
     expect(panel).not.toHaveTextContent('150.00');
@@ -1193,8 +1234,7 @@ describe('Cash Flow page', () => {
       throw new Error(`Unexpected API call: ${name}`);
     });
     renderRoute();
-    const panel = screen.getByText('Sinking Savings Plan').parentElement
-      ?.parentElement;
+    const panel = screen.getByText('Sinking Savings Plan').parentElement;
     await waitFor(() => expect(panel).toHaveTextContent('Emergency'));
     expect(panel?.querySelector('[aria-hidden="true"]')).toBeInTheDocument();
     expect(
@@ -1232,8 +1272,7 @@ describe('Cash Flow page', () => {
       throw new Error(`Unexpected API call: ${name}`);
     });
     renderRoute();
-    const panel = screen.getByText('Sinking Savings Plan').parentElement
-      ?.parentElement;
+    const panel = screen.getByText('Sinking Savings Plan').parentElement;
     await waitFor(() =>
       expect(panel).toHaveTextContent(
         'Some plan data is unavailable or unsupported.',

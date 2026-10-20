@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Trans } from 'react-i18next';
 
+import { Button } from '@actual-app/components/button';
 import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
@@ -233,6 +234,7 @@ function SweepCallout({
 }
 
 export function CashFlowPage() {
+  const locale = useLocale();
   const queryClient = useQueryClient();
   useEffect(() => {
     const unlistenSync = listen('sync-event', event => {
@@ -692,6 +694,40 @@ export function CashFlowPage() {
             </Trans>
           </Text>
         )}
+        <View
+          role="group"
+          aria-labelledby="cash-flow-funding-month-label"
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 10,
+          }}
+        >
+          <Text id="cash-flow-funding-month-label" style={{ fontWeight: 600 }}>
+            <Trans>Funding month</Trans>
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+            <Button
+              variant={planMonth === currentMonth ? 'primary' : 'normal'}
+              style={{ minHeight: 40 }}
+              aria-pressed={planMonth === currentMonth}
+              onPress={() => setSelectedPlanMonth(currentMonth)}
+            >
+              <Trans>Current month</Trans> ·{' '}
+              {monthUtils.format(currentMonth, 'MMM yyyy', locale)}
+            </Button>
+            <Button
+              variant={planMonth === nextMonth ? 'primary' : 'normal'}
+              style={{ minHeight: 40 }}
+              aria-pressed={planMonth === nextMonth}
+              onPress={() => setSelectedPlanMonth(nextMonth)}
+            >
+              <Trans>Next month</Trans> ·{' '}
+              {monthUtils.format(nextMonth, 'MMM yyyy', locale)}
+            </Button>
+          </View>
+        </View>
         <CashFlowPaydayReview
           review={paydayReview}
           runway={runway}
@@ -782,10 +818,7 @@ export function CashFlowPage() {
             {savingsPlan && (
               <SinkingSavingsPlanCallout
                 plan={savingsPlan}
-                currentMonth={currentMonth}
-                nextMonth={nextMonth}
                 selectedMonth={planMonth}
-                onMonthChange={setSelectedPlanMonth}
                 isLoading={
                   config.reserveCategoryIds.length > 0 &&
                   ((budgetData == null && !budgetError) ||

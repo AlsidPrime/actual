@@ -1,6 +1,5 @@
 import { Trans } from 'react-i18next';
 
-import { Button } from '@actual-app/components/button';
 import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
@@ -15,17 +14,11 @@ import type { SinkingSavingsPlan } from './cashFlowSavingsPlan';
 
 export function SinkingSavingsPlanCallout({
   plan,
-  currentMonth,
-  nextMonth,
   selectedMonth,
-  onMonthChange,
   isLoading,
 }: {
   plan: SinkingSavingsPlan;
-  currentMonth: string;
-  nextMonth: string;
   selectedMonth: string;
-  onMonthChange: (month: string) => void;
   isLoading: boolean;
 }) {
   const format = useFormat();
@@ -46,39 +39,9 @@ export function SinkingSavingsPlanCallout({
     <View
       style={{ border: `1px solid ${theme.tableBorder}`, padding: 14, gap: 12 }}
     >
-      <View
-        style={{
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 10,
-        }}
-      >
-        <Text style={{ fontWeight: 600, fontSize: 16 }}>
-          <Trans>Sinking Savings Plan</Trans>
-        </Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-          <Button
-            variant={selectedMonth === currentMonth ? 'primary' : 'normal'}
-            style={{ minHeight: 40 }}
-            aria-pressed={selectedMonth === currentMonth}
-            onPress={() => onMonthChange(currentMonth)}
-          >
-            <Trans>Current month</Trans> ·{' '}
-            {monthUtils.format(currentMonth, 'MMM yyyy', locale)}
-          </Button>
-          <Button
-            variant={selectedMonth === nextMonth ? 'primary' : 'normal'}
-            style={{ minHeight: 40 }}
-            aria-pressed={selectedMonth === nextMonth}
-            onPress={() => onMonthChange(nextMonth)}
-          >
-            <Trans>Next month</Trans> ·{' '}
-            {monthUtils.format(nextMonth, 'MMM yyyy', locale)}
-          </Button>
-        </View>
-      </View>
+      <Text style={{ fontWeight: 600, fontSize: 16 }}>
+        <Trans>Sinking Savings Plan</Trans>
+      </Text>
       <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
         <Trans>Plan for budget month</Trans>:{' '}
         {monthUtils.format(selectedMonth, 'MMMM yyyy', locale)}.{' '}
