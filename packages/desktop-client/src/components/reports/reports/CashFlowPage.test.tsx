@@ -958,6 +958,204 @@ describe('Cash Flow page', () => {
     ).toBe(true);
   });
 
+  it('updates the funding checklist with the selected October and November budget month', async () => {
+    fixture.withReserve = true;
+    fixture.operatingBalance = 1000;
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+      reserveCategoryIds: ['emergency'],
+    });
+    const currentMonth = monthUtils.currentMonth();
+    const nextMonth = monthUtils.addMonths(currentMonth, 1);
+    vi.mocked(send).mockImplementation(async (name, args) => {
+      if (name === 'envelope-budget-month') {
+        return [
+          {
+            name: 'to-budget',
+            value: args.month === currentMonth ? 15000 : 4000,
+          },
+          {
+            name: 'budget-emergency',
+            value: args.month === currentMonth ? 5000 : 10000,
+          },
+          { name: 'leftover-emergency', value: 0 },
+        ];
+      }
+      if (name === 'budget/get-category-automations') {
+        return {
+          emergency: [
+            {
+              directive: 'template',
+              type: 'simple',
+              monthly: 20000,
+              priority: 1,
+            },
+          ],
+        };
+      }
+      if (name === 'budget/dry-run-category-template') {
+        const amount = args.month === currentMonth ? 20000 : 12000;
+        return { budgeted: amount, perTemplate: [amount] };
+      }
+      throw new Error(`Unexpected API call: ${name}`);
+    });
+    renderRoute();
+    const panel = screen.getByText('Payday Funding Checklist').parentElement;
+    await waitFor(() => expect(panel).toHaveTextContent('150.00'));
+    expect(panel).toHaveTextContent('Available to Budget');
+    expect(panel).toHaveTextContent('Remaining target funding');
+    expect(panel).toHaveTextContent(
+      'Budget funding is separate from Operating cash and transfer headroom.',
+    );
+    await userEvent.click(screen.getByText('Category funding details'));
+    expect(panel).toHaveTextContent('Allocated: 50.00 · Target: 200.00');
+    await userEvent.click(screen.getByRole('button', { name: /Next month ·/ }));
+    await waitFor(() => expect(panel).toHaveTextContent('40.00'));
+    expect(panel).toHaveTextContent('20.00');
+    expect(panel).toHaveTextContent('Allocated: 100.00 · Target: 120.00');
+    expect(panel).not.toHaveTextContent('150.00');
+    expect(
+      vi
+        .mocked(send)
+        .mock.calls.some(
+          ([name, args]) =>
+            name === 'budget/dry-run-category-template' &&
+            args.month === nextMonth &&
+            args.strict === true,
+        ),
+    ).toBe(true);
+    expect(
+      vi
+        .mocked(send)
+        .mock.calls.every(([name]) =>
+          [
+            'envelope-budget-month',
+            'budget/get-category-automations',
+            'budget/dry-run-category-template',
+          ].includes(name),
+        ),
+    ).toBe(true);
+  });
+
+  it('keeps the funding checklist incomplete until native budget cells arrive, then refreshes on a cell change', async () => {
+    fixture.withReserve = true;
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+      reserveCategoryIds: ['emergency'],
+    });
+    let resolveBudget:
+      | ((cells: Array<{ name: string; value: number }>) => void)
+      | undefined;
+    const pendingBudget = new Promise<Array<{ name: string; value: number }>>(
+      resolve => {
+        resolveBudget = resolve;
+      },
+    );
+    let budget = pendingBudget;
+    vi.mocked(send).mockImplementation(async name => {
+      if (name === 'envelope-budget-month') return budget;
+      if (name === 'budget/get-category-automations') {
+        return {
+          emergency: [
+            {
+              directive: 'template',
+              type: 'simple',
+              monthly: 20000,
+              priority: 1,
+            },
+          ],
+        };
+      }
+      if (name === 'budget/dry-run-category-template') {
+        return { budgeted: 20000, perTemplate: [20000] };
+      }
+      throw new Error(`Unexpected API call: ${name}`);
+    });
+    renderRoute();
+    const panel = screen.getByText('Payday Funding Checklist').parentElement;
+    expect(panel).toHaveTextContent('Loading funding checklist.');
+    expect(panel).not.toHaveTextContent(
+      'Configured targets are fully allocated',
+    );
+    resolveBudget?.([
+      { name: 'to-budget', value: 30000 },
+      { name: 'budget-emergency', value: 5000 },
+      { name: 'leftover-emergency', value: 0 },
+    ]);
+    await waitFor(() => expect(panel).toHaveTextContent('150.00'));
+    budget = Promise.resolve([
+      { name: 'to-budget', value: 15000 },
+      { name: 'budget-emergency', value: 10000 },
+      { name: 'leftover-emergency', value: 0 },
+    ]);
+    const onCellsChanged = vi
+      .mocked(listen)
+      .mock.calls.find(([name]) => name === 'cells-changed')?.[1];
+    expect(onCellsChanged).toBeDefined();
+    act(() =>
+      onCellsChanged?.([
+        {
+          name: `${monthUtils.sheetForMonth(monthUtils.currentMonth())}!budget-emergency`,
+          value: 10000,
+        },
+      ]),
+    );
+    await waitFor(() => expect(panel).toHaveTextContent('100.00'));
+    expect(panel).toHaveTextContent('Available to Budget');
+    expect(panel).toHaveTextContent('150.00');
+  });
+
+  it('redacts checklist totals and category funding in Privacy Mode', async () => {
+    fixture.withReserve = true;
+    fixture.privacyMode = true;
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+    });
+    vi.mocked(send).mockImplementation(async name => {
+      if (name === 'envelope-budget-month') {
+        return [
+          { name: 'to-budget', value: 12345 },
+          { name: 'budget-emergency', value: 5000 },
+          { name: 'leftover-emergency', value: 0 },
+        ];
+      }
+      if (name === 'budget/get-category-automations') {
+        return {
+          emergency: [
+            {
+              directive: 'template',
+              type: 'simple',
+              monthly: 20000,
+              priority: 1,
+            },
+          ],
+        };
+      }
+      if (name === 'budget/dry-run-category-template') {
+        return { budgeted: 20000, perTemplate: [20000] };
+      }
+      throw new Error(`Unexpected API call: ${name}`);
+    });
+    renderRoute();
+    const panel = screen.getByText('Payday Funding Checklist').parentElement;
+    await waitFor(() =>
+      expect(panel).toHaveTextContent('Remaining target funding'),
+    );
+    await userEvent.click(screen.getByText('Category funding details'));
+    expect(
+      panel?.querySelectorAll('[aria-hidden="true"]').length,
+    ).toBeGreaterThanOrEqual(3);
+    for (const element of panel?.querySelectorAll('[aria-label],[title]') ??
+      []) {
+      expect(
+        `${element.getAttribute('aria-label')} ${element.getAttribute('title')}`,
+      ).not.toMatch(/123\.45|150\.00/);
+    }
+  });
+
   it('masks Sinking Savings Plan amounts and leaves accessibility labels free of private values', async () => {
     fixture.withReserve = true;
     fixture.privacyMode = true;
@@ -1523,12 +1721,13 @@ describe('Cash Flow page', () => {
           ([name, args]) =>
             name === 'budget/get-category-automations' && args === 'groceries',
         ),
-    ).toHaveLength(1);
+    ).toHaveLength(2);
     expect(
       vi
         .mocked(send)
         .mock.calls.filter(
-          ([name]) => name === 'budget/dry-run-category-template',
+          ([name, args]) =>
+            name === 'budget/dry-run-category-template' && args.strict !== true,
         ),
     ).toHaveLength(12);
     const onSync = vi
@@ -1544,14 +1743,17 @@ describe('Cash Flow page', () => {
           .length,
       ).toBeGreaterThan(12),
     );
-    expect(
-      vi
-        .mocked(send)
-        .mock.calls.filter(
-          ([name, args]) =>
-            name === 'budget/get-category-automations' && args === 'groceries',
-        ),
-    ).toHaveLength(1);
+    await waitFor(() =>
+      expect(
+        vi
+          .mocked(send)
+          .mock.calls.filter(
+            ([name, args]) =>
+              name === 'budget/get-category-automations' &&
+              args === 'groceries',
+          ),
+      ).toHaveLength(3),
+    );
     act(() => onSync?.({ type: 'success', tables: ['categories'] }));
     await waitFor(() =>
       expect(
@@ -1562,7 +1764,7 @@ describe('Cash Flow page', () => {
               name === 'budget/get-category-automations' &&
               args === 'groceries',
           ),
-      ).toHaveLength(2),
+      ).toHaveLength(5),
     );
     expect(
       vi

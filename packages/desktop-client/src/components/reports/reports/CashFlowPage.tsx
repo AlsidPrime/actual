@@ -45,7 +45,9 @@ import {
 } from './cashFlowSavingsPlan';
 import { CashFlowSetup } from './CashFlowSetup';
 import { deriveCashFlowAttention } from './deriveCashFlowAttention';
+import { loadPaydayChecklist } from './derivePaydayChecklist';
 import { derivePaydayReview } from './derivePaydayReview';
+import { PaydayChecklist } from './PaydayChecklist';
 import { SinkingSavingsPlanCallout } from './SinkingSavingsPlanCallout';
 
 function SweepCallout({
@@ -232,47 +234,58 @@ function SweepCallout({
 
 export function CashFlowPage() {
   const queryClient = useQueryClient();
-  useEffect(
-    () =>
-      listen('sync-event', event => {
-        if (
-          (event.type === 'success' || event.type === 'applied') &&
-          event.tables.some(table =>
-            [
-              'transactions',
-              'schedules',
-              'accounts',
-              'categories',
-              'category_mapping',
-              'zero_budgets',
-              'zero_budget_months',
-              'reflect_budgets',
-            ].includes(table),
-          )
-        ) {
-          void queryClient.invalidateQueries({
-            queryKey: ['balance-forecast'],
-          });
-          void queryClient.invalidateQueries({
-            queryKey: ['cash-flow-calendar-budget'],
-          });
-          void queryClient.invalidateQueries({
-            queryKey: ['cash-flow-sinking-plan-automations'],
-          });
-        }
-        if (
-          (event.type === 'success' || event.type === 'applied') &&
-          event.tables.some(table =>
-            ['categories', 'preferences'].includes(table),
-          )
-        ) {
-          void queryClient.invalidateQueries({
-            queryKey: ['cash-flow-calendar-automation-plans'],
-          });
-        }
-      }),
-    [queryClient],
-  );
+  useEffect(() => {
+    const unlistenSync = listen('sync-event', event => {
+      if (event.type !== 'success' && event.type !== 'applied') {
+        return;
+      }
+      const budgetChanged = event.tables.some(table =>
+        [
+          'transactions',
+          'schedules',
+          'accounts',
+          'categories',
+          'category_mapping',
+          'zero_budgets',
+          'zero_budget_months',
+          'reflect_budgets',
+        ].includes(table),
+      );
+      const automationsChanged = event.tables.some(table =>
+        ['categories', 'preferences'].includes(table),
+      );
+      if (budgetChanged) {
+        void queryClient.invalidateQueries({ queryKey: ['balance-forecast'] });
+        void queryClient.invalidateQueries({
+          queryKey: ['cash-flow-calendar-budget'],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ['cash-flow-sinking-plan-automations'],
+        });
+      }
+      if (automationsChanged) {
+        void queryClient.invalidateQueries({
+          queryKey: ['cash-flow-calendar-automation-plans'],
+        });
+      }
+      if (budgetChanged || automationsChanged) {
+        void queryClient.invalidateQueries({
+          queryKey: ['cash-flow-payday-checklist'],
+        });
+      }
+    });
+    const unlistenCells = listen('cells-changed', cells => {
+      if (cells.some(cell => /^budget\d{6}!/.test(cell.name))) {
+        void queryClient.invalidateQueries({
+          queryKey: ['cash-flow-payday-checklist'],
+        });
+      }
+    });
+    return () => {
+      unlistenSync();
+      unlistenCells();
+    };
+  }, [queryClient]);
   const [rawConfig, saveRawConfig] = useSyncedPref('cash-flow-calendar-config');
   const [config, setConfig] = useState(() => parseCashFlowConfig(rawConfig));
   useEffect(() => setConfig(parseCashFlowConfig(rawConfig)), [rawConfig]);
@@ -312,7 +325,8 @@ export function CashFlowPage() {
   const debtAccountIds = config.debtAccountIds.filter(id =>
     availableAccountIds.has(id),
   );
-  const { data: categoryData } = useCategories(isEnvelope);
+  const { data: categoryData, error: categoriesError } =
+    useCategories(isEnvelope);
   const expenseGroups =
     categoryData?.grouped.filter(group => !group.is_income) ?? [];
   const expenseCategories =
@@ -368,6 +382,20 @@ export function CashFlowPage() {
     null,
   );
   const planMonth = selectedPlanMonth === nextMonth ? nextMonth : currentMonth;
+  const { data: paydayChecklist, isFetching: isChecklistFetching } = useQuery({
+    queryKey: [
+      'cash-flow-payday-checklist',
+      planMonth,
+      expenseCategories.map(category => [
+        category.id,
+        category.name,
+        category.hidden,
+        category.tombstone,
+      ]),
+    ],
+    queryFn: () => loadPaydayChecklist(planMonth, expenseCategories),
+    enabled: isEnvelope && expenseCategories.length > 0,
+  });
   const endMonth = monthUtils.addMonths(
     currentMonth,
     config.forecastMonths - 1,
@@ -670,6 +698,17 @@ export function CashFlowPage() {
           savingsPlan={savingsPlan}
           advisor={advisor}
           planMonth={planMonth}
+        />
+        <PaydayChecklist
+          month={planMonth}
+          checklist={paydayChecklist}
+          isLoading={
+            isChecklistFetching ||
+            (isEnvelope && categoryData == null && !categoriesError)
+          }
+          isEnvelope={isEnvelope}
+          hasCategoryData={categoryData != null}
+          hasCategories={expenseCategories.length > 0}
         />
         {operatingAccountIds.length === 0 ? (
           <View style={{ padding: 20, color: theme.pageTextLight }}>
