@@ -32,16 +32,22 @@ const checklist = (
   month,
   availableToBudget,
   remainingTotal: null,
+  knownRemainingTotal: null,
   isComplete: false,
   items,
+  withoutRules: [],
 });
 const runway = {
   paydayDate: '2026-10-25',
   expectedIncome: 100000,
+  budgetableIncome: 100000,
   isConfigurationIncomplete: false,
 } satisfies Pick<
   PaydayRunway,
-  'paydayDate' | 'expectedIncome' | 'isConfigurationIncomplete'
+  | 'paydayDate'
+  | 'expectedIncome'
+  | 'budgetableIncome'
+  | 'isConfigurationIncomplete'
 >;
 function plan(
   budget: PaydayChecklistResult,
@@ -116,8 +122,28 @@ describe('payday allocation suggestions', () => {
     expect(result.suggestions.map(({ categoryId }) => categoryId)).toEqual([
       'first',
     ]);
-    expect(result.manualChoice).toEqual({ priority: 2, amount: 8000 });
+    expect(result.manualChoice).toMatchObject({
+      priority: 2,
+      pool: 8000,
+      remainingPool: 8000,
+    });
     expect(result.unallocated).toBe(8000);
+  });
+
+  it('keeps valid targets usable beside a Goal-only rule', () => {
+    const result = plan(
+      checklist(20000, [
+        item('clothing', null, null, 0, 'goal-only'),
+        item('sinking fund', 1, 10000),
+      ]),
+    );
+    expect(result.status).toBe('partial');
+    expect(result.suggestions).toMatchObject([
+      { categoryId: 'sinking fund', amount: 10000 },
+    ]);
+    expect(result.unresolved.map(item => item.categoryId)).toEqual([
+      'clothing',
+    ]);
   });
 
   it('marks unsupported requirements partial and does not claim the pool as surplus', () => {
@@ -138,7 +164,54 @@ describe('payday allocation suggestions', () => {
     );
   });
 
-  it('keeps preview separate and refuses paydays outside the selected month', () => {
+  it('pauses lower priorities after an unavailable known priority', () => {
+    const result = plan(
+      checklist(20000, [
+        item('unavailable', 1, null, 0, 'unavailable'),
+        item('later', 2, 10000),
+      ]),
+    );
+    expect(result.blockedPriority).toBe(1);
+    expect(result.suggestions).toEqual([]);
+    expect(result.status).toBe('partial');
+  });
+
+  it('accepts a bounded what-if split without advancing lower priorities', () => {
+    const budget = checklist(10000, [
+      item('first', 1, 2000),
+      item('choice a', 2, 8000),
+      item('choice b', 2, 8000),
+      item('later', 3, 5000),
+    ]);
+    const result = derivePaydayAllocationSuggestions({
+      checklist: budget,
+      mode: 'available',
+      runway: null,
+      today,
+      choices: { 'choice a': 3000, 'choice b': 4000 },
+    });
+    expect(
+      result.suggestions.map(item => [item.categoryId, item.amount]),
+    ).toEqual([
+      ['first', 2000],
+      ['choice a', 3000],
+      ['choice b', 4000],
+    ]);
+    expect(result.manualChoice?.remainingPool).toBe(1000);
+    expect(result.totalSuggested).toBe(9000);
+    expect(result.unallocated).toBe(1000);
+    const invalid = derivePaydayAllocationSuggestions({
+      checklist: budget,
+      mode: 'available',
+      runway: null,
+      today,
+      choices: { 'choice a': 9000 },
+    });
+    expect(invalid.manualChoice?.error).toBe('exceeds');
+    expect(invalid.totalSuggested).toBe(2000);
+  });
+
+  it('keeps preview separate and carries one unposted payday into the next month', () => {
     const budget = checklist(5000, [item('first', 1, 200000)]);
     expect(plan(budget).capacity).toBe(5000);
     expect(
@@ -149,7 +222,37 @@ describe('payday allocation suggestions', () => {
         checklist(5000, budget.items, '2026-11'),
         'payday-preview',
         runway as PaydayRunway,
+      ).capacity,
+    ).toBe(105000);
+    expect(
+      plan(
+        checklist(5000, budget.items, '2026-09'),
+        'payday-preview',
+        runway as PaydayRunway,
       ).reason,
     ).toBe('month');
+  });
+
+  it('uses the selected next-month native deficit once before cross-month funding', () => {
+    const result = plan(
+      checklist(-30000, [item('sinking', 1, 90000)], '2026-11'),
+      'payday-preview',
+      runway as PaydayRunway,
+    );
+    expect(result.existingDeficit).toBe(30000);
+    expect(result.deficitCovered).toBe(30000);
+    expect(result.capacity).toBe(70000);
+  });
+
+  it('does not add a posted payday again or turn off-budget income into capacity', () => {
+    const budget = checklist(100000, [item('sinking', 1, 120000)]);
+    expect(plan(budget).capacity).toBe(100000);
+    expect(plan(budget, 'payday-preview').reason).toBe('payday');
+    expect(
+      plan(budget, 'payday-preview', {
+        ...runway,
+        budgetableIncome: 0,
+      } as PaydayRunway).reason,
+    ).toBe('account');
   });
 });

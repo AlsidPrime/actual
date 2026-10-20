@@ -15,6 +15,7 @@ const runway: PaydayRunway = {
   daysUntilPayday: 5,
   scheduleNames: ['Payday'],
   expectedIncome: 200000,
+  budgetableIncome: 200000,
   currentCash: 100000,
   todayClosingCash: 100000,
   lowestCash: 100000,

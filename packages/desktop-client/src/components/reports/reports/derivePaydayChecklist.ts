@@ -13,15 +13,23 @@ export type PaydayChecklistItem = {
   target: number | null;
   allocated: number | null;
   remaining: number | null;
-  status: 'ready' | 'unsupported' | 'unavailable';
+  status:
+    | 'ready'
+    | 'goal-only'
+    | 'unprioritized'
+    | 'unsupported'
+    | 'unavailable';
+  coveredScheduleIds?: string[];
 };
 
 export type PaydayChecklistResult = {
   month: string;
   availableToBudget: number | null;
   remainingTotal: number | null;
+  knownRemainingTotal: number | null;
   isComplete: boolean;
   items: PaydayChecklistItem[];
+  withoutRules: { categoryId: string; categoryName: string }[];
 };
 
 function readMoneyCell(
@@ -31,7 +39,9 @@ function readMoneyCell(
   const value = cells.find(
     cell => cell.name.endsWith(`!${name}`) || cell.name === name,
   )?.value;
-  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+  return typeof value === 'number' && Number.isSafeInteger(value)
+    ? value
+    : null;
 }
 
 function priorityFor(templates: Template[]): number | null {
@@ -51,103 +61,108 @@ export async function loadPaydayChecklist(
 ): Promise<PaydayChecklistResult> {
   const cells = await send('envelope-budget-month', { month });
   const availableToBudget = readMoneyCell(cells, 'to-budget');
+  const visibleCategories = categories.filter(
+    category => !category.is_income && !category.hidden && !category.tombstone,
+  );
   const items = await Promise.all(
-    categories
-      .filter(
-        category =>
-          !category.is_income && !category.hidden && !category.tombstone,
-      )
-      .map(async category => {
-        let templates: Template[];
-        try {
-          const definitions = await send(
-            'budget/get-category-automations',
-            category.id,
-          );
-          if (
-            definitions == null ||
-            typeof definitions !== 'object' ||
-            Array.isArray(definitions)
-          ) {
-            throw new Error('Automation definitions unavailable');
-          }
-          const selected = definitions[category.id];
-          if (selected === undefined) {
-            return null;
-          }
-          if (!Array.isArray(selected)) {
-            throw new Error('Invalid automation definitions');
-          }
-          templates = selected;
-        } catch {
-          return {
-            categoryId: category.id,
-            categoryName: category.name,
-            priority: null,
-            target: null,
-            allocated: readMoneyCell(cells, `budget-${category.id}`),
-            remaining: null,
-            status: 'unavailable',
-          } satisfies PaydayChecklistItem;
+    visibleCategories.map(async category => {
+      let templates: Template[];
+      try {
+        const definitions = await send(
+          'budget/get-category-automations',
+          category.id,
+        );
+        if (
+          definitions == null ||
+          typeof definitions !== 'object' ||
+          Array.isArray(definitions)
+        ) {
+          throw new Error('Automation definitions unavailable');
         }
-        if (templates.length === 0) {
+        const selected = definitions[category.id];
+        if (selected === undefined) {
           return null;
         }
-        const allocated = readMoneyCell(cells, `budget-${category.id}`);
-        const priority = priorityFor(templates);
-        if (!hasStandaloneSinkingContribution(templates)) {
-          return {
-            categoryId: category.id,
-            categoryName: category.name,
-            priority,
-            target: null,
-            allocated,
-            remaining: null,
-            status: 'unsupported',
-          } satisfies PaydayChecklistItem;
+        if (!Array.isArray(selected)) {
+          throw new Error('Invalid automation definitions');
         }
-        try {
-          const result = await send('budget/dry-run-category-template', {
-            month,
-            categoryId: category.id,
-            templates,
-            strict: true,
-          });
-          if (
-            !Number.isFinite(result.budgeted) ||
-            result.budgeted < 0 ||
-            !Array.isArray(result.perTemplate) ||
-            result.perTemplate.length !== templates.length ||
-            !result.perTemplate.every(
-              value => Number.isFinite(value) && value >= 0,
-            )
-          ) {
-            throw new Error('Invalid automation projection');
-          }
-          return {
-            categoryId: category.id,
-            categoryName: category.name,
-            priority,
-            target: result.budgeted,
-            allocated,
-            remaining:
-              allocated == null
-                ? null
-                : Math.max(0, result.budgeted - allocated),
-            status: 'ready',
-          } satisfies PaydayChecklistItem;
-        } catch {
-          return {
-            categoryId: category.id,
-            categoryName: category.name,
-            priority,
-            target: null,
-            allocated,
-            remaining: null,
-            status: 'unavailable',
-          } satisfies PaydayChecklistItem;
+        templates = selected;
+      } catch {
+        return {
+          categoryId: category.id,
+          categoryName: category.name,
+          priority: null,
+          target: null,
+          allocated: readMoneyCell(cells, `budget-${category.id}`),
+          remaining: null,
+          status: 'unavailable',
+        } satisfies PaydayChecklistItem;
+      }
+      if (templates.length === 0) {
+        return null;
+      }
+      const allocated = readMoneyCell(cells, `budget-${category.id}`);
+      const priority = priorityFor(templates);
+      if (!hasStandaloneSinkingContribution(templates)) {
+        return {
+          categoryId: category.id,
+          categoryName: category.name,
+          priority,
+          target: null,
+          allocated,
+          remaining: null,
+          status: templates.every(template => template.directive === 'goal')
+            ? 'goal-only'
+            : 'unsupported',
+        } satisfies PaydayChecklistItem;
+      }
+      try {
+        const result = await send('budget/dry-run-category-template', {
+          month,
+          categoryId: category.id,
+          templates,
+          strict: true,
+        });
+        if (
+          !Number.isSafeInteger(result.budgeted) ||
+          result.budgeted < 0 ||
+          !Array.isArray(result.perTemplate) ||
+          result.perTemplate.length !== templates.length ||
+          !result.perTemplate.every(
+            value => Number.isSafeInteger(value) && value >= 0,
+          )
+        ) {
+          throw new Error('Invalid automation projection');
         }
-      }),
+        return {
+          categoryId: category.id,
+          categoryName: category.name,
+          priority,
+          target: result.budgeted,
+          allocated,
+          remaining:
+            allocated == null ? null : Math.max(0, result.budgeted - allocated),
+          status: priority == null ? 'unprioritized' : 'ready',
+          coveredScheduleIds: templates.flatMap(template =>
+            template.directive === 'template' &&
+            template.type === 'schedule' &&
+            template.scheduleId
+              ? [template.scheduleId]
+              : [],
+          ),
+        } satisfies PaydayChecklistItem;
+      } catch {
+        return {
+          categoryId: category.id,
+          categoryName: category.name,
+          priority,
+          target: null,
+          allocated,
+          remaining: null,
+          status: 'unavailable',
+        } satisfies PaydayChecklistItem;
+      }
+    }),
   );
   const visibleItems = items
     .filter(item => item != null)
@@ -166,16 +181,43 @@ export async function loadPaydayChecklist(
     });
   const isComplete =
     availableToBudget != null &&
-    visibleItems.every(item => item.remaining != null);
+    visibleItems.every(
+      item => item.status === 'ready' && item.remaining != null,
+    );
+  const configuredIds = new Set(visibleItems.map(item => item.categoryId));
+  const withoutRules = visibleCategories
+    .filter(category => !configuredIds.has(category.id))
+    .map(category => ({
+      categoryId: category.id,
+      categoryName: category.name,
+    }));
+  const knownItems = visibleItems.filter(
+    item =>
+      (item.status === 'ready' || item.status === 'unprioritized') &&
+      item.remaining != null,
+  );
+  const knownRemainingTotal =
+    knownItems.length > 0
+      ? knownItems.reduce((sum, item) => sum + (item.remaining ?? 0), 0)
+      : null;
+  const fullRemainingTotal =
+    visibleItems.length > 0 &&
+    visibleItems.every(
+      item => item.status === 'ready' && item.remaining != null,
+    )
+      ? visibleItems.reduce((sum, item) => sum + (item.remaining ?? 0), 0)
+      : null;
   return {
     month,
     availableToBudget,
-    remainingTotal:
-      visibleItems.length > 0 &&
-      visibleItems.every(item => item.remaining != null)
-        ? visibleItems.reduce((sum, item) => sum + (item.remaining ?? 0), 0)
-        : null,
+    remainingTotal: Number.isSafeInteger(fullRemainingTotal)
+      ? fullRemainingTotal
+      : null,
+    knownRemainingTotal: Number.isSafeInteger(knownRemainingTotal)
+      ? knownRemainingTotal
+      : null,
     isComplete,
     items: visibleItems,
+    withoutRules,
   };
 }

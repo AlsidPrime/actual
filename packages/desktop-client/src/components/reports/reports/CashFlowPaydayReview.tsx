@@ -103,10 +103,19 @@ export function CashFlowPaydayReview({
           </Trans>
         ) : (
           <Trans>
-            Funding is complete and no transfer is currently recommended.
+            Configured sinking contributions are funded; no savings transfer is
+            currently recommended. Review other budget categories below.
           </Trans>
         )}
       </Text>
+      {review.reason === 'setup' && (
+        <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
+          <Trans>
+            You can still review native budget funding below. Savings-transfer
+            advice needs the account and category setup.
+          </Trans>
+        </Text>
+      )}
       {review.action === 'budget' && (
         <Link to="/budget">
           <Trans>Open Budget</Trans>

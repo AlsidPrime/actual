@@ -88,6 +88,7 @@ function calculate(
     selectedScheduleIds: ['pay-a', 'pay-b'],
     transferPayeeIds: new Set(),
     operatingAccountIds: ['checking'],
+    budgetableAccountIds: ['checking'],
     budgetBurn: null,
     isBurnComplete: true,
     isVariableSpendingIncluded: true,
@@ -145,7 +146,17 @@ describe('payday runway', () => {
       isConfigurationIncomplete: false,
       scheduleNames: ['pay-a', 'pay-b'],
       expectedIncome: 20000,
+      budgetableIncome: 20000,
     });
+  });
+
+  it('keeps selected off-budget Operating income out of envelope capacity', () => {
+    expect(
+      calculate({
+        forecastData: positiveDays,
+        budgetableAccountIds: [],
+      }),
+    ).toMatchObject({ expectedIncome: 20000, budgetableIncome: 0 });
   });
 
   it.each([

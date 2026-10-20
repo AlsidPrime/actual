@@ -47,6 +47,7 @@ import {
 import { CashFlowSetup } from './CashFlowSetup';
 import { deriveCashFlowAttention } from './deriveCashFlowAttention';
 import { loadPaydayChecklist } from './derivePaydayChecklist';
+import { derivePaydayObligations } from './derivePaydayObligations';
 import { derivePaydayReview } from './derivePaydayReview';
 import { PaydayChecklist } from './PaydayChecklist';
 import { SinkingSavingsPlanCallout } from './SinkingSavingsPlanCallout';
@@ -278,6 +279,7 @@ export function CashFlowPage() {
     });
     const unlistenCells = listen('cells-changed', cells => {
       if (cells.some(cell => /^budget\d{6}!/.test(cell.name))) {
+        void queryClient.invalidateQueries({ queryKey: ['balance-forecast'] });
         void queryClient.invalidateQueries({
           queryKey: ['cash-flow-payday-checklist'],
         });
@@ -308,6 +310,11 @@ export function CashFlowPage() {
   );
   const operatingAccountIds = config.operatingAccountIds.filter(id =>
     availableAccountIds.has(id),
+  );
+  const budgetableOperatingAccountIds = operatingAccountIds.filter(id =>
+    availableAccounts.some(
+      account => account.id === id && account.offbudget === 0,
+    ),
   );
   const reserveAccountIds = config.reserveAccountIds.filter(id =>
     availableAccountIds.has(id),
@@ -567,6 +574,7 @@ export function CashFlowPage() {
           selectedScheduleIds: config.paydayScheduleIds,
           transferPayeeIds,
           operatingAccountIds,
+          budgetableAccountIds: budgetableOperatingAccountIds,
           budgetBurn,
           isBurnComplete: isCalendarReady,
           isVariableSpendingIncluded: needsBurn,
@@ -644,6 +652,15 @@ export function CashFlowPage() {
     hasReserveCategories: selectedReserveCategories.length > 0,
     isEnvelope,
   });
+  const paydayObligations =
+    paydayChecklist?.month === planMonth
+      ? derivePaydayObligations({
+          checklist: paydayChecklist,
+          forecast: forecastData,
+          operatingAccountIds,
+          today,
+        })
+      : null;
 
   return (
     <Page
@@ -742,6 +759,7 @@ export function CashFlowPage() {
         <PaydayChecklist
           month={planMonth}
           checklist={paydayChecklist}
+          obligations={paydayObligations}
           runway={runway}
           risk={risk}
           today={today}

@@ -36,6 +36,8 @@ export type PaydayRunway = {
   daysUntilPayday: number | null;
   scheduleNames: string[];
   expectedIncome: number | null;
+  /** Forecast income into selected on-budget Operating accounts only. */
+  budgetableIncome: number | null;
   currentCash: number | null;
   todayClosingCash: number | null;
   lowestCash: number | null;
@@ -51,6 +53,7 @@ export function calculatePaydayRunway({
   selectedScheduleIds,
   transferPayeeIds,
   operatingAccountIds,
+  budgetableAccountIds,
   budgetBurn,
   isBurnComplete,
   isVariableSpendingIncluded,
@@ -64,6 +67,7 @@ export function calculatePaydayRunway({
   selectedScheduleIds: readonly string[];
   transferPayeeIds: ReadonlySet<string>;
   operatingAccountIds: readonly string[];
+  budgetableAccountIds?: readonly string[];
   budgetBurn: BudgetBurnProjection | null;
   isBurnComplete: boolean;
   isVariableSpendingIncluded: boolean;
@@ -81,6 +85,7 @@ export function calculatePaydayRunway({
     daysUntilPayday: null,
     scheduleNames: [],
     expectedIncome: null,
+    budgetableIncome: null,
     currentCash: null,
     todayClosingCash: null,
     lowestCash: null,
@@ -115,7 +120,9 @@ export function calculatePaydayRunway({
     return unavailable;
   }
   const operatingIds = new Set(operatingAccountIds);
+  const budgetableIds = new Set(budgetableAccountIds ?? []);
   const dates = new Map<string, Map<string, number>>();
+  const budgetableByDate = new Map<string, number>();
   const nativeCash = new Map<string, number>();
   for (const point of forecastData.dataPoints) {
     if (
@@ -142,6 +149,12 @@ export function calculatePaydayRunway({
         (incomes.get(transaction.scheduleId) ?? 0) + transaction.amount,
       );
       dates.set(point.date, incomes);
+      if (budgetableIds.has(point.accountId)) {
+        budgetableByDate.set(
+          point.date,
+          (budgetableByDate.get(point.date) ?? 0) + transaction.amount,
+        );
+      }
     }
   }
   const paydayDate = [...dates]
@@ -194,6 +207,9 @@ export function calculatePaydayRunway({
       (sum, amount) => sum + amount,
       0,
     ),
+    budgetableIncome: budgetableAccountIds
+      ? (budgetableByDate.get(paydayDate) ?? 0)
+      : null,
     currentCash: currentOperatingCash,
     currentCashWarning,
     todayClosingCash: isBurnComplete ? adjustedCash(today) : null,

@@ -1,4 +1,5 @@
 import { Trans } from 'react-i18next';
+import { Link } from 'react-router';
 
 import { useResponsive } from '@actual-app/components/hooks/useResponsive';
 import { Text } from '@actual-app/components/text';
@@ -15,11 +16,13 @@ import { usePrivacyMode } from '#hooks/usePrivacyMode';
 import type { PaydayRunway } from './cashFlowPayday';
 import type { CashFlowRiskResult } from './cashFlowRisk';
 import type { PaydayChecklistResult } from './derivePaydayChecklist';
+import type { PaydayObligation } from './derivePaydayObligations';
 import { SuggestedFundingPlan } from './SuggestedFundingPlan';
 
 export function PaydayChecklist({
   month,
   checklist,
+  obligations,
   isLoading,
   isEnvelope,
   hasCategoryData,
@@ -30,6 +33,7 @@ export function PaydayChecklist({
 }: {
   month: string;
   checklist: PaydayChecklistResult | undefined;
+  obligations: PaydayObligation[] | null;
   isLoading: boolean;
   isEnvelope: boolean;
   hasCategoryData: boolean;
@@ -100,22 +104,22 @@ export function PaydayChecklist({
             </View>
             <View style={{ flex: '1 1 170px', minWidth: 0 }}>
               <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
-                <Trans>Remaining target funding</Trans>
+                <Trans>Known target funding remaining</Trans>
               </Text>
-              <Text>{money(result.remainingTotal)}</Text>
+              <Text>{money(result.knownRemainingTotal)}</Text>
             </View>
           </View>
           {result.items.length === 0 ? (
             <Text>
               <Trans>
-                No Budget Automation funding targets are configured.
+                No calculable Budget Automation funding targets are configured.
               </Trans>
             </Text>
           ) : isIncomplete ? (
             <Text style={{ color: theme.warningText }}>
               <Trans>
-                Some funding data is unavailable or unsupported. The checklist
-                is incomplete.
+                Some configured rules do not provide a prioritized monthly
+                funding amount. Review their category details below.
               </Trans>
             </Text>
           ) : result.availableToBudget != null &&
@@ -137,7 +141,7 @@ export function PaydayChecklist({
           ) : result.remainingTotal === 0 ? (
             <Text>
               <Trans>
-                Configured targets are fully allocated for this month.
+                Supported configured targets are fully allocated for this month.
               </Trans>
             </Text>
           ) : (
@@ -173,7 +177,11 @@ export function PaydayChecklist({
                       </Text>
                     </View>
                     <Text>
-                      {item.status === 'unsupported' ? (
+                      {item.status === 'goal-only' ? (
+                        <Trans>Goal only; no monthly funding amount</Trans>
+                      ) : item.status === 'unprioritized' ? (
+                        <Trans>Priority unavailable; review manually</Trans>
+                      ) : item.status === 'unsupported' ? (
                         <Trans>Unsupported target</Trans>
                       ) : item.status === 'unavailable' ||
                         item.remaining == null ? (
@@ -191,6 +199,74 @@ export function PaydayChecklist({
               </View>
             </details>
           )}
+          <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
+            <Trans>
+              These targets cover configured rules only. They do not confirm
+              that every monthly expense is funded.
+            </Trans>
+          </Text>
+          {result.withoutRules.length > 0 && (
+            <details>
+              <summary>
+                <Trans>Categories without funding rules</Trans> (
+                {result.withoutRules.length})
+              </summary>
+              <Text style={{ color: theme.warningText }}>
+                <Trans>
+                  Review these categories in Budget; no funding amount can be
+                  inferred from their names.
+                </Trans>
+              </Text>
+              <Text>
+                {result.withoutRules.map(item => item.categoryName).join(', ')}
+              </Text>
+            </details>
+          )}
+          {obligations == null ? (
+            <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
+              <Trans>Scheduled expense review is unavailable.</Trans>
+            </Text>
+          ) : obligations.length > 0 ? (
+            <details>
+              <summary>
+                <Trans>Scheduled expenses to review</Trans> (
+                {obligations.length})
+              </summary>
+              <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
+                <Trans>
+                  These forecast expenses are not added to funding targets;
+                  check their category assignments and any Cover Schedule rules.
+                </Trans>
+              </Text>
+              {obligations.slice(0, 5).map(item => (
+                <Text key={`${item.scheduleId}:${item.date}`}>
+                  {item.name} · {monthUtils.format(item.date, 'PP', locale)}
+                </Text>
+              ))}
+              {obligations.length > 5 && (
+                <Text>
+                  <Trans>
+                    Review the remaining scheduled expenses in Schedules.
+                  </Trans>
+                </Text>
+              )}
+            </details>
+          ) : null}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+            <Link to="/budget">
+              <Trans>Review Budget</Trans>
+            </Link>
+            <Link to="/schedules">
+              <Trans>Review Schedules</Trans>
+            </Link>
+          </View>
+          <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
+            <Trans>
+              After income posts, use Actual's updated budget position to make
+              assignments in Budget. Review physical transfers separately in
+              Savings Sweep.
+            </Trans>
+          </Text>
           <SuggestedFundingPlan
             key={month}
             checklist={result}

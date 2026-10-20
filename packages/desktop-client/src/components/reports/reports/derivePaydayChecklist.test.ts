@@ -65,6 +65,7 @@ describe('payday funding checklist', () => {
     const result = await loadPaydayChecklist('2026-10', categories);
     expect(result.availableToBudget).toBe(25000);
     expect(result.remainingTotal).toBe(15000);
+    expect(result.knownRemainingTotal).toBe(15000);
     expect(result.isComplete).toBe(true);
     expect(result.items.map(item => [item.categoryId, item.remaining])).toEqual(
       [
@@ -117,12 +118,13 @@ describe('payday funding checklist', () => {
     const result = await loadPaydayChecklist('2026-10', categories);
     expect(result.availableToBudget).toBe(0);
     expect(result.remainingTotal).toBeNull();
+    expect(result.knownRemainingTotal).toBeNull();
     expect(result.isComplete).toBe(false);
     expect(result.items.find(item => item.categoryId === 'rent')).toMatchObject(
       { allocated: null, remaining: null },
     );
     expect(result.items.find(item => item.categoryId === 'food')).toMatchObject(
-      { status: 'unsupported', target: null },
+      { status: 'goal-only', target: null },
     );
     expect(
       vi
@@ -131,6 +133,29 @@ describe('payday funding checklist', () => {
           ([name]) => name === 'budget/dry-run-category-template',
         ),
     ).toHaveLength(1);
+  });
+
+  it('reports categories without rules separately from supported funding', async () => {
+    vi.mocked(send).mockImplementation(async (name, args) => {
+      if (name === 'envelope-budget-month') {
+        return [
+          { name: 'to-budget', value: 25000 },
+          { name: 'budget-rent', value: 0 },
+        ];
+      }
+      if (name === 'budget/get-category-automations') {
+        return args === 'rent' ? { rent: [fixed] } : {};
+      }
+      if (name === 'budget/dry-run-category-template') {
+        return { budgeted: 20000, perTemplate: [20000] };
+      }
+      throw new Error(`Unexpected API call: ${name}`);
+    });
+    const result = await loadPaydayChecklist('2026-10', categories);
+    expect(result.knownRemainingTotal).toBe(20000);
+    expect(result.withoutRules).toEqual([
+      { categoryId: 'food', categoryName: 'Food' },
+    ]);
   });
 
   it('does not interpret a missing Available to Budget cell or invalid native result as zero', async () => {

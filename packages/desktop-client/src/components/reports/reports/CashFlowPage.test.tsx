@@ -1041,7 +1041,7 @@ describe('Cash Flow page', () => {
     expect(panel).toHaveTextContent('Suggested Funding Plan');
     expect(panel).toHaveTextContent('Total suggested allocations: 150.00');
     expect(panel).toHaveTextContent('Available to Budget');
-    expect(panel).toHaveTextContent('Remaining target funding');
+    expect(panel).toHaveTextContent('Known target funding remaining');
     expect(panel).toHaveTextContent(
       'Budget funding is separate from Operating cash and transfer headroom.',
     );
@@ -1095,7 +1095,9 @@ describe('Cash Flow page', () => {
             month,
             availableToBudget: -30000,
             remainingTotal: 90000,
+            knownRemainingTotal: 90000,
             isComplete: true,
+            withoutRules: [],
             items: [
               {
                 categoryId: 'housing',
@@ -1112,6 +1114,7 @@ describe('Cash Flow page', () => {
             {
               paydayDate: '2026-10-25',
               expectedIncome: 100000,
+              budgetableIncome: 100000,
               isConfigurationIncomplete: false,
               status: 'incomplete',
               currentCashWarning: null,
@@ -1123,10 +1126,12 @@ describe('Cash Flow page', () => {
       </TestProviders>,
     );
     const panel = screen.getByText('Suggested Funding Plan').parentElement;
-    expect(panel).toHaveTextContent('Available to Budget for allocation');
+    expect(panel).toHaveTextContent(
+      'Selected-month Available to Budget for allocation',
+    );
     expect(panel).not.toHaveTextContent('Hypothetical allocation capacity');
     await userEvent.click(
-      screen.getByRole('button', { name: 'Next payday preview' }),
+      screen.getByRole('button', { name: 'Hypothetical next payday' }),
     );
     expect(panel).toHaveTextContent('Hypothetical allocation capacity');
     expect(panel).toHaveTextContent('Total suggested allocations');
@@ -1141,45 +1146,367 @@ describe('Cash Flow page', () => {
     }
   });
 
+  it('previews an October payday against November native Available to Budget', async () => {
+    render(
+      <TestProviders>
+        <SuggestedFundingPlan
+          checklist={{
+            month: '2026-11',
+            availableToBudget: -30000,
+            remainingTotal: 90000,
+            knownRemainingTotal: 90000,
+            isComplete: true,
+            withoutRules: [],
+            items: [
+              {
+                categoryId: 'housing',
+                categoryName: 'Housing',
+                priority: 1,
+                target: 90000,
+                allocated: 0,
+                remaining: 90000,
+                status: 'ready',
+              },
+            ],
+          }}
+          runway={
+            {
+              paydayDate: '2026-10-27',
+              expectedIncome: 100000,
+              budgetableIncome: 100000,
+              isConfigurationIncomplete: false,
+              status: 'scheduled-only',
+              currentCashWarning: null,
+            } as PaydayRunway
+          }
+          risk={null}
+          today="2026-10-19"
+        />
+      </TestProviders>,
+    );
+    const panel = screen.getByText('Suggested Funding Plan').parentElement;
+    expect(panel).not.toHaveTextContent('Hypothetical allocation capacity');
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Hypothetical next payday' }),
+    );
+    expect(panel).toHaveTextContent('Hypothetical allocation capacity: 700.00');
+    expect(panel).toHaveTextContent('Covered by expected income: 300.00');
+    expect(panel).toHaveTextContent('Total suggested allocations: 700.00');
+  });
+
+  it('shows a fundable scheduled payday only in the explicit preview', async () => {
+    fixture.withReserve = true;
+    fixture.futureOperatingBalance = 200000;
+    fixture.futureOperatingIncome = 100000;
+    fixture.attentionSchedules = [
+      {
+        id: 'payday',
+        name: 'Payday',
+        next_date: monthUtils.addDays(monthUtils.currentDay(), 1),
+        _account: 'checking',
+        _payee: '',
+        _amount: 100000,
+        posts_transaction: true,
+        _date: { frequency: 'weekly', start: monthUtils.currentDay() },
+      },
+    ];
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+      paydayScheduleIds: ['payday'],
+    });
+    vi.mocked(send).mockImplementation(async name => {
+      if (name === 'envelope-budget-month') {
+        return [
+          { name: 'to-budget', value: 20000 },
+          { name: 'budget-emergency', value: 0 },
+        ];
+      }
+      if (name === 'budget/get-category-automations') {
+        return {
+          emergency: [
+            {
+              directive: 'template',
+              type: 'simple',
+              monthly: 60000,
+              priority: 1,
+            },
+          ],
+        };
+      }
+      if (name === 'budget/dry-run-category-template') {
+        return { budgeted: 60000, perTemplate: [60000] };
+      }
+      throw new Error(`Unexpected API call: ${name}`);
+    });
+    renderRoute();
+    if (
+      monthUtils.addDays(monthUtils.currentDay(), 1).slice(0, 7) !==
+      monthUtils.currentMonth()
+    ) {
+      await userEvent.click(
+        screen.getByRole('button', { name: /Next month ·/ }),
+      );
+    }
+    const panel = screen.getByText('Payday Funding Checklist').parentElement;
+    await waitFor(() =>
+      expect(panel).toHaveTextContent('Total suggested allocations: 200.00'),
+    );
+    expect(panel).not.toHaveTextContent('Hypothetical allocation capacity');
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Hypothetical next payday' }),
+    );
+    await waitFor(() =>
+      expect(panel).toHaveTextContent(
+        'Hypothetical allocation capacity: 1,200.00',
+      ),
+    );
+    expect(panel).toHaveTextContent('Total suggested allocations: 600.00');
+    expect(panel).toHaveTextContent('Unallocated scenario amount: 600.00');
+    expect(
+      vi
+        .mocked(send)
+        .mock.calls.every(([name]) =>
+          [
+            'envelope-budget-month',
+            'budget/get-category-automations',
+            'budget/dry-run-category-template',
+          ].includes(name),
+        ),
+    ).toBe(true);
+  });
+
+  it('keeps a valid sinking target useful beside a Goal-only category', async () => {
+    fixture.withReserve = true;
+    fixture.withBurn = true;
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+    });
+    vi.mocked(send).mockImplementation(async (name, args) => {
+      if (name === 'envelope-budget-month') {
+        return [
+          { name: 'to-budget', value: 20000 },
+          { name: 'budget-emergency', value: 0 },
+          { name: 'budget-groceries', value: 0 },
+        ];
+      }
+      if (name === 'budget/get-category-automations') {
+        return args === 'emergency'
+          ? {
+              emergency: [
+                {
+                  directive: 'template',
+                  type: 'simple',
+                  monthly: 10000,
+                  priority: 1,
+                },
+              ],
+            }
+          : { groceries: [{ directive: 'goal', type: 'goal', amount: 25000 }] };
+      }
+      if (name === 'budget/dry-run-category-template') {
+        return { budgeted: 10000, perTemplate: [10000] };
+      }
+      throw new Error(`Unexpected API call: ${name}`);
+    });
+    renderRoute();
+    const panel = screen.getByText('Payday Funding Checklist').parentElement;
+    await waitFor(() =>
+      expect(panel).toHaveTextContent('Total suggested allocations: 100.00'),
+    );
+    expect(panel).toHaveTextContent('Conditional plan');
+    await userEvent.click(screen.getByText('Category funding details'));
+    expect(panel).toHaveTextContent('Goal only; no monthly funding amount');
+    expect(
+      vi
+        .mocked(send)
+        .mock.calls.every(([name]) =>
+          [
+            'envelope-budget-month',
+            'budget/get-category-automations',
+            'budget/dry-run-category-template',
+          ].includes(name),
+        ),
+    ).toBe(true);
+  });
+
+  it('uses the updated native budget without previewing a posted payday again', async () => {
+    fixture.withReserve = true;
+    fixture.futureOperatingBalance = 150000;
+    fixture.futureOperatingIncome = 0;
+    fixture.attentionSchedules = [
+      {
+        id: 'payday',
+        name: 'Payday',
+        next_date: monthUtils.addDays(monthUtils.currentDay(), 1),
+        _account: 'checking',
+        _payee: '',
+        _amount: 100000,
+        posts_transaction: true,
+        _date: { frequency: 'weekly', start: monthUtils.currentDay() },
+      },
+    ];
+    fixture.rawConfig = JSON.stringify({
+      ...DEFAULT_CASH_FLOW_CONFIG,
+      operatingAccountIds: ['checking'],
+      paydayScheduleIds: ['payday'],
+    });
+    vi.mocked(send).mockImplementation(async name => {
+      if (name === 'envelope-budget-month') {
+        return [
+          { name: 'to-budget', value: 100000 },
+          { name: 'budget-emergency', value: 0 },
+        ];
+      }
+      if (name === 'budget/get-category-automations') {
+        return {
+          emergency: [
+            {
+              directive: 'template',
+              type: 'simple',
+              monthly: 120000,
+              priority: 1,
+            },
+          ],
+        };
+      }
+      if (name === 'budget/dry-run-category-template') {
+        return { budgeted: 120000, perTemplate: [120000] };
+      }
+      throw new Error(`Unexpected API call: ${name}`);
+    });
+    renderRoute();
+    const panel = screen.getByText('Payday Funding Checklist').parentElement;
+    await waitFor(() =>
+      expect(panel).toHaveTextContent('Total suggested allocations: 1,000.00'),
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Hypothetical next payday' }),
+    );
+    expect(panel).toHaveTextContent('Preview unavailable');
+    expect(panel).not.toHaveTextContent('Hypothetical allocation capacity');
+  });
+
+  it('recalculates an equal-priority what-if split when available funds change', async () => {
+    const makeChecklist = (availableToBudget: number) => ({
+      month: '2026-10',
+      availableToBudget,
+      remainingTotal: 18000,
+      knownRemainingTotal: 18000,
+      isComplete: true,
+      withoutRules: [],
+      items: [
+        {
+          categoryId: 'first',
+          categoryName: 'First',
+          priority: 1,
+          target: 2000,
+          allocated: 0,
+          remaining: 2000,
+          status: 'ready' as const,
+        },
+        {
+          categoryId: 'choice-a',
+          categoryName: 'Choice A',
+          priority: 2,
+          target: 8000,
+          allocated: 0,
+          remaining: 8000,
+          status: 'ready' as const,
+        },
+        {
+          categoryId: 'choice-b',
+          categoryName: 'Choice B',
+          priority: 2,
+          target: 8000,
+          allocated: 0,
+          remaining: 8000,
+          status: 'ready' as const,
+        },
+      ],
+    });
+    const { rerender } = render(
+      <TestProviders>
+        <SuggestedFundingPlan
+          checklist={makeChecklist(10000)}
+          runway={null}
+          risk={null}
+          today="2026-10-20"
+        />
+      </TestProviders>,
+    );
+    const panel = screen.getByText('Suggested Funding Plan').parentElement;
+    expect(panel).toHaveTextContent('Available for this priority group: 80.00');
+    const input = screen.getByLabelText(/Choice A/);
+    await userEvent.clear(input);
+    await userEvent.type(input, '30');
+    await userEvent.tab();
+    expect(panel).toHaveTextContent('Total suggested allocations: 50.00');
+    rerender(
+      <TestProviders>
+        <SuggestedFundingPlan
+          checklist={makeChecklist(9000)}
+          runway={null}
+          risk={null}
+          today="2026-10-20"
+        />
+      </TestProviders>,
+    );
+    expect(panel).toHaveTextContent('Total suggested allocations: 20.00');
+    expect(panel).toHaveTextContent('Available for this priority group: 70.00');
+  });
+
   it('hides checklist and plan amounts on a narrow screen in Privacy Mode', async () => {
     fixture.privacyMode = true;
     vi.stubGlobal('innerWidth', 400);
     try {
       render(
-        <TestProviders>
-          <PaydayChecklist
-            month="2026-10"
-            checklist={{
-              month: '2026-10',
-              availableToBudget: 12345,
-              remainingTotal: 5000,
-              isComplete: true,
-              items: [
-                {
-                  categoryId: 'housing',
-                  categoryName: 'Housing',
-                  priority: 1,
-                  target: 10000,
-                  allocated: 5000,
-                  remaining: 5000,
-                  status: 'ready',
-                },
-              ],
-            }}
-            runway={null}
-            risk={null}
-            today="2026-10-20"
-            isLoading={false}
-            isEnvelope
-            hasCategoryData
-            hasCategories
-          />
-        </TestProviders>,
+        <MemoryRouter>
+          <TestProviders>
+            <PaydayChecklist
+              month="2026-10"
+              checklist={{
+                month: '2026-10',
+                availableToBudget: 12345,
+                remainingTotal: 5000,
+                knownRemainingTotal: 5000,
+                isComplete: true,
+                withoutRules: [],
+                items: [
+                  {
+                    categoryId: 'housing',
+                    categoryName: 'Housing',
+                    priority: 1,
+                    target: 10000,
+                    allocated: 5000,
+                    remaining: 5000,
+                    status: 'ready',
+                  },
+                ],
+              }}
+              runway={null}
+              risk={null}
+              obligations={[]}
+              today="2026-10-20"
+              isLoading={false}
+              isEnvelope
+              hasCategoryData
+              hasCategories
+            />
+          </TestProviders>
+        </MemoryRouter>,
       );
       const panel = screen.getByText('Payday Funding Checklist').parentElement;
       await userEvent.click(screen.getByText('Category funding details'));
       expect(panel).toHaveTextContent('Private value hidden');
       expect(panel).not.toHaveTextContent(/123\.45|100\.00|73\.45|50\.00/);
+      for (const element of panel?.querySelectorAll('[aria-label],[title]') ??
+        []) {
+        expect(
+          `${element.getAttribute('aria-label')} ${element.getAttribute('title')}`,
+        ).not.toMatch(/123\.45|100\.00|73\.45|50\.00/);
+      }
     } finally {
       cleanup();
       vi.unstubAllGlobals();
@@ -1290,7 +1617,7 @@ describe('Cash Flow page', () => {
     renderRoute();
     const panel = screen.getByText('Payday Funding Checklist').parentElement;
     await waitFor(() =>
-      expect(panel).toHaveTextContent('Remaining target funding'),
+      expect(panel).toHaveTextContent('Known target funding remaining'),
     );
     await userEvent.click(screen.getByText('Category funding details'));
     expect(

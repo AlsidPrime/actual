@@ -10,6 +10,7 @@ import * as monthUtils from '@actual-app/core/shared/months';
 
 import { FinancialText } from '#components/FinancialText';
 import { PrivacyFilter } from '#components/PrivacyFilter';
+import { AmountInput } from '#components/util/AmountInput';
 import { useFormat } from '#hooks/useFormat';
 import { useLocale } from '#hooks/useLocale';
 import { usePrivacyMode } from '#hooks/usePrivacyMode';
@@ -32,15 +33,38 @@ export function SuggestedFundingPlan({
   today: string;
 }) {
   const [mode, setMode] = useState<FundingMode>('available');
+  const [choiceState, setChoiceState] = useState<{
+    key: string;
+    values: Record<string, number>;
+  }>({ key: '', values: {} });
   const format = useFormat();
   const locale = useLocale();
   const isPrivate = usePrivacyMode();
   const { isNarrowWidth } = useResponsive();
+  const choiceKey = JSON.stringify([
+    checklist.month,
+    checklist.availableToBudget,
+    checklist.items.map(item => [
+      item.categoryId,
+      item.status,
+      item.priority,
+      item.target,
+      item.allocated,
+      item.remaining,
+    ]),
+    checklist.withoutRules,
+    mode,
+    runway?.paydayDate,
+    runway?.expectedIncome,
+    runway?.budgetableIncome,
+  ]);
+  const choices = choiceState.key === choiceKey ? choiceState.values : {};
   const plan = derivePaydayAllocationSuggestions({
     checklist,
     mode,
     runway,
     today,
+    choices,
   });
   const money = (amount: number) =>
     isPrivate && isNarrowWidth ? (
@@ -95,17 +119,23 @@ export function SuggestedFundingPlan({
           variant={mode === 'available' ? 'primary' : 'normal'}
           aria-pressed={mode === 'available'}
           style={{ minHeight: 40 }}
-          onPress={() => setMode('available')}
+          onPress={() => {
+            setMode('available');
+            setChoiceState({ key: '', values: {} });
+          }}
         >
-          <Trans>Available now</Trans>
+          <Trans>Current budget position</Trans>
         </Button>
         <Button
           variant={mode === 'payday-preview' ? 'primary' : 'normal'}
           aria-pressed={mode === 'payday-preview'}
           style={{ minHeight: 40 }}
-          onPress={() => setMode('payday-preview')}
+          onPress={() => {
+            setMode('payday-preview');
+            setChoiceState({ key: '', values: {} });
+          }}
         >
-          <Trans>Next payday preview</Trans>
+          <Trans>Hypothetical next payday</Trans>
         </Button>
       </fieldset>
       {mode === 'payday-preview' && (
@@ -135,20 +165,33 @@ export function SuggestedFundingPlan({
       ) : plan.reason === 'month' ? (
         <Text style={{ color: theme.warningText }}>
           <Trans>
-            Preview unavailable: the next payday must fall in the selected
-            funding month.
+            Preview unavailable: the next payday falls after this funding month
+            or too far before it.
+          </Trans>
+        </Text>
+      ) : plan.reason === 'account' ? (
+        <Text style={{ color: theme.warningText }}>
+          <Trans>
+            Preview unavailable: the selected payday has no verified forecast
+            income into an on-budget Operating account.
           </Trans>
         </Text>
       ) : (
         <>
           <Text>
             {mode === 'available' ? (
-              <Trans>Available to Budget for allocation</Trans>
+              <Trans>Selected-month Available to Budget for allocation</Trans>
             ) : (
               <Trans>Hypothetical allocation capacity</Trans>
             )}
             : {money(plan.capacity ?? 0)}
           </Text>
+          {mode === 'payday-preview' && plan.previewIncome != null && (
+            <Text>
+              <Trans>Forecast income eligible for this budget preview</Trans>:{' '}
+              {money(plan.previewIncome)}
+            </Text>
+          )}
           {plan.existingDeficit > 0 && (
             <Text>
               <Trans>Existing budget deficit</Trans>:{' '}
@@ -204,20 +247,102 @@ export function SuggestedFundingPlan({
             </View>
           )}
           {plan.manualChoice && (
-            <Text style={{ color: theme.warningText }}>
-              <Trans>Priority</Trans> {plan.manualChoice.priority}:{' '}
-              {money(plan.manualChoice.amount)}{' '}
-              <Trans>
-                is available for multiple equal-priority categories. Choose how
-                to distribute it before considering lower priorities.
-              </Trans>
-            </Text>
+            <View
+              style={{
+                gap: 8,
+                borderTop: `1px solid ${theme.tableBorder}`,
+                paddingTop: 8,
+              }}
+            >
+              <Text style={{ fontWeight: 600 }}>
+                <Trans>Choose a split for priority</Trans>{' '}
+                {plan.manualChoice.priority}
+              </Text>
+              <Text>
+                <Trans>Available for this priority group</Trans>:{' '}
+                {money(plan.manualChoice.pool)} ·{' '}
+                <Trans>Still to distribute</Trans>:{' '}
+                {money(plan.manualChoice.remainingPool)}
+              </Text>
+              <Text style={{ color: theme.pageTextLight, fontSize: 12 }}>
+                <Trans>
+                  Equal-priority categories need your choice. Lower priorities
+                  remain on hold while this group has unmet targets.
+                </Trans>
+              </Text>
+              {isPrivate ? (
+                <Text>
+                  <Trans>
+                    Turn off Privacy Mode to edit this what-if split.
+                  </Trans>
+                </Text>
+              ) : (
+                plan.manualChoice.categories.map(category => (
+                  <View
+                    key={category.categoryId}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'row',
+                      flexWrap: 'wrap',
+                      alignItems: 'center',
+                      gap: 8,
+                    }}
+                  >
+                    <label
+                      htmlFor={`payday-choice-${category.categoryId}`}
+                      style={{ flex: '1 1 170px' }}
+                    >
+                      {category.categoryName} · <Trans>Remaining target</Trans>:{' '}
+                      {money(category.remaining)}
+                    </label>
+                    <AmountInput
+                      id={`payday-choice-${category.categoryId}`}
+                      value={choices[category.categoryId] ?? 0}
+                      sign="+"
+                      style={{ flex: '0 1 150px', minWidth: 120 }}
+                      onUpdate={value =>
+                        setChoiceState({
+                          key: choiceKey,
+                          values: { ...choices, [category.categoryId]: value },
+                        })
+                      }
+                    />
+                  </View>
+                ))
+              )}
+              {plan.manualChoice.error && (
+                <Text style={{ color: theme.errorText }}>
+                  <Trans>
+                    Use whole cents, stay within each remaining target, and do
+                    not exceed the priority group's available amount.
+                  </Trans>
+                </Text>
+              )}
+              {!isPrivate && (
+                <Button
+                  variant="normal"
+                  onPress={() => setChoiceState({ key: choiceKey, values: {} })}
+                >
+                  <Trans>Reset what-if split</Trans>
+                </Button>
+              )}
+            </View>
           )}
           {plan.status === 'partial' && (
             <Text style={{ color: theme.warningText }}>
               <Trans>
-                Partial plan: some targets or priorities are unsupported or
-                unavailable. Unassigned money is not verified surplus.
+                Conditional plan: some categories have no calculable target or
+                priority. Review the category details and rule-free categories
+                above. Unassigned money is not verified surplus.
+              </Trans>
+            </Text>
+          )}
+          {plan.blockedPriority != null && (
+            <Text style={{ color: theme.warningText }}>
+              <Trans>Priority</Trans> {plan.blockedPriority}:{' '}
+              <Trans>
+                a required target is unavailable. Lower-priority suggestions are
+                paused.
               </Trans>
             </Text>
           )}
